@@ -2,6 +2,7 @@ from io import BytesIO
 
 import lmdb
 from PIL import Image
+from PIL import Image, ImageFile
 from torch.utils.data import Dataset
 
 
@@ -15,8 +16,8 @@ class MultiResolutionDataset(Dataset):
         with self.env.begin(write=False) as txn:
             self.length = int(txn.get("length".encode("utf-8")).decode("utf-8"))
 
-        # self.resolution = resolution
-        self.resolution = 1024  # HACK to make current cyphis dataset (maybe?) work
+        self.resolution = resolution
+        # self.resolution = 1024  # HACK to make current cyphis dataset (maybe?) work
         self.transform = transform
 
     def __len__(self):

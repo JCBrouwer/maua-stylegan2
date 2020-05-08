@@ -4,10 +4,14 @@ import multiprocessing
 from functools import partial
 
 from PIL import Image
+from PIL import ImageFile
+
 import lmdb
 from tqdm import tqdm
 from torchvision import datasets
 from torchvision.transforms import functional as trans_fn
+
+# ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 def resize_and_convert(img, size, resample, quality=100):
@@ -31,8 +35,11 @@ def resize_multiple(img, sizes=(128, 256, 512, 1024), resample=Image.LANCZOS, qu
 
 def resize_worker(img_file, sizes, resample):
     i, file = img_file
-    img = Image.open(file)
-    img = img.convert("RGB")
+    try:
+        img = Image.open(file)
+        img = img.convert("RGB")
+    except:
+        print(file, "truncated")
     out = resize_multiple(img, sizes=sizes, resample=resample)
 
     return i, out
