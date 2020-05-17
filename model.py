@@ -138,11 +138,8 @@ class EqualLinear(nn.Module):
 
     def forward(self, input):
         if self.activation:
-            # print(input.dtype, input.device)
             out = F.linear(input, self.weight * self.scale)
-            # print(out.dtype, out.device)
             out = fused_leaky_relu(out, self.bias * self.lr_mul)
-            # print(out.dtype, out.device)
 
         else:
             out = F.linear(input, self.weight * self.scale, bias=self.bias * self.lr_mul)
@@ -281,8 +278,23 @@ class ConstantInput(nn.Module):
     def forward(self, input):
         batch = input.shape[0]
         out = self.input.repeat(batch, 1, 1, 1)
-
         return out
+
+
+class LatentInput(nn.Module):
+    def __init__(self, latent_dim, channel, size=4):
+        super().__init__()
+        self.channel = channel
+        self.size = size
+        self.linear = EqualLinear(latent_dim, channel * size * size, activation="fused_lrelu")
+        self.activate = FusedLeakyReLU(channel * size * size)
+        self.input = nn.Parameter(torch.randn(1))
+
+    def forward(self, input):
+        batch = input.shape[0]
+        out = self.linear(input[:, 0])
+        out = self.activate(out)
+        return out.reshape((batch, self.channel, self.size, self.size))
 
 
 class StyledConv(nn.Module):
@@ -346,12 +358,11 @@ class ToRGB(nn.Module):
 
 class Generator(nn.Module):
     def __init__(
-        self, size, style_dim, n_mlp, channel_multiplier=2, blur_kernel=[1, 3, 3, 1], lr_mlp=0.01,
+        self, size, style_dim, n_mlp, channel_multiplier=2, blur_kernel=[1, 3, 3, 1], lr_mlp=0.01, constant_input=False
     ):
         super().__init__()
 
         self.size = size
-
         self.style_dim = style_dim
 
         layers = [PixelNorm()]
@@ -373,12 +384,16 @@ class Generator(nn.Module):
             1024: 16 * channel_multiplier,
         }
 
-        self.input = ConstantInput(self.channels[4])
-        self.conv1 = StyledConv(self.channels[4], self.channels[4], 3, style_dim, blur_kernel=blur_kernel)
-        self.to_rgb1 = ToRGB(self.channels[4], style_dim, upsample=False)
-
         self.log_size = int(math.log(size, 2))
         self.num_layers = (self.log_size - 2) * 2 + 1
+        self.n_latent = self.log_size * 2 - 2
+
+        if constant_input:
+            self.input = ConstantInput(self.channels[4])
+        else:
+            self.input = LatentInput(style_dim, self.channels[4])
+        self.conv1 = StyledConv(self.channels[4], self.channels[4], 3, style_dim, blur_kernel=blur_kernel)
+        self.to_rgb1 = ToRGB(self.channels[4], style_dim, upsample=False)
 
         self.convs = nn.ModuleList()
         self.upsamples = nn.ModuleList()
@@ -404,8 +419,6 @@ class Generator(nn.Module):
             self.to_rgbs.append(ToRGB(out_channel, style_dim))
 
             in_channel = out_channel
-
-        self.n_latent = self.log_size * 2 - 2
 
     def make_noise(self):
         device = self.input.input.device

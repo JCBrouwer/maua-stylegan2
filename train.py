@@ -15,6 +15,7 @@ from tqdm import tqdm
 import wandb
 import fid
 import ppl
+from spectral_normalization import track_spectral_norm
 
 from model import Generator, Discriminator
 from dataset import MultiResolutionDataset
@@ -101,20 +102,22 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
         requires_grad(generator, False)
         requires_grad(discriminator, True)
 
-        with th.cuda.amp.autocast():
-            noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
-            fake_img, _ = generator(noise)
-            fake_pred = discriminator(fake_img)
-            real_pred = discriminator(real_img)
+        # with th.cuda.amp.autocast():
+        noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
+        fake_img, _ = generator(noise)
+        fake_pred = discriminator(fake_img)
+        real_pred = discriminator(real_img)
 
-            # logistic loss
-            real_loss = F.softplus(-real_pred)
-            fake_loss = F.softplus(fake_pred)
-            d_loss = real_loss.mean() + fake_loss.mean()
+        # logistic loss
+        real_loss = F.softplus(-real_pred)
+        fake_loss = F.softplus(fake_pred)
+        d_loss = real_loss.mean() + fake_loss.mean()
 
         discriminator.zero_grad()
-        scaler.scale(d_loss).backward()
-        scaler.step(d_optim)
+        # scaler.scale(d_loss).backward()
+        # scaler.step(d_optim)
+        d_loss.backward()
+        d_optim.step()
 
         loss_dict["d"] = d_loss
         loss_dict["real_score"] = real_pred.mean()
@@ -124,37 +127,42 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
         if i % args.d_reg_every == 0:
             real_img.requires_grad = True
 
-            with th.cuda.amp.autocast():
-                real_pred = discriminator(real_img)
-                real_pred_sum = real_pred.sum()
+            # with th.cuda.amp.autocast():
+            real_pred = discriminator(real_img)
+            real_pred_sum = real_pred.sum()
 
-            (grad_real,) = th.autograd.grad(outputs=scaler.scale(real_pred_sum), inputs=real_img, create_graph=True)
-            grad_real = grad_real * (1.0 / scaler.get_scale())
+            (grad_real,) = th.autograd.grad(outputs=real_pred_sum, inputs=real_img, create_graph=True)
+            # (grad_real,) = th.autograd.grad(outputs=scaler.scale(real_pred_sum), inputs=real_img, create_graph=True)
+            # grad_real = grad_real * (1.0 / scaler.get_scale())
 
-            with th.cuda.amp.autocast():
-                r1_loss = grad_real.pow(2).view(grad_real.shape[0], -1).sum(1).mean()
-                weighted_r1_loss = args.r1 / 2 * r1_loss * args.d_reg_every + 0 * real_pred[0]
+            # with th.cuda.amp.autocast():
+            r1_loss = grad_real.pow(2).view(grad_real.shape[0], -1).sum(1).mean()
+            weighted_r1_loss = args.r1 / 2 * r1_loss * args.d_reg_every + 0 * real_pred[0]
 
             discriminator.zero_grad()
-            scaler.scale(weighted_r1_loss).backward()
-            scaler.step(d_optim)
+            # scaler.scale(weighted_r1_loss).backward()
+            # scaler.step(d_optim)
+            weighted_r1_loss.backward()
+            d_optim.step()
 
         loss_dict["r1"] = r1_loss
 
         requires_grad(generator, True)
         requires_grad(discriminator, False)
 
-        with th.cuda.amp.autocast():
-            noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
-            fake_img, _ = generator(noise)
-            fake_pred = discriminator(fake_img)
+        # with th.cuda.amp.autocast():
+        noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
+        fake_img, _ = generator(noise)
+        fake_pred = discriminator(fake_img)
 
-            # non-saturating loss
-            g_loss = F.softplus(-fake_pred).mean()
+        # non-saturating loss
+        g_loss = F.softplus(-fake_pred).mean()
 
         generator.zero_grad()
-        scaler.scale(g_loss).backward()
-        scaler.step(g_optim)
+        # scaler.scale(g_loss).backward()
+        # scaler.step(g_optim)
+        g_loss.backward()
+        g_optim.step()
 
         loss_dict["g"] = g_loss
 
@@ -162,37 +170,39 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
         if i % args.g_reg_every == 0:
             path_batch_size = max(1, args.batch_size // args.path_batch_shrink)
 
-            with th.cuda.amp.autocast():
-                noise = make_noise(path_batch_size, args.latent_size, args.mixing_prob, device)
-                fake_img, latents = generator(noise, return_latents=True)
+            # with th.cuda.amp.autocast():
+            noise = make_noise(path_batch_size, args.latent_size, args.mixing_prob, device)
+            fake_img, latents = generator(noise, return_latents=True)
 
-                img_noise = th.randn_like(fake_img) / math.sqrt(fake_img.shape[2] * fake_img.shape[3])
-                noisy_img_sum = (fake_img * img_noise).sum()
+            img_noise = th.randn_like(fake_img) / math.sqrt(fake_img.shape[2] * fake_img.shape[3])
+            noisy_img_sum = (fake_img * img_noise).sum()
 
-            (grad,) = th.autograd.grad(outputs=scaler.scale(noisy_img_sum), inputs=latents, create_graph=True)
-            grad = grad * (1.0 / scaler.get_scale())
+            (grad,) = th.autograd.grad(outputs=noisy_img_sum, inputs=latents, create_graph=True)
+            # (grad,) = th.autograd.grad(outputs=scaler.scale(noisy_img_sum), inputs=latents, create_graph=True)
+            # grad = grad * (1.0 / scaler.get_scale())
 
-            with th.cuda.amp.autocast():
-                path_lengths = th.sqrt(grad.pow(2).sum(2).mean(1))
-                path_mean = mean_path_length + 0.01 * (path_lengths.mean() - mean_path_length)
-                path_loss = (path_lengths - path_mean).pow(2).mean()
-                mean_path_length = path_mean.detach()
+            # with th.cuda.amp.autocast():
+            path_lengths = th.sqrt(grad.pow(2).sum(2).mean(1))
+            path_mean = mean_path_length + 0.01 * (path_lengths.mean() - mean_path_length)
+            path_loss = (path_lengths - path_mean).pow(2).mean()
+            mean_path_length = path_mean.detach()
 
-                generator.zero_grad()
+            weighted_path_loss = args.path_regularize * args.g_reg_every * path_loss
+            if args.path_batch_shrink:
+                weighted_path_loss += 0 * fake_img[0, 0, 0, 0]
 
-                weighted_path_loss = args.path_regularize * args.g_reg_every * path_loss
-                if args.path_batch_shrink:
-                    weighted_path_loss += 0 * fake_img[0, 0, 0, 0]
-
-            scaler.scale(weighted_path_loss).backward()
-            scaler.step(g_optim)
+            generator.zero_grad()
+            # scaler.scale(weighted_path_loss).backward()
+            # scaler.step(g_optim)
+            weighted_path_loss.backward()
+            g_optim.step()
 
             mean_path_length_avg = reduce_sum(mean_path_length).item() / get_world_size()
 
         loss_dict["path"] = path_loss
         loss_dict["path_length"] = path_lengths.mean()
 
-        scaler.update()
+        # scaler.update()
 
         accumulate(g_ema, g_module)
 
@@ -207,45 +217,49 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
         path_length_val = loss_reduced["path_length"].mean().item()
 
         if get_rank() == 0:
-            pbar.set_description(
-                (
-                    f"d: {d_loss_val:.4f}; g: {g_loss_val:.4f}; r1: {r1_val:.4f}; "
-                    f"path: {path_loss_val:.4f}; mean path: {mean_path_length_avg:.4f}"
-                )
-            )
 
-            wandb.log(
-                {
-                    "Generator": g_loss_val,
-                    "Discriminator": d_loss_val,
-                    "R1": r1_val,
-                    "Path Length Regularization": path_loss_val,
-                    "Mean Path Length": mean_path_length,
-                    "Real Score": real_score_val,
-                    "Fake Score": fake_score_val,
-                    "Path Length": path_length_val,
-                }
-            )
+            log_dict = {
+                "Generator": g_loss_val,
+                "Discriminator": d_loss_val,
+                "Real Score": real_score_val,
+                "Fake Score": fake_score_val,
+            }
 
-            if i % 100 == 0:
+            for name, spec_norm in g_module.named_buffers():
+                if "spectral_norm" in name:
+                    log_dict[f"Spectral Norms/G.{name}"] = spec_norm
+            for name, spec_norm in d_module.named_buffers():
+                if "spectral_norm" in name:
+                    log_dict[f"Spectral Norms/D.{name}"] = spec_norm
+
+            if i % args.d_reg_every == 0:
+                log_dict["R1"] = r1_val
+
+            if i % args.g_reg_every == 0:
+                log_dict["Path Length Regularization"] = path_loss_val
+                log_dict["Mean Path Length"] = mean_path_length
+                log_dict["Path Length"] = path_length_val
+
+            if i % 1000 == 0:
                 with th.no_grad():
                     g_ema.eval()
                     sample, _ = g_ema([sample_z])
                     grid = utils.make_grid(sample, nrow=6 * 256 // args.size, normalize=True, range=(-1, 1),)
-                    wandb.log({"Generated Images": [wandb.Image(grid, caption=f"Step {i}")]})
+                log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
 
-            if i % 2500 == 0:
                 val_fid = fid.validation_fid(
                     g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name,
                 )
                 val_ppl = ppl.validation_ppl(
-                    args.g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
+                    g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
                 )
-                wandb.log(
-                    {"Evaluation/FID": val_fid, "Evaluation/FID": val_ppl,}
-                )
+                pbar.set_description((f"FID: {val_fid:.4f}; PPL: {val_ppl:.4f}"))
+                log_dict["Evaluation/FID"] = val_fid
+                log_dict["Evaluation/PPL"] = val_ppl
 
-            if i % 10000 == 0:
+            wandb.log(log_dict)
+
+            if i % 5000 == 0:
                 th.save(
                     {
                         "g": g_module.state_dict(),
@@ -254,7 +268,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                         "g_optim": g_optim.state_dict(),
                         "d_optim": d_optim.state_dict(),
                     },
-                    f"checkpoint/{args.name}{str(i).zfill(6)}.pt",
+                    f"checkpoints/{args.name}{str(i).zfill(6)}.pt",
                 )
 
 
@@ -270,14 +284,15 @@ if __name__ == "__main__":
 
     # training options
     parser.add_argument("--iter", type=int, default=800000)
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--checkpoint", type=str, default=None)
 
     # model options
     parser.add_argument("--latent_size", type=int, default=512)
     parser.add_argument("--n_mlp", type=int, default=8)
-    parser.add_argument("--n_sample", type=int, default=32)
+    parser.add_argument("--n_sample", type=int, default=24)
     parser.add_argument("--size", type=int, default=256)
+    parser.add_argument("--constant_input", type=bool, default=False)
 
     # loss options
     parser.add_argument("--r1", type=float, default=10)
@@ -290,15 +305,15 @@ if __name__ == "__main__":
     parser.add_argument("--channel_multiplier", type=int, default=2)
 
     # validation / logging options
-    parser.add_argument("--val_batch_size", type=int, default=32)
-    parser.add_argument("--fid_n_sample", type=int, default=1000)
+    parser.add_argument("--val_batch_size", type=int, default=4)
+    parser.add_argument("--fid_n_sample", type=int, default=5000)
     parser.add_argument("--fid_truncation", type=float, default=0.7)
     parser.add_argument("--ppl_space", choices=["z", "w"], default="w")
-    parser.add_argument("--ppl_n_sample", type=int, default=500)
+    parser.add_argument("--ppl_n_sample", type=int, default=2500)
     parser.add_argument("--ppl_crop", type=bool, default=False)
+    parser.add_argument("--log_spec_norm", type=bool, default=True)
 
     # DevOps options
-    parser.add_argument("--num_gpus", type=int, default=2)
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--cudnn_benchmark", type=bool, default=True)
 
@@ -320,11 +335,36 @@ if __name__ == "__main__":
 
     args.start_iter = 0
 
-    generator = Generator(args.size, args.latent_size, args.n_mlp, channel_multiplier=args.channel_multiplier).to(
-        device
-    )
+    generator = Generator(
+        args.size,
+        args.latent_size,
+        args.n_mlp,
+        channel_multiplier=args.channel_multiplier,
+        constant_input=args.constant_input,
+    ).to(device)
     discriminator = Discriminator(args.size, channel_multiplier=args.channel_multiplier).to(device)
-    g_ema = Generator(args.size, args.latent_size, args.n_mlp, channel_multiplier=args.channel_multiplier).to(device)
+
+    if args.log_spec_norm:
+        for name, parameter in generator.named_parameters():
+            if "weight" in name and parameter.squeeze().dim() > 1:
+                mod = generator
+                for attr in name.replace(".weight", "").split("."):
+                    mod = getattr(mod, attr)
+                track_spectral_norm(mod)
+        for name, parameter in discriminator.named_parameters():
+            if "weight" in name and parameter.squeeze().dim() > 1:
+                mod = discriminator
+                for attr in name.replace(".weight", "").split("."):
+                    mod = getattr(mod, attr)
+                track_spectral_norm(mod)
+
+    g_ema = Generator(
+        args.size,
+        args.latent_size,
+        args.n_mlp,
+        channel_multiplier=args.channel_multiplier,
+        constant_input=args.constant_input,
+    ).to(device)
     g_ema.eval()
     accumulate(g_ema, generator, 0)
 
@@ -341,7 +381,7 @@ if __name__ == "__main__":
     if args.checkpoint is not None:
         print("load model:", args.checkpoint)
 
-        checkpoint = th.load(args.checkpoint)
+        checkpoint = th.load(args.checkpoint, map_location=lambda storage, loc: storage)
 
         try:
             ckpt_name = os.path.basename(args.checkpoint)
@@ -357,13 +397,24 @@ if __name__ == "__main__":
         g_optim.load_state_dict(checkpoint["g_optim"])
         d_optim.load_state_dict(checkpoint["d_optim"])
 
+        del checkpoint
+        th.cuda.empty_cache()
+
     if args.distributed:
         generator = nn.parallel.DistributedDataParallel(
-            generator, device_ids=[args.local_rank], output_device=args.local_rank, broadcast_buffers=False,
+            generator,
+            device_ids=[args.local_rank],
+            output_device=args.local_rank,
+            broadcast_buffers=False,
+            find_unused_parameters=True,
         )
 
         discriminator = nn.parallel.DistributedDataParallel(
-            discriminator, device_ids=[args.local_rank], output_device=args.local_rank, broadcast_buffers=False,
+            discriminator,
+            device_ids=[args.local_rank],
+            output_device=args.local_rank,
+            broadcast_buffers=False,
+            find_unused_parameters=True,
         )
 
     transform = transforms.Compose(
@@ -384,10 +435,9 @@ if __name__ == "__main__":
         drop_last=True,
     )
 
-    fid.get_dataset_inception_features(loader, args.path, args.name, args.size)
-
-    wandb.init(project=f"maua-stylegan2-{args.name}")
-
-    scaler = th.cuda.amp.GradScaler()
+    if get_rank() == 0:
+        fid.get_dataset_inception_features(loader, args.path, args.name, args.size)
+        wandb.init(project=f"maua-stylegan")
+    scaler = None  # th.cuda.amp.GradScaler()
 
     train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_ema, device)

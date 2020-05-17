@@ -29,22 +29,22 @@ def lerp(a, b, t):
 
 
 def validation_ppl(generator, batch_size, n_sample, space, crop, latent_dim, eps=1e-4):
-    generator.eval()
-
-    percept = lpips.PerceptualLoss(
-        model="net-lin", net="vgg", use_gpu=True, gpu_ids=[next(generator.parameters()).device.index]
-    )
-
-    distances = []
-
-    n_batch = n_sample // batch_size
-    resid = n_sample - (n_batch * batch_size)
-    if resid == 0:
-        batch_sizes = [batch_size] * n_batch
-    else:
-        batch_sizes = [batch_size] * n_batch + [resid]
-
     with torch.no_grad():
+        generator.eval()
+
+        percept = lpips.PerceptualLoss(
+            model="net-lin", net="vgg", use_gpu=True, gpu_ids=[next(generator.parameters()).device.index]
+        )
+
+        distances = []
+
+        n_batch = n_sample // batch_size
+        resid = n_sample - (n_batch * batch_size)
+        if resid == 0:
+            batch_sizes = [batch_size] * n_batch
+        else:
+            batch_sizes = [batch_size] * n_batch + [resid]
+
         for batch_size in batch_sizes:
             noise = generator.make_noise()
 
@@ -72,16 +72,16 @@ def validation_ppl(generator, batch_size, n_sample, space, crop, latent_dim, eps
             dist = percept(image[::2], image[1::2]).view(image.shape[0] // 2) / (eps ** 2)
             distances.append(dist.to("cpu").numpy())
 
-    distances = np.concatenate(distances, 0)
+        distances = np.concatenate(distances, 0)
 
-    lo = np.percentile(distances, 1, interpolation="lower")
-    hi = np.percentile(distances, 99, interpolation="higher")
-    filtered_dist = np.extract(np.logical_and(lo <= distances, distances <= hi), distances)
-    ppl = filtered_dist.mean()
+        lo = np.percentile(distances, 1, interpolation="lower")
+        hi = np.percentile(distances, 99, interpolation="higher")
+        filtered_dist = np.extract(np.logical_and(lo <= distances, distances <= hi), distances)
+        ppl = filtered_dist.mean()
 
-    del percept, inputs, lerp_t, image, dist
+        del percept, inputs, lerp_t, image, dist
 
-    return torch.tensor(ppl)
+    return torch.tensor(ppl).double()
 
 
 if __name__ == "__main__":

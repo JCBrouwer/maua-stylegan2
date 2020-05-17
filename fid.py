@@ -84,55 +84,55 @@ def validation_fid(generator, batch_size, n_sample, truncation, inception_name):
     with torch.no_grad():
         mean_latent = generator.mean_latent(2 ** 14)
 
-    inception = InceptionV3([3], normalize_input=False, init_weights=False)
-    inception = nn.DataParallel(inception).eval().to(next(generator.parameters()).device)
+        inception = InceptionV3([3], normalize_input=False, init_weights=False)
+        inception = inception.eval().to(next(generator.parameters()).device)
 
-    n_batch = n_sample // batch_size
-    resid = n_sample - (n_batch * batch_size)
-    if resid == 0:
-        batch_sizes = [batch_size] * n_batch
-    else:
-        batch_sizes = [batch_size] * n_batch + [resid]
-    features = []
+        n_batch = n_sample // batch_size
+        resid = n_sample - (n_batch * batch_size)
+        if resid == 0:
+            batch_sizes = [batch_size] * n_batch
+        else:
+            batch_sizes = [batch_size] * n_batch + [resid]
+        features = []
 
-    for batch in batch_sizes:
-        latent = torch.randn(batch, 512).cuda()
-        img, _ = generator([latent], truncation=truncation, truncation_latent=mean_latent)
-        feat = inception(img)[0].view(img.shape[0], -1)
-        features.append(feat.to("cpu"))
-    features = torch.cat(features, 0).numpy()
+        for batch in batch_sizes:
+            latent = torch.randn(batch, 512).cuda()
+            img, _ = generator([latent], truncation=truncation, truncation_latent=mean_latent)
+            feat = inception(img)[0].view(img.shape[0], -1)
+            features.append(feat.to("cpu"))
+        features = torch.cat(features, 0).numpy()
 
-    sample_mean = np.mean(features, 0)
-    sample_cov = np.cov(features, rowvar=False)
+        sample_mean = np.mean(features, 0)
+        sample_cov = np.cov(features, rowvar=False)
 
-    with open(f"inception_{inception_name}.pkl", "rb") as f:
-        embeds = pickle.load(f)
-        real_mean = embeds["mean"]
-        real_cov = embeds["cov"]
+        with open(f"inception_{inception_name}.pkl", "rb") as f:
+            embeds = pickle.load(f)
+            real_mean = embeds["mean"]
+            real_cov = embeds["cov"]
 
-    cov_sqrt, _ = linalg.sqrtm(sample_cov @ real_cov, disp=False)
+        cov_sqrt, _ = linalg.sqrtm(sample_cov @ real_cov, disp=False)
 
-    if not np.isfinite(cov_sqrt).all():
-        print("product of cov matrices is singular")
-        offset = np.eye(sample_cov.shape[0]) * 1e-6
-        cov_sqrt = linalg.sqrtm((sample_cov + offset) @ (real_cov + offset))
+        if not np.isfinite(cov_sqrt).all():
+            print("product of cov matrices is singular")
+            offset = np.eye(sample_cov.shape[0]) * 1e-6
+            cov_sqrt = linalg.sqrtm((sample_cov + offset) @ (real_cov + offset))
 
-    if np.iscomplexobj(cov_sqrt):
-        if not np.allclose(np.diagonal(cov_sqrt).imag, 0, atol=1e-3):
-            m = np.max(np.abs(cov_sqrt.imag))
+        if np.iscomplexobj(cov_sqrt):
+            if not np.allclose(np.diagonal(cov_sqrt).imag, 0, atol=1e-3):
+                m = np.max(np.abs(cov_sqrt.imag))
 
-            raise ValueError(f"Imaginary component {m}")
+                raise ValueError(f"Imaginary component {m}")
 
-        cov_sqrt = cov_sqrt.real
+            cov_sqrt = cov_sqrt.real
 
-    mean_diff = sample_mean - real_mean
-    mean_norm = mean_diff @ mean_diff
+        mean_diff = sample_mean - real_mean
+        mean_norm = mean_diff @ mean_diff
 
-    trace = np.trace(sample_cov) + np.trace(real_cov) - 2 * np.trace(cov_sqrt)
+        trace = np.trace(sample_cov) + np.trace(real_cov) - 2 * np.trace(cov_sqrt)
 
-    fid = mean_norm + trace
+        fid = mean_norm + trace
 
-    del inception
+        del inception
 
     return torch.tensor(fid)
 
