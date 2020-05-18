@@ -5,7 +5,6 @@ from torch import nn
 from torch.autograd import Function
 from torch.utils.cpp_extension import load
 
-
 module_path = os.path.dirname(__file__)
 fused = load(
     "fused",
@@ -15,7 +14,7 @@ fused = load(
 
 class FusedLeakyReLUFunctionBackward(Function):
     @staticmethod
-    @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
+    @torch.cuda.amp.custom_fwd
     def forward(ctx, grad_output, out, negative_slope, scale):
         ctx.save_for_backward(out)
         ctx.negative_slope = negative_slope
@@ -45,9 +44,10 @@ class FusedLeakyReLUFunctionBackward(Function):
 
 class FusedLeakyReLUFunction(Function):
     @staticmethod
-    @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
+    @torch.cuda.amp.custom_fwd
     def forward(ctx, input, bias, negative_slope, scale):
         empty = input.new_empty(0)
+        print(input.dtype, bias.dtype, empty.dtype)
         out = fused.fused_bias_act(input, bias, empty, 3, 0, negative_slope, scale)
         ctx.save_for_backward(out)
         ctx.negative_slope = negative_slope
@@ -73,9 +73,11 @@ class FusedLeakyReLU(nn.Module):
         self.negative_slope = negative_slope
         self.scale = scale
 
+    @torch.cuda.amp.custom_fwd
     def forward(self, input):
         return fused_leaky_relu(input, self.bias, self.negative_slope, self.scale)
 
 
 def fused_leaky_relu(input, bias, negative_slope=0.2, scale=2 ** 0.5):
     return FusedLeakyReLUFunction.apply(input, bias, negative_slope, scale)
+

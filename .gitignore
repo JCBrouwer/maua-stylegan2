@@ -133,5 +133,3 @@ wandb/
 *.pkl
 
 checkpoints/
-PyTorch-Lightning/
-pytorch_lightning/

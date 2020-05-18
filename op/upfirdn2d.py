@@ -4,7 +4,6 @@ import torch
 from torch.autograd import Function
 from torch.utils.cpp_extension import load
 
-
 module_path = os.path.dirname(__file__)
 upfirdn2d_op = load(
     "upfirdn2d",
@@ -14,7 +13,7 @@ upfirdn2d_op = load(
 
 class UpFirDn2dBackward(Function):
     @staticmethod
-    @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
+    @torch.cuda.amp.custom_fwd
     def forward(ctx, grad_output, kernel, grad_kernel, up, down, pad, g_pad, in_size, out_size):
 
         up_x, up_y = up
@@ -72,7 +71,7 @@ class UpFirDn2dBackward(Function):
 
 class UpFirDn2d(Function):
     @staticmethod
-    @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
+    @torch.cuda.amp.custom_fwd
     def forward(ctx, input, kernel, up, down, pad):
         up_x, up_y = up
         down_x, down_y = down
@@ -101,6 +100,7 @@ class UpFirDn2d(Function):
 
         ctx.g_pad = (g_pad_x0, g_pad_x1, g_pad_y0, g_pad_y1)
 
+        print(input.dtype, kernel.dtype)
         out = upfirdn2d_op.upfirdn2d(input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1)
         # out = out.view(major, out_h, out_w, minor)
         out = out.view(-1, channel, out_h, out_w)
@@ -121,7 +121,6 @@ class UpFirDn2d(Function):
 
 def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0)):
     out = UpFirDn2d.apply(input, kernel, (up, up), (down, down), (pad[0], pad[1], pad[0], pad[1]))
-
     return out
 
 
@@ -148,4 +147,3 @@ def upfirdn2d_native(input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, 
     out = out.permute(0, 2, 3, 1)
 
     return out[:, ::down_y, ::down_x, :]
-

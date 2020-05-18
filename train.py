@@ -102,22 +102,22 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
         requires_grad(generator, False)
         requires_grad(discriminator, True)
 
-        # with th.cuda.amp.autocast():
-        noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
-        fake_img, _ = generator(noise)
-        fake_pred = discriminator(fake_img)
-        real_pred = discriminator(real_img)
+        with th.cuda.amp.autocast():
+            noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
+            fake_img, _ = generator(noise)
+            fake_pred = discriminator(fake_img)
+            real_pred = discriminator(real_img)
 
-        # logistic loss
-        real_loss = F.softplus(-real_pred)
-        fake_loss = F.softplus(fake_pred)
-        d_loss = real_loss.mean() + fake_loss.mean()
+            # logistic loss
+            real_loss = F.softplus(-real_pred)
+            fake_loss = F.softplus(fake_pred)
+            d_loss = real_loss.mean() + fake_loss.mean()
 
         discriminator.zero_grad()
-        # scaler.scale(d_loss).backward()
-        # scaler.step(d_optim)
-        d_loss.backward()
-        d_optim.step()
+        scaler.scale(d_loss).backward()
+        scaler.step(d_optim)
+        # d_loss.backward()
+        # d_optim.step()
 
         loss_dict["d"] = d_loss
         loss_dict["real_score"] = real_pred.mean()
@@ -127,42 +127,42 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
         if i % args.d_reg_every == 0:
             real_img.requires_grad = True
 
-            # with th.cuda.amp.autocast():
-            real_pred = discriminator(real_img)
-            real_pred_sum = real_pred.sum()
+            with th.cuda.amp.autocast():
+                real_pred = discriminator(real_img)
+                real_pred_sum = real_pred.sum()
 
-            (grad_real,) = th.autograd.grad(outputs=real_pred_sum, inputs=real_img, create_graph=True)
-            # (grad_real,) = th.autograd.grad(outputs=scaler.scale(real_pred_sum), inputs=real_img, create_graph=True)
-            # grad_real = grad_real * (1.0 / scaler.get_scale())
+            # (grad_real,) = th.autograd.grad(outputs=real_pred_sum, inputs=real_img, create_graph=True)
+            (grad_real,) = th.autograd.grad(outputs=scaler.scale(real_pred_sum), inputs=real_img, create_graph=True)
+            grad_real = grad_real * (1.0 / scaler.get_scale())
 
-            # with th.cuda.amp.autocast():
-            r1_loss = grad_real.pow(2).view(grad_real.shape[0], -1).sum(1).mean()
-            weighted_r1_loss = args.r1 / 2 * r1_loss * args.d_reg_every + 0 * real_pred[0]
+            with th.cuda.amp.autocast():
+                r1_loss = grad_real.pow(2).view(grad_real.shape[0], -1).sum(1).mean()
+                weighted_r1_loss = args.r1 / 2.0 * r1_loss * args.d_reg_every + 0 * real_pred[0]
 
             discriminator.zero_grad()
-            # scaler.scale(weighted_r1_loss).backward()
-            # scaler.step(d_optim)
-            weighted_r1_loss.backward()
-            d_optim.step()
+            scaler.scale(weighted_r1_loss).backward()
+            scaler.step(d_optim)
+            # weighted_r1_loss.backward()
+            # d_optim.step()
 
         loss_dict["r1"] = r1_loss
 
         requires_grad(generator, True)
         requires_grad(discriminator, False)
 
-        # with th.cuda.amp.autocast():
-        noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
-        fake_img, _ = generator(noise)
-        fake_pred = discriminator(fake_img)
+        with th.cuda.amp.autocast():
+            noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
+            fake_img, _ = generator(noise)
+            fake_pred = discriminator(fake_img)
 
-        # non-saturating loss
-        g_loss = F.softplus(-fake_pred).mean()
+            # non-saturating loss
+            g_loss = F.softplus(-fake_pred).mean()
 
         generator.zero_grad()
-        # scaler.scale(g_loss).backward()
-        # scaler.step(g_optim)
-        g_loss.backward()
-        g_optim.step()
+        scaler.scale(g_loss).backward()
+        scaler.step(g_optim)
+        # g_loss.backward()
+        # g_optim.step()
 
         loss_dict["g"] = g_loss
 
@@ -170,32 +170,32 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
         if i % args.g_reg_every == 0:
             path_batch_size = max(1, args.batch_size // args.path_batch_shrink)
 
-            # with th.cuda.amp.autocast():
-            noise = make_noise(path_batch_size, args.latent_size, args.mixing_prob, device)
-            fake_img, latents = generator(noise, return_latents=True)
+            with th.cuda.amp.autocast():
+                noise = make_noise(path_batch_size, args.latent_size, args.mixing_prob, device)
+                fake_img, latents = generator(noise, return_latents=True)
 
-            img_noise = th.randn_like(fake_img) / math.sqrt(fake_img.shape[2] * fake_img.shape[3])
-            noisy_img_sum = (fake_img * img_noise).sum()
+                img_noise = th.randn_like(fake_img) / math.sqrt(fake_img.shape[2] * fake_img.shape[3])
+                noisy_img_sum = (fake_img * img_noise).sum()
 
-            (grad,) = th.autograd.grad(outputs=noisy_img_sum, inputs=latents, create_graph=True)
-            # (grad,) = th.autograd.grad(outputs=scaler.scale(noisy_img_sum), inputs=latents, create_graph=True)
-            # grad = grad * (1.0 / scaler.get_scale())
+            # (grad,) = th.autograd.grad(outputs=noisy_img_sum, inputs=latents, create_graph=True)
+            (grad,) = th.autograd.grad(outputs=scaler.scale(noisy_img_sum), inputs=latents, create_graph=True)
+            grad = grad * (1.0 / scaler.get_scale())
 
-            # with th.cuda.amp.autocast():
-            path_lengths = th.sqrt(grad.pow(2).sum(2).mean(1))
-            path_mean = mean_path_length + 0.01 * (path_lengths.mean() - mean_path_length)
-            path_loss = (path_lengths - path_mean).pow(2).mean()
-            mean_path_length = path_mean.detach()
+            with th.cuda.amp.autocast():
+                path_lengths = th.sqrt(grad.pow(2).sum(2).mean(1))
+                path_mean = mean_path_length + 0.01 * (path_lengths.mean() - mean_path_length)
+                path_loss = (path_lengths - path_mean).pow(2).mean()
+                mean_path_length = path_mean.detach()
 
-            weighted_path_loss = args.path_regularize * args.g_reg_every * path_loss
-            if args.path_batch_shrink:
-                weighted_path_loss += 0 * fake_img[0, 0, 0, 0]
+                weighted_path_loss = args.path_regularize * args.g_reg_every * path_loss
+                if args.path_batch_shrink:
+                    weighted_path_loss += 0 * fake_img[0, 0, 0, 0]
 
             generator.zero_grad()
-            # scaler.scale(weighted_path_loss).backward()
-            # scaler.step(g_optim)
-            weighted_path_loss.backward()
-            g_optim.step()
+            scaler.scale(weighted_path_loss).backward()
+            scaler.step(g_optim)
+            # weighted_path_loss.backward()
+            # g_optim.step()
 
             mean_path_length_avg = reduce_sum(mean_path_length).item() / get_world_size()
 
@@ -246,7 +246,6 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                     sample, _ = g_ema([sample_z])
                     grid = utils.make_grid(sample, nrow=6 * 256 // args.size, normalize=True, range=(-1, 1),)
                 log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
-
                 val_fid = fid.validation_fid(
                     g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name,
                 )
@@ -284,7 +283,7 @@ if __name__ == "__main__":
 
     # training options
     parser.add_argument("--iter", type=int, default=800000)
-    parser.add_argument("--batch_size", type=int, default=12)
+    parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--checkpoint", type=str, default=None)
 
     # model options
@@ -437,7 +436,7 @@ if __name__ == "__main__":
 
     if get_rank() == 0:
         fid.get_dataset_inception_features(loader, args.path, args.name, args.size)
-        wandb.init(project=f"maua-stylegan")
-    scaler = None  # th.cuda.amp.GradScaler()
+        wandb.init(project=f"maua-stylegan", name="Cyphept 3")
+    scaler = th.cuda.amp.GradScaler()
 
     train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_ema, device)
