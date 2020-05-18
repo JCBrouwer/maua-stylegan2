@@ -333,7 +333,7 @@ if __name__ == "__main__":
     # DevOps options
     parser.add_argument("--num_gpus", type=int, default=2)
     parser.add_argument("--cudnn_benchmark", type=bool, default=True)
-    parser.add_argument("--distributed_backend", type=str, default="dp")
+    parser.add_argument("--distributed_backend", type=str, default="ddp")
 
     args = parser.parse_args()
 
@@ -347,7 +347,7 @@ if __name__ == "__main__":
         filepath="checkpoints/" + args.name + "-{epoch}-{val_loss:.0f}", save_top_k=10
     )
 
-    wandb_logger = pl.loggers.WandbLogger(name="Hello World", project="maua-stylegan")
+    wandb_logger = pl.loggers.WandbLogger(project="maua-stylegan")
     # print(wandb_logger.experiment)
 
     trainer = pl.Trainer(
@@ -360,9 +360,9 @@ if __name__ == "__main__":
         benchmark=args.cudnn_benchmark,
         val_check_interval=args.validation_interval,
         num_sanity_val_steps=0,
-        # terminate_on_nan=True,
+        terminate_on_nan=True,
         resume_from_checkpoint=args.checkpoint,
-        # amp_level="O2",
-        # precision=16,
+        amp_level="O2",
+        precision=16,
     )
     trainer.fit(stylegan2)
