@@ -4,17 +4,6 @@ This is my fork of stylegan2-pytorch. There are many like it, but this one is mi
 
 Implementation of Analyzing and Improving the Image Quality of StyleGAN (https://arxiv.org/abs/1912.04958) in PyTorch
 
-## Notice
-
-I have tried to match official implementation as close as possible, but maybe there are some details I missed. So please use this implementation with care.
-
-## Requirements
-
-I have tested on:
-
-* PyTorch 1.3.1
-* CUDA 10.1/10.2
-
 ## Usage
 
 First create lmdb datasets:
@@ -49,32 +38,10 @@ You should change your size (--size 256 for example) if you train with another d
 
 > python projector.py --ckpt [CHECKPOINT] --size [GENERATOR_OUTPUT_SIZE] FILE1 FILE2 ...
 
-## Pretrained Checkpoints
-
-[Link](https://drive.google.com/open?id=1PQutd-JboOCOZqmd95XWxWrO8gGEvRcO)
-
-I have trained the 256px model on FFHQ 550k iterations. I got FID about 4.5. Maybe data preprocessing, resolution, training loop could made this difference, but currently I don't know the exact reason of FID differences.
-
-## Samples
-
-![Sample with truncation](doc/sample.png)
-
-At 110,000 iterations. (trained on 3.52M images)
-
-### Samples from converted weights
-
-![Sample from FFHQ](doc/stylegan2-ffhq-config-f.png)
-
-Sample from FFHQ (1024px)
-
-![Sample from LSUN Church](doc/stylegan2-church-config-f.png)
-
-Sample from LSUN Church (256px)
-
 ## License
 
 Model details and custom CUDA kernel codes are from official repostiories: https://github.com/NVlabs/stylegan2
 
 Codes for Learned Perceptual Image Patch Similarity, LPIPS came from https://github.com/richzhang/PerceptualSimilarity
 
-To match FID scores more closely to tensorflow official implementations, I have used FID Inception V3 implementations in https://github.com/mseitzer/pytorch-fid
+To match FID scores more closely to tensorflow official implementations, use FID Inception V3 implementations in https://github.com/mseitzer/pytorch-fid
