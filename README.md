@@ -1,4 +1,6 @@
-# StyleGAN 2 in PyTorch
+This is my fork of stylegan2-pytorch. There are many like it, but this one is mine.
+
+#  rosinality/stylegan2-pytorch README
 
 Implementation of Analyzing and Improving the Image Quality of StyleGAN (https://arxiv.org/abs/1912.04958) in PyTorch
 
