@@ -133,3 +133,4 @@ wandb/
 *.pkl
 
 checkpoints/
+maua-stylegan/
