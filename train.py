@@ -224,12 +224,26 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                 "Fake Score": fake_score_val,
             }
 
-            for name, spec_norm in g_module.named_buffers():
-                if "spectral_norm" in name:
-                    log_dict[f"Spectral Norms/G.{name}"] = spec_norm
-            for name, spec_norm in d_module.named_buffers():
-                if "spectral_norm" in name:
-                    log_dict[f"Spectral Norms/D.{name}"] = spec_norm
+            if args.log_spec_norm:
+                G_norms = []
+                for name, spec_norm in g_module.named_buffers():
+                    if "spectral_norm" in name:
+                        G_norms.append(spec_norm.cpu().numpy())
+                G_norms = np.array(G_norms)
+                D_norms = []
+                for name, spec_norm in d_module.named_buffers():
+                    if "spectral_norm" in name:
+                        D_norms.append(spec_norm.cpu().numpy())
+                D_norms = np.array(D_norms)
+
+                log_dict[f"Spectral Norms/G min spectral norm"] = np.log(G_norms).min()
+                log_dict[f"Spectral Norms/G median spectral norm"] = np.log(G_norms).mean()
+                log_dict[f"Spectral Norms/G mean spectral norm"] = np.median(np.log(G_norms))
+                log_dict[f"Spectral Norms/G max spectral norm"] = np.log(G_norms).max()
+                log_dict[f"Spectral Norms/D min spectral norm"] = np.log(D_norms).min()
+                log_dict[f"Spectral Norms/D median spectral norm"] = np.log(D_norms).mean()
+                log_dict[f"Spectral Norms/D mean spectral norm"] = np.median(np.log(D_norms))
+                log_dict[f"Spectral Norms/D max spectral norm"] = np.log(D_norms).max()
 
             if i % args.d_reg_every == 0:
                 log_dict["R1"] = r1_val
@@ -245,12 +259,24 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                     sample, _ = g_ema([sample_z])
                     grid = utils.make_grid(sample, nrow=6 * 256 // args.size, normalize=True, range=(-1, 1),)
                 log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
-                fid = validation.fid(g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name,)
+
+                pbar.set_description((f"Calculating FID..."))
+                fid_dict = validation.fid(g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name)
+                fid = fid_dict["FID"]
+                density = fid_dict["Density"]
+                coverage = fid_dict["Coverage"]
+
+                pbar.set_description((f"Calculating PPL..."))
                 ppl = validation.ppl(
                     g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
                 )
-                pbar.set_description((f"FID: {fid:.4f}; PPL: {ppl:.4f}"))
+
+                pbar.set_description(
+                    (f"FID: {fid:.4f}; Density: {density:.4f}; Coverage: {coverage:.4f}; PPL: {ppl:.4f};")
+                )
                 log_dict["Evaluation/FID"] = fid
+                log_dict["Evaluation/Density"] = density
+                log_dict["Evaluation/Coverage"] = coverage
                 log_dict["Evaluation/PPL"] = ppl
 
             wandb.log(log_dict)

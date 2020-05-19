@@ -1,11 +1,10 @@
 import os
 import gc
-import fid
-import ppl
 import math
 import wandb
 import random
 import argparse
+import validation
 import numpy as np
 import torch as th
 import torch.nn as nn
@@ -224,7 +223,7 @@ class StyleGAN2(pl.LightningModule):
             super(StyleGAN2, self).optimizer_step(cur_epoch, batch_idx, optimizer, optimizer_idx, closure)
 
     def prepare_data(self):
-        fid.get_dataset_inception_features(self.train_dataloader(), self.path, self.name, self.size)
+        validation.get_dataset_inception_features(self.train_dataloader(), self.path, self.name, self.size)
 
     def val_dataloader(self):
         return [[th.arange(0, 1)]]
@@ -253,10 +252,10 @@ class StyleGAN2(pl.LightningModule):
         batch = outputs[0]["batch"]
         gc.collect()
         th.cuda.empty_cache()
-        val_fid = fid.validation_fid(
+        val_fid = validation.fid(
             self.g_ema.to(batch.device), self.val_batch_size, self.fid_n_sample, self.fid_truncation, self.name,
-        )
-        val_ppl = ppl.validation_ppl(
+        )["FID"]
+        val_ppl = validation.ppl(
             self.g_ema.to(batch.device),
             self.val_batch_size,
             self.ppl_n_sample,

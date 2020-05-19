@@ -1,7 +1,7 @@
 import os
 import pickle
 
-import sklearn
+from sklearn.metrics import pairwise_distances
 from tqdm import tqdm
 import torch
 from torch.nn import functional as F
@@ -12,14 +12,9 @@ from inception import InceptionV3
 import lpips
 
 
-def lerp(a, b, t):
-    return a + (b - a) * t
-
-
-def fid(generator, batch_size, n_sample, truncation, inception_name):
-    generator.eval()
-
+def fid(generator, batch_size, n_sample, truncation, inception_name, calculate_prdc=True):
     with torch.no_grad():
+        generator.eval()
         mean_latent = generator.mean_latent(2 ** 14)
 
         inception = InceptionV3([3], normalize_input=False, init_weights=False)
@@ -40,10 +35,12 @@ def fid(generator, batch_size, n_sample, truncation, inception_name):
             features.append(feat.to("cpu"))
         features = torch.cat(features, 0).numpy()
 
+        del inception
+
         sample_mean = np.mean(features, 0)
         sample_cov = np.cov(features, rowvar=False)
 
-        with open(f"inception_{inception_name}.pkl", "rb") as f:
+        with open(f"inception_{inception_name}_stats.pkl", "rb") as f:
             embeds = pickle.load(f)
             real_mean = embeds["mean"]
             real_cov = embeds["cov"]
@@ -70,13 +67,21 @@ def fid(generator, batch_size, n_sample, truncation, inception_name):
 
         fid = mean_norm + trace
 
-        del inception
+        ret_dict = {"FID": fid}
 
-    return torch.tensor(fid)
+        if calculate_prdc:
+            with open(f"inception_{inception_name}_features.pkl", "rb") as f:
+                embeds = pickle.load(f)
+                real_feats = embeds["features"]
+            _, _, density, coverage = prdc(real_feats, features)
+            ret_dict["Density"] = density
+            ret_dict["Coverage"] = coverage
+
+    return ret_dict
 
 
 def get_dataset_inception_features(loader, path, inception_name, size):
-    if not os.path.exists(f"inception_{inception_name}.pkl"):
+    if not os.path.exists(f"inception_{inception_name}_stats.pkl"):
         print("calculating inception features for FID....")
         inception = InceptionV3([3], normalize_input=False, init_weights=False)
         inception = torch.nn.DataParallel(inception).eval().cuda()
@@ -91,10 +96,54 @@ def get_dataset_inception_features(loader, path, inception_name, size):
         mean = np.mean(features, 0)
         cov = np.cov(features, rowvar=False)
 
-        with open(f"inception_{inception_name}.pkl", "wb") as f:
-            pickle.dump({"mean": mean, "cov": cov, "size": size, "path": path}, f)
+        with open(f"inception_{inception_name}_stats.pkl", "wb") as f:
+            pickle.dump({"mean": mean, "cov": cov, "size": size, "path": path, "feat": features}, f)
+        with open(f"inception_{inception_name}_features.pkl", "wb") as f:
+            pickle.dump({"features": features}, f)
     else:
-        print(f"Found inception features: inception_{inception_name}.pkl")
+        print(f"Found inception features: inception_{inception_name}_stats.pkl")
+
+
+def compute_pairwise_distance(data_x, data_y=None, metric="l2"):
+    if data_y is None:
+        data_y = data_x
+    dists = pairwise_distances(
+        data_x.reshape((len(data_x), -1)), data_y.reshape((len(data_y), -1)), metric=metric, n_jobs=24
+    )
+    return dists
+
+
+def get_kth_value(unsorted, k, axis=-1):
+    indices = np.argpartition(unsorted, k, axis=axis)[..., :k]
+    k_smallests = np.take_along_axis(unsorted, indices, axis=axis)
+    kth_values = k_smallests.max(axis=axis)
+    return kth_values
+
+
+def compute_nearest_neighbour_distances(input_features, nearest_k, metric):
+    distances = compute_pairwise_distance(input_features, metric=metric)
+    radii = get_kth_value(distances, k=nearest_k + 1, axis=-1)
+    return radii
+
+
+def prdc(real_features, fake_features, nearest_k=10, metric="l2"):
+    real_nearest_neighbour_distances = compute_nearest_neighbour_distances(real_features, nearest_k, metric=metric)
+    fake_nearest_neighbour_distances = compute_nearest_neighbour_distances(fake_features, nearest_k, metric=metric)
+    distance_real_fake = compute_pairwise_distance(real_features, fake_features, metric=metric)
+
+    precision = (distance_real_fake < np.expand_dims(real_nearest_neighbour_distances, axis=1)).any(axis=0).mean()
+    recall = (distance_real_fake < np.expand_dims(fake_nearest_neighbour_distances, axis=0)).any(axis=1).mean()
+
+    density = (1.0 / float(nearest_k)) * (
+        distance_real_fake < np.expand_dims(real_nearest_neighbour_distances, axis=1)
+    ).sum(axis=0).mean()
+    coverage = (distance_real_fake.min(axis=1) < real_nearest_neighbour_distances).mean()
+
+    return precision, recall, density, coverage
+
+
+def lerp(a, b, t):
+    return a + (b - a) * t
 
 
 def ppl(generator, batch_size, n_sample, space, crop, latent_dim, eps=1e-4):
@@ -151,41 +200,3 @@ def ppl(generator, batch_size, n_sample, space, crop, latent_dim, eps=1e-4):
         del percept, inputs, lerp_t, image, dist
 
     return torch.tensor(ppl).double()
-
-
-def compute_pairwise_distance(data_x, data_y=None):
-    if data_y is None:
-        data_y = data_x
-    dists = sklearn.metrics.pairwise_distances(
-        data_x.reshape((len(data_x), -1)), data_y.reshape((len(data_x), -1)), metric="l2", n_jobs=23
-    )
-    return dists
-
-
-def get_kth_value(unsorted, k, axis=-1):
-    indices = np.argpartition(unsorted, k, axis=axis)[..., :k]
-    k_smallests = np.take_along_axis(unsorted, indices, axis=axis)
-    kth_values = k_smallests.max(axis=axis)
-    return kth_values
-
-
-def compute_nearest_neighbour_distances(input_features, nearest_k):
-    distances = compute_pairwise_distance(input_features)
-    radii = get_kth_value(distances, k=nearest_k + 1, axis=-1)
-    return radii
-
-
-def prdc(real_features, fake_features, nearest_k=10):
-    real_nearest_neighbour_distances = compute_nearest_neighbour_distances(real_features, nearest_k)
-    fake_nearest_neighbour_distances = compute_nearest_neighbour_distances(fake_features, nearest_k)
-    distance_real_fake = compute_pairwise_distance(real_features, fake_features)
-
-    precision = (distance_real_fake < np.expand_dims(real_nearest_neighbour_distances, axis=1)).any(axis=0).mean()
-    recall = (distance_real_fake < np.expand_dims(fake_nearest_neighbour_distances, axis=0)).any(axis=1).mean()
-
-    density = (1.0 / float(nearest_k)) * (
-        distance_real_fake < np.expand_dims(real_nearest_neighbour_distances, axis=1)
-    ).sum(axis=0).mean()
-    coverage = (distance_real_fake.min(axis=1) < real_nearest_neighbour_distances).mean()
-
-    return dict(precision=precision, recall=recall, density=density, coverage=coverage)
