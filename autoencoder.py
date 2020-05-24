@@ -1,48 +1,10 @@
 import torch as th
-import gc
 from op import FusedLeakyReLU
-from tqdm import tqdm
-from torch.utils import data
-from torchvision import transforms, utils
-from dataset import MultiResolutionDataset
-import torch.nn.functional as F
-import wandb
 from copy import copy
-import numpy as np
-import argparse
-from GPyOpt.methods import BayesianOptimization
-import os
-import validation
-import torch.distributed as dist
-from distributed import (
-    get_rank,
-    synchronize,
-    reduce_loss_dict,
-    reduce_sum,
-    get_world_size,
-)
 
 
-def data_sampler(dataset, shuffle, distributed):
-    if distributed:
-        return data.distributed.DistributedSampler(dataset, shuffle=shuffle)
-    if shuffle:
-        return data.RandomSampler(dataset)
-    else:
-        return data.SequentialSampler(dataset)
-
-
-def sample_data(loader):
-    while True:
-        for batch in loader:
-            yield batch
-
-
-def accumulate(model1, model2, decay=0.5 ** (32.0 / 10_000)):
-    par1 = dict(model1.named_parameters())
-    par2 = dict(model2.named_parameters())
-    for n, p in model1.named_parameters():
-        p.data = decay * par1[n].data + (1 - decay) * par2[n].data
+def info(x):
+    print(x.shape, x.min(), x.mean(), x.max())
 
 
 class PrintShape(th.nn.Module):
@@ -69,11 +31,12 @@ class UnFlatten(th.nn.Module):
         return x.view(x.size(0), self.channels, self.size, self.size)
 
 
-def info(x):
-    print(x.shape, x.min(), x.mean(), x.max())
-
-
 class LogCoshVAE(th.nn.Module):
+    """
+    Adapted from https://github.com/AntixK/PyTorch-VAE
+    See LICENSE_AUTOENCODER
+    """
+
     def __init__(self, in_channels, latent_dim, hidden_dims=None, alpha=10.0, beta=1.0, kld_weight=1):
         super(LogCoshVAE, self).__init__()
 
@@ -170,170 +133,165 @@ class LogCoshVAE(th.nn.Module):
         return {"Total": loss, "Reconstruction": recons_loss, "Kullback Leibler Divergence": -kld_loss}
 
 
-if __name__ == "__main__":
-    device = "cuda"
-    th.backends.cudnn.benchmark = True
+class conv2DBatchNormRelu(th.nn.Module):
+    def __init__(
+        self, in_channels, n_filters, k_size, stride, padding, bias=True, dilation=1, with_bn=True,
+    ):
+        super(conv2DBatchNormRelu, self).__init__()
 
-    wandb.init(project=f"maua-stylegan")
-
-    def train(latent_dim, learning_rate, number_filters, vae_alpha, vae_beta, kl_divergence_weight):
-        print(
-            f"latent_dim={latent_dim}",
-            f"learning_rate={learning_rate}",
-            f"number_filters={number_filters}",
-            f"vae_alpha={vae_alpha}",
-            f"vae_beta={vae_beta}",
-            f"kl_divergence_weight={kl_divergence_weight}",
+        conv_mod = th.nn.Conv2d(
+            int(in_channels),
+            int(n_filters),
+            kernel_size=k_size,
+            padding=padding,
+            stride=stride,
+            bias=bias,
+            dilation=dilation,
         )
 
-        batch_size = 512
-        i = None
-        while batch_size >= 1:
-            try:
-                transform = transforms.Compose(
-                    [
-                        transforms.Resize(128),
-                        transforms.RandomHorizontalFlip(p=0.5),
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), inplace=True),
-                    ]
-                )
-                data_path = "/home/hans/trainsets/cyphis"
-                name = os.path.splitext(os.path.basename(data_path))[0]
-                dataset = MultiResolutionDataset(data_path, transform, 256)
-                dataloader = data.DataLoader(
-                    dataset,
-                    batch_size=int(batch_size),
-                    sampler=data_sampler(dataset, shuffle=True, distributed=False),
-                    num_workers=12,
-                    drop_last=True,
-                )
-                loader = sample_data(dataloader)
-                sample_imgs = next(loader)[:24]
-                wandb.log(
-                    {"Real Images": [wandb.Image(utils.make_grid(sample_imgs, nrow=6, normalize=True, range=(-1, 1)))]}
-                )
+        if with_bn:
+            self.cbr_unit = th.nn.Sequential(conv_mod, th.nn.BatchNorm2d(int(n_filters)), th.nn.ReLU(inplace=True))
+        else:
+            self.cbr_unit = th.nn.Sequential(conv_mod, th.nn.ReLU(inplace=True))
 
-                hidden_dims = [min(int(number_filters) * 2 ** i, latent_dim) for i in range(5)] + [latent_dim]
-                vae, vae_optim = None, None
-                vae = LogCoshVAE(
-                    3,
-                    latent_dim,
-                    hidden_dims=hidden_dims,
-                    alpha=vae_alpha,
-                    beta=vae_beta,
-                    kld_weight=kl_divergence_weight,
-                ).to(device)
-                vae.train()
-                vae_optim = th.optim.Adam(vae.parameters(), lr=learning_rate)
+    def forward(self, inputs):
+        outputs = self.cbr_unit(inputs)
+        return outputs
 
-                mse_loss = th.nn.MSELoss()
 
-                sample_z = th.randn(size=(24, latent_dim))
+class segnetDown2(th.nn.Module):
+    def __init__(self, in_size, out_size):
+        super(segnetDown2, self).__init__()
+        self.conv1 = conv2DBatchNormRelu(in_size, out_size, 3, 1, 1)
+        self.conv2 = conv2DBatchNormRelu(out_size, out_size, 3, 1, 1)
+        self.maxpool_with_argmax = th.nn.MaxPool2d(2, 2, return_indices=True)
 
-                scores = []
-                num_iters = 20_000
-                pbar = range(num_iters)
-                if get_rank() == 0:
-                    pbar = tqdm(pbar, smoothing=0.1)
-                for i in pbar:
-                    vae.train()
+    def forward(self, inputs):
+        outputs = self.conv1(inputs)
+        outputs = self.conv2(outputs)
+        unpooled_shape = outputs.size()
+        outputs, indices = self.maxpool_with_argmax(outputs)
+        return outputs, indices, unpooled_shape
 
-                    real = next(loader).to(device)
-                    fake, mu, log_var = vae(real)
 
-                    loss_dict = vae.loss(real, fake, mu, log_var)
-                    loss = loss_dict["Total"]
+class segnetDown3(th.nn.Module):
+    def __init__(self, in_size, out_size):
+        super(segnetDown3, self).__init__()
+        self.conv1 = conv2DBatchNormRelu(in_size, out_size, 3, 1, 1)
+        self.conv2 = conv2DBatchNormRelu(out_size, out_size, 3, 1, 1)
+        self.conv3 = conv2DBatchNormRelu(out_size, out_size, 3, 1, 1)
+        self.maxpool_with_argmax = th.nn.MaxPool2d(2, 2, return_indices=True)
 
-                    vae.zero_grad()
-                    loss.backward()
-                    vae_optim.step()
+    def forward(self, inputs):
+        outputs = self.conv1(inputs)
+        outputs = self.conv2(outputs)
+        outputs = self.conv3(outputs)
+        unpooled_shape = outputs.size()
+        outputs, indices = self.maxpool_with_argmax(outputs)
+        return outputs, indices, unpooled_shape
 
-                    wandb.log(
-                        {
-                            "VAE": loss,
-                            "Reconstruction": loss_dict["Reconstruction"],
-                            "KL Divergence": loss_dict["Kullback Leibler Divergence"],
-                        }
-                    )
 
-                    if i % int(num_iters / 20) == 0 or i + 1 == num_iters:
-                        with th.no_grad():
-                            vae.eval()
+class segnetUp2(th.nn.Module):
+    def __init__(self, in_size, out_size):
+        super(segnetUp2, self).__init__()
+        self.unpool = th.nn.MaxUnpool2d(2, 2)
+        self.conv1 = conv2DBatchNormRelu(in_size, in_size, 3, 1, 1)
+        self.conv2 = conv2DBatchNormRelu(in_size, out_size, 3, 1, 1)
 
-                            sample, _, _ = vae(sample_imgs.to(device))
-                            grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1),)
-                            del sample
-                            wandb.log({"Reconstructed Images VAE": [wandb.Image(grid, caption=f"Step {i}")]})
+    def forward(self, inputs, indices, output_shape):
+        outputs = self.unpool(input=inputs, indices=indices, output_size=output_shape)
+        outputs = self.conv1(outputs)
+        outputs = self.conv2(outputs)
+        return outputs
 
-                            sample = vae.decode(sample_z.to(device))
-                            grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1),)
-                            del sample
-                            wandb.log({"Generated Images VAE": [wandb.Image(grid, caption=f"Step {i}")]})
 
-                    if i % int(num_iters / 10) == 0 or i + 1 == num_iters:
-                        with th.no_grad():
-                            fid_dict = validation.vae_fid(vae, int(batch_size), latent_dim, 5000, name)
-                            wandb.log(fid_dict)
-                            mse = mse_loss(fake, real) * 5000
-                            score = fid_dict["FID"] + mse
-                            wandb.log({"Score": score})
-                            pbar.set_description(f"FID: {fid_dict['FID']:.2f} MSE: {mse:.2f}")
+class segnetUp3(th.nn.Module):
+    def __init__(self, in_size, out_size):
+        super(segnetUp3, self).__init__()
+        self.unpool = th.nn.MaxUnpool2d(2, 2)
+        self.conv1 = conv2DBatchNormRelu(in_size, in_size, 3, 1, 1)
+        self.conv2 = conv2DBatchNormRelu(in_size, in_size, 3, 1, 1)
+        self.conv3 = conv2DBatchNormRelu(in_size, out_size, 3, 1, 1)
 
-                        if i >= num_iters / 2:
-                            scores.append(score)
+    def forward(self, inputs, indices, output_shape):
+        outputs = self.unpool(input=inputs, indices=indices, output_size=output_shape)
+        outputs = self.conv1(outputs)
+        outputs = self.conv2(outputs)
+        outputs = self.conv3(outputs)
+        return outputs
 
-                    if th.isnan(loss).any():
-                        print("NaN losses, exiting...")
-                        wandb.log({"Score": 27000})
-                        return
 
-                weights = np.sqrt(np.arange(1, len(scores) + 1))
-                weights /= sum(weights)
-                weighted_scores = sum([w * v for w, v in zip(weights, scores)])
-                wandb.log({"Score": weighted_scores})
-                return
+class SegNet(th.nn.Module):
+    """
+    Adapted from https://github.com/foamliu/Autoencoder
+    See LICENSE_AUTOENCODER
+    """
 
-            except RuntimeError as e:
-                if i is not None:
-                    if i > 10_000:
-                        return
+    def __init__(self, n_classes=3, in_channels=3, is_unpooling=True):
+        super(SegNet, self).__init__()
 
-                if "CUDA out of memory" in str(e):
-                    batch_size = batch_size / 2
+        self.in_channels = in_channels
+        self.is_unpooling = is_unpooling
 
-                    if batch_size < 1:
-                        print("This configuration does not fit into memory, exiting...")
-                        wandb.log({"Score": 27000})
-                        return
+        self.down1 = segnetDown2(self.in_channels, 64)
+        self.down2 = segnetDown2(64, 128)
+        self.down3 = segnetDown3(128, 256)
+        self.down4 = segnetDown3(256, 512)
+        self.down5 = segnetDown3(512, 512)
 
-                    print(f"Out of memory, halving batch size... {batch_size}")
-                    if vae is not None:
-                        del vae
-                    if vae_optim is not None:
-                        del vae_optim
-                    gc.collect()
-                    th.cuda.empty_cache()
+        self.up5 = segnetUp3(512, 512)
+        self.up4 = segnetUp3(512, 256)
+        self.up3 = segnetUp3(256, 128)
+        self.up2 = segnetUp2(128, 64)
+        self.up1 = segnetUp2(64, n_classes)
 
-                else:
-                    print(e)
-                    return
+    def forward(self, inputs):
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--latent_dim", type=int, default=8)
-    parser.add_argument("--learning_rate", type=float, default=-3)
-    parser.add_argument("--number_filters", type=int, default=4)
-    parser.add_argument("--vae_alpha", type=float, default=-2)
-    parser.add_argument("--vae_beta", type=float, default=-3)
-    parser.add_argument("--kl_divergence_weight", type=float, default=-3)
-    args = parser.parse_args()
+        down1, indices_1, unpool_shape1 = self.down1(inputs)
+        down2, indices_2, unpool_shape2 = self.down2(down1)
+        down3, indices_3, unpool_shape3 = self.down3(down2)
+        down4, indices_4, unpool_shape4 = self.down4(down3)
+        down5, indices_5, unpool_shape5 = self.down5(down4)
 
-    train(
-        2 ** args.latent_dim,
-        10 ** args.learning_rate,
-        2 ** args.number_filters,
-        10 ** args.vae_alpha,
-        10 ** args.vae_beta,
-        10 ** args.kl_divergence_weight,
-    )
+        up5 = self.up5(down5, indices_5, unpool_shape5)
+        up4 = self.up4(up5, indices_4, unpool_shape4)
+        up3 = self.up3(up4, indices_3, unpool_shape3)
+        up2 = self.up2(up3, indices_2, unpool_shape2)
+        up1 = self.up1(up2, indices_1, unpool_shape1)
 
+        return up1
+
+    def init_vgg16_params(self, vgg16):
+        blocks = [self.down1, self.down2, self.down3, self.down4, self.down5]
+
+        ranges = [[0, 4], [5, 9], [10, 16], [17, 23], [24, 29]]
+        features = list(vgg16.features.children())
+
+        vgg_layers = []
+        for _layer in features:
+            if isinstance(_layer, th.nn.Conv2d):
+                vgg_layers.append(_layer)
+
+        merged_layers = []
+        for idx, conv_block in enumerate(blocks):
+            if idx < 2:
+                units = [conv_block.conv1.cbr_unit, conv_block.conv2.cbr_unit]
+            else:
+                units = [
+                    conv_block.conv1.cbr_unit,
+                    conv_block.conv2.cbr_unit,
+                    conv_block.conv3.cbr_unit,
+                ]
+            for _unit in units:
+                for _layer in _unit:
+                    if isinstance(_layer, th.nn.Conv2d):
+                        merged_layers.append(_layer)
+
+        assert len(vgg_layers) == len(merged_layers)
+
+        for l1, l2 in zip(vgg_layers, merged_layers):
+            if isinstance(l1, th.nn.Conv2d) and isinstance(l2, th.nn.Conv2d):
+                assert l1.weight.size() == l2.weight.size()
+                assert l1.bias.size() == l2.bias.size()
+                l2.weight.data = l1.weight.data
+                l2.bias.data = l1.bias.data
