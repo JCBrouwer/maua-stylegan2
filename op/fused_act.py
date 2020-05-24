@@ -14,7 +14,7 @@ fused = load(
 
 class FusedLeakyReLUFunctionBackward(Function):
     @staticmethod
-    @torch.cuda.amp.custom_fwd
+    # @torch.cuda.amp.custom_fwd
     def forward(ctx, grad_output, out, negative_slope, scale):
         ctx.save_for_backward(out)
         ctx.negative_slope = negative_slope
@@ -34,7 +34,7 @@ class FusedLeakyReLUFunctionBackward(Function):
         return grad_input, grad_bias
 
     @staticmethod
-    @torch.cuda.amp.custom_bwd
+    # @torch.cuda.amp.custom_bwd
     def backward(ctx, gradgrad_input, gradgrad_bias):
         (out,) = ctx.saved_tensors
         gradgrad_out = fused.fused_bias_act(gradgrad_input, gradgrad_bias, out, 3, 1, ctx.negative_slope, ctx.scale)
@@ -44,7 +44,7 @@ class FusedLeakyReLUFunctionBackward(Function):
 
 class FusedLeakyReLUFunction(Function):
     @staticmethod
-    @torch.cuda.amp.custom_fwd
+    # @torch.cuda.amp.custom_fwd
     def forward(ctx, input, bias, negative_slope, scale):
         empty = input.new_empty(0)
         # print(input.dtype, bias.dtype, empty.dtype)
@@ -56,7 +56,7 @@ class FusedLeakyReLUFunction(Function):
         return out
 
     @staticmethod
-    @torch.cuda.amp.custom_bwd
+    # @torch.cuda.amp.custom_bwd
     def backward(ctx, grad_output):
         (out,) = ctx.saved_tensors
 

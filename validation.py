@@ -12,6 +12,73 @@ from inception import InceptionV3
 import lpips
 
 
+def vae_fid(vae, batch_size, latent_dim, n_sample, inception_name, calculate_prdc=True):
+    with torch.no_grad():
+        vae.eval()
+
+        inception = InceptionV3([3], normalize_input=False, init_weights=False)
+        inception = inception.eval().to(next(vae.parameters()).device)
+
+        n_batch = n_sample // batch_size
+        resid = n_sample - (n_batch * batch_size)
+        if resid == 0:
+            batch_sizes = [batch_size] * n_batch
+        else:
+            batch_sizes = [batch_size] * n_batch + [resid]
+        features = []
+
+        for batch in batch_sizes:
+            latent = torch.randn(batch, latent_dim).cuda()
+            img = vae.decode(latent)
+            feat = inception(img)[0].view(img.shape[0], -1)
+            features.append(feat.to("cpu"))
+        features = torch.cat(features, 0).numpy()
+
+        del inception
+
+        sample_mean = np.mean(features, 0)
+        sample_cov = np.cov(features, rowvar=False)
+
+        with open(f"inception_{inception_name}_stats.pkl", "rb") as f:
+            embeds = pickle.load(f)
+            real_mean = embeds["mean"]
+            real_cov = embeds["cov"]
+
+        cov_sqrt, _ = linalg.sqrtm(sample_cov @ real_cov, disp=False)
+
+        if not np.isfinite(cov_sqrt).all():
+            print("product of cov matrices is singular")
+            offset = np.eye(sample_cov.shape[0]) * 1e-6
+            cov_sqrt = linalg.sqrtm((sample_cov + offset) @ (real_cov + offset))
+
+        if np.iscomplexobj(cov_sqrt):
+            if not np.allclose(np.diagonal(cov_sqrt).imag, 0, atol=1e-3):
+                m = np.max(np.abs(cov_sqrt.imag))
+
+                raise ValueError(f"Imaginary component {m}")
+
+            cov_sqrt = cov_sqrt.real
+
+        mean_diff = sample_mean - real_mean
+        mean_norm = mean_diff @ mean_diff
+
+        trace = np.trace(sample_cov) + np.trace(real_cov) - 2 * np.trace(cov_sqrt)
+
+        fid = mean_norm + trace
+
+        ret_dict = {"FID": fid}
+
+        if calculate_prdc:
+            with open(f"inception_{inception_name}_features.pkl", "rb") as f:
+                embeds = pickle.load(f)
+                real_feats = embeds["features"]
+            _, _, density, coverage = prdc(real_feats, features)
+            ret_dict["Density"] = density
+            ret_dict["Coverage"] = coverage
+
+    return ret_dict
+
+
 def fid(generator, batch_size, n_sample, truncation, inception_name, calculate_prdc=True):
     with torch.no_grad():
         generator.eval()

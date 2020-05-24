@@ -305,7 +305,8 @@ if __name__ == "__main__":
     parser.add_argument("--hflip", type=bool, default=True)
 
     # training options
-    parser.add_argument("--iter", type=int, default=800000)
+    parser.add_argument("--iter", type=int, default=100_000)
+    parser.add_argument("--start_iter", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--checkpoint", type=str, default=None)
 
@@ -351,11 +352,6 @@ if __name__ == "__main__":
         th.cuda.set_device(args.local_rank)
         th.distributed.init_process_group(backend="nccl", init_method="env://")
         synchronize()
-
-    args.latent_size = 512
-    args.n_mlp = 8
-
-    args.start_iter = 0
 
     generator = Generator(
         args.size,
