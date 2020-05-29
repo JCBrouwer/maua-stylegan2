@@ -237,12 +237,10 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                 D_norms = np.array(D_norms)
 
                 log_dict[f"Spectral Norms/G min spectral norm"] = np.log(G_norms).min()
-                log_dict[f"Spectral Norms/G median spectral norm"] = np.log(G_norms).mean()
-                log_dict[f"Spectral Norms/G mean spectral norm"] = np.median(np.log(G_norms))
+                log_dict[f"Spectral Norms/G mean spectral norm"] = np.log(G_norms).mean()
                 log_dict[f"Spectral Norms/G max spectral norm"] = np.log(G_norms).max()
                 log_dict[f"Spectral Norms/D min spectral norm"] = np.log(D_norms).min()
-                log_dict[f"Spectral Norms/D median spectral norm"] = np.log(D_norms).mean()
-                log_dict[f"Spectral Norms/D mean spectral norm"] = np.median(np.log(D_norms))
+                log_dict[f"Spectral Norms/D mean spectral norm"] = np.log(D_norms).mean()
                 log_dict[f"Spectral Norms/D max spectral norm"] = np.log(D_norms).max()
 
             if i % args.d_reg_every == 0:
@@ -253,13 +251,14 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                 log_dict["Mean Path Length"] = mean_path_length
                 log_dict["Path Length"] = path_length_val
 
-            if i % 1000 == 0:
+            if i % 250 == 0:
                 with th.no_grad():
                     g_ema.eval()
                     sample, _ = g_ema([sample_z])
                     grid = utils.make_grid(sample, nrow=6 * 256 // args.size, normalize=True, range=(-1, 1),)
                 log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
 
+            if i % 1000 == 0:
                 pbar.set_description((f"Calculating FID..."))
                 fid_dict = validation.fid(g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name)
                 fid = fid_dict["FID"]
@@ -305,9 +304,11 @@ if __name__ == "__main__":
     parser.add_argument("--hflip", type=bool, default=True)
 
     # training options
-    parser.add_argument("--iter", type=int, default=800000)
+    parser.add_argument("--iter", type=int, default=100_000)
+    parser.add_argument("--start_iter", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--checkpoint", type=str, default=None)
+    parser.add_argument("--transfer_mapping_only", type=bool, default=False)
 
     # model options
     parser.add_argument("--latent_size", type=int, default=512)
@@ -351,11 +352,6 @@ if __name__ == "__main__":
         th.cuda.set_device(args.local_rank)
         th.distributed.init_process_group(backend="nccl", init_method="env://")
         synchronize()
-
-    args.latent_size = 512
-    args.n_mlp = 8
-
-    args.start_iter = 0
 
     generator = Generator(
         args.size,
@@ -412,12 +408,21 @@ if __name__ == "__main__":
         except ValueError:
             pass
 
-        generator.load_state_dict(checkpoint["g"])
-        discriminator.load_state_dict(checkpoint["d"])
-        g_ema.load_state_dict(checkpoint["g_ema"])
+        if args.transfer_mapping_only:
+            print("Using generator latent mapping network from checkpoint")
+            mapping_state_dict = {}
+            for key, val in checkpoint["state_dict"].items():
+                if "generator.style" in key:
+                    mapping_state_dict[key.replace("generator.", "")] = val
+            generator.load_state_dict(mapping_state_dict, strict=False)
+        else:
+            generator.load_state_dict(checkpoint["g"])
+            g_ema.load_state_dict(checkpoint["g_ema"])
 
-        g_optim.load_state_dict(checkpoint["g_optim"])
-        d_optim.load_state_dict(checkpoint["d_optim"])
+            discriminator.load_state_dict(checkpoint["d"])
+
+            g_optim.load_state_dict(checkpoint["g_optim"])
+            d_optim.load_state_dict(checkpoint["d_optim"])
 
         del checkpoint
         th.cuda.empty_cache()
