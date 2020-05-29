@@ -28,7 +28,7 @@ def vae_fid(vae, batch_size, latent_dim, n_sample, inception_name, calculate_prd
         features = []
 
         for batch in batch_sizes:
-            latent = torch.randn(batch, latent_dim).cuda()
+            latent = torch.randn(batch, *latent_dim).cuda()
             img = vae.decode(latent)
             feat = inception(img)[0].view(img.shape[0], -1)
             features.append(feat.to("cpu"))

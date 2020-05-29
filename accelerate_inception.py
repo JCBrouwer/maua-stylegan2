@@ -7,7 +7,8 @@ import torch as th
 import numpy as np
 from tqdm import tqdm
 from torch.utils import data
-from autoencoder import ConvSegNet, SegNet, VariationalConvSegNet
+import torch.nn.functional as F
+from inception_vae import InceptionVAE
 from dataset import MultiResolutionDataset
 from torchvision import transforms, utils, models
 
@@ -80,17 +81,13 @@ class VGGLoss(th.nn.Module):
         return loss
 
 
-def align(x, y, alpha=2):
-    return (x - y).norm(p=2, dim=1).pow(alpha).mean()
-
-
-def uniform(x, t=2):
-    return (th.pdist(x.view(x.size(0), -1), p=2).pow(2).mul(-t).exp().mean() + 1e-27).log()
-
-
-def train(learning_rate, lambda_mse):
+def train(latent_dim, num_repeats, learning_rate, lambda_vgg, lambda_mse):
     print(
-        f"learning_rate={learning_rate:.4f}", f"lambda_mse={lambda_mse:.4f}",
+        f"latent_dim={latent_dim:.4f}",
+        f"num_repeats={num_repeats:.4f}",
+        f"learning_rate={learning_rate:.4f}",
+        f"lambda_vgg={lambda_vgg:.4f}",
+        f"lambda_mse={lambda_mse:.4f}",
     )
 
     transform = transforms.Compose(
@@ -98,7 +95,7 @@ def train(learning_rate, lambda_mse):
             transforms.Resize(128),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), inplace=True),
+            # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), inplace=True),
         ]
     )
     batch_size = 72
@@ -110,16 +107,15 @@ def train(learning_rate, lambda_mse):
     )
     loader = sample_data(dataloader)
     sample_imgs = next(loader)[:24]
-    wandb.log({"Real Images": [wandb.Image(utils.make_grid(sample_imgs, nrow=6, normalize=True, range=(-1, 1)))]})
+    wandb.log({"Real Images": [wandb.Image(utils.make_grid(sample_imgs, nrow=6, normalize=True, range=(0, 1)))]})
 
     vae, vae_optim = None, None
-    vae = ConvSegNet().to(device)
+    vae = InceptionVAE(latent_dim=latent_dim, repeat_per_block=num_repeats).to(device)
     vae_optim = th.optim.Adam(vae.parameters(), lr=learning_rate)
 
     vgg = VGGLoss()
 
-    sample_z = th.randn(size=(24, 512, 16, 16))
-    sample_z /= sample_z.abs().max()
+    # sample_z = th.randn(size=(24, 512))
 
     scores = []
     num_iters = 100_000
@@ -129,42 +125,21 @@ def train(learning_rate, lambda_mse):
 
         real = next(loader).to(device)
 
-        z = vae.encode(real)
-        fake = vae.decode(z)
+        fake, mu, log_var = vae(real)
 
+        bce = F.binary_cross_entropy(fake, real, size_average=False)
+        kld = -0.5 * th.sum(1 + log_var - mu.pow(2) - log_var.exp())
         vgg_loss = vgg(fake, real)
-
         mse_loss = th.sqrt((fake - real).pow(2).mean())
 
-        # diff = fake - real
-        # recons_loss = recons_alpha * diff + th.log(1.0 + th.exp(-2 * recons_alpha * diff)) - th.log(th.tensor(2.0))
-        # recons_loss = (1.0 / recons_alpha) * recons_loss.mean()
-        # recons_loss = recons_loss if not th.isinf(recons_loss).any() else 0
-
-        # x, y = z.chunk(2)
-        # align_loss = align(x, y, alpha=align_alpha)
-        # unif_loss = -(uniform(x, t=unif_t) + uniform(y, t=unif_t)) / 2.0
-
-        loss = (
-            vgg_loss
-            + lambda_mse * mse_loss
-            # + lambda_recons * recons_loss
-            # + lambda_align * align_loss
-            # + lambda_unif * unif_loss
-        )
-        # print(vgg_loss.detach().cpu().item())
-        # print(lambda_mse * mse_loss.detach().cpu().item())
-        # # print(lambda_recons * recons_loss.detach().cpu().item())
-        # print(lambda_align * align_loss.detach().cpu().item())
-        # print(lambda_unif * unif_loss.detach().cpu().item())
+        loss = bce + kld + lambda_vgg * vgg_loss + lambda_mse * mse_loss
 
         loss_dict = {
             "Total": loss,
+            "BCE": bce,
+            "Kullback Leibler Divergence": kld,
             "MSE": mse_loss,
             "VGG": vgg_loss,
-            # "Reconstruction": recons_loss,
-            # "Alignment": align_loss,
-            # "Uniformity": unif_loss,
         }
 
         vae.zero_grad()
@@ -172,19 +147,18 @@ def train(learning_rate, lambda_mse):
         vae_optim.step()
 
         wandb.log(loss_dict)
-        # pbar.set_description(" ".join())
 
         with th.no_grad():
             if i % int(num_iters / 100) == 0 or i + 1 == num_iters:
                 vae.eval()
 
-                sample = vae(sample_imgs.to(device))
-                grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1))
+                sample, _, _ = vae(sample_imgs.to(device))
+                grid = utils.make_grid(sample, nrow=6, normalize=True, range=(0, 1))
                 del sample
                 wandb.log({"Reconstructed Images VAE": [wandb.Image(grid, caption=f"Step {i}")]})
 
-                sample = vae.decode(sample_z.to(device))
-                grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1))
+                sample = vae.sampling()
+                grid = utils.make_grid(sample, nrow=6, normalize=True, range=(0, 1))
                 del sample
                 wandb.log({"Generated Images VAE": [wandb.Image(grid, caption=f"Step {i}")]})
 
@@ -196,22 +170,28 @@ def train(learning_rate, lambda_mse):
                     f"checkpoints/vae-{name}-{wandb.run.dir.split('/')[-1].split('-')[-1]}.pt",
                 )
 
-        if th.isnan(loss).any():
+        if th.isnan(loss).any() or th.isinf(loss).any():
             print("NaN losses, exiting...")
+            print(
+                {
+                    "Total": loss,
+                    "\nBCE": bce,
+                    "\nKullback Leibler Divergence": kld,
+                    "\nMSE": mse_loss,
+                    "\nVGG": vgg_loss,
+                }
+            )
             wandb.log({"Total": 27000})
             return
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--latent_dim", type=float, default=512)
+    parser.add_argument("--num_repeats", type=float, default=1)
     parser.add_argument("--learning_rate", type=float, default=0.005)
+    parser.add_argument("--lambda_vgg", type=float, default=1.0)
     parser.add_argument("--lambda_mse", type=float, default=1.0)
-    # parser.add_argument("--lambda_recons", type=float, default=0.0)
-    # parser.add_argument("--recons_alpha", type=float, default=5.0)
-    # parser.add_argument("--lambda_align", type=float, default=1.0)
-    # parser.add_argument("--align_alpha", type=float, default=2.0)
-    # parser.add_argument("--lambda_unif", type=float, default=1.0)
-    # parser.add_argument("--unif_t", type=float, default=0.001)
     args = parser.parse_args()
 
     device = "cuda"
@@ -220,13 +200,6 @@ if __name__ == "__main__":
     wandb.init(project=f"maua-stylegan")
 
     train(
-        args.learning_rate,
-        args.lambda_mse,
-        # args.lambda_recons,
-        # args.recons_alpha,
-        # args.lambda_align,
-        # args.align_alpha,
-        # args.lambda_unif,
-        # args.unif_t,
+        args.latent_dim, args.num_repeats, args.learning_rate, args.lambda_vgg, args.lambda_mse,
     )
 

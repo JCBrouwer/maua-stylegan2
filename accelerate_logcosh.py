@@ -7,8 +7,8 @@ import torch as th
 from tqdm import tqdm
 from torch.utils import data
 from autoencoder import LogCoshVAE
-from torchvision import transforms, utils
 from dataset import MultiResolutionDataset
+from torchvision import transforms, utils, models
 
 
 def data_sampler(dataset, shuffle, distributed):
@@ -26,11 +26,62 @@ def sample_data(loader):
             yield batch
 
 
-def accumulate(model1, model2, decay=0.5 ** (32.0 / 10_000)):
-    par1 = dict(model1.named_parameters())
-    par2 = dict(model2.named_parameters())
-    for n, p in model1.named_parameters():
-        p.data = decay * par1[n].data + (1 - decay) * par2[n].data
+class VGG19(th.nn.Module):
+    """
+    Adapted from https://github.com/NVIDIA/pix2pixHD
+    See LICENSE-VGG
+    """
+
+    def __init__(self, requires_grad=False):
+        super(VGG19, self).__init__()
+        vgg_pretrained_features = models.vgg19(pretrained=True).features
+        self.slice1 = th.nn.Sequential()
+        self.slice2 = th.nn.Sequential()
+        self.slice3 = th.nn.Sequential()
+        self.slice4 = th.nn.Sequential()
+        self.slice5 = th.nn.Sequential()
+        for x in range(2):
+            self.slice1.add_module(str(x), vgg_pretrained_features[x])
+        for x in range(2, 7):
+            self.slice2.add_module(str(x), vgg_pretrained_features[x])
+        for x in range(7, 12):
+            self.slice3.add_module(str(x), vgg_pretrained_features[x])
+        for x in range(12, 21):
+            self.slice4.add_module(str(x), vgg_pretrained_features[x])
+        for x in range(21, 30):
+            self.slice5.add_module(str(x), vgg_pretrained_features[x])
+        if not requires_grad:
+            for param in self.parameters():
+                param.requires_grad = False
+
+    def forward(self, X):
+        h_relu1 = self.slice1(X)
+        h_relu2 = self.slice2(h_relu1)
+        h_relu3 = self.slice3(h_relu2)
+        h_relu4 = self.slice4(h_relu3)
+        h_relu5 = self.slice5(h_relu4)
+        out = [h_relu1, h_relu2, h_relu3, h_relu4, h_relu5]
+        return out
+
+
+class VGGLoss(th.nn.Module):
+    """
+    Adapted from https://github.com/NVIDIA/pix2pixHD
+    See LICENSE-VGG
+    """
+
+    def __init__(self):
+        super(VGGLoss, self).__init__()
+        self.vgg = VGG19().cuda()
+        self.criterion = th.nn.L1Loss()
+        self.weights = [1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]
+
+    def forward(self, x, y):
+        x_vgg, y_vgg = self.vgg(x), self.vgg(y)
+        loss = 0
+        for i in range(len(x_vgg)):
+            loss += self.weights[i] * self.criterion(x_vgg[i], y_vgg[i].detach())
+        return loss
 
 
 device = "cuda"
@@ -49,7 +100,7 @@ def train(latent_dim, learning_rate, number_filters, vae_alpha, vae_beta, kl_div
         f"kl_divergence_weight={kl_divergence_weight}",
     )
 
-    batch_size = 512
+    batch_size = 64
     i = None
     while batch_size >= 1:
         try:
@@ -86,11 +137,12 @@ def train(latent_dim, learning_rate, number_filters, vae_alpha, vae_beta, kl_div
             vae_optim = th.optim.Adam(vae.parameters(), lr=learning_rate)
 
             mse_loss = th.nn.MSELoss()
+            vgg = VGGLoss()
 
             sample_z = th.randn(size=(24, latent_dim))
 
             scores = []
-            num_iters = 20_000
+            num_iters = 100_000
             pbar = range(num_iters)
             pbar = tqdm(pbar, smoothing=0.1)
             for i in pbar:
@@ -100,7 +152,8 @@ def train(latent_dim, learning_rate, number_filters, vae_alpha, vae_beta, kl_div
                 fake, mu, log_var = vae(real)
 
                 loss_dict = vae.loss(real, fake, mu, log_var)
-                loss = loss_dict["Total"]
+                vgg_loss = vgg(fake, real)
+                loss = loss_dict["Total"] + vgg_loss
 
                 vae.zero_grad()
                 loss.backward()
@@ -108,13 +161,14 @@ def train(latent_dim, learning_rate, number_filters, vae_alpha, vae_beta, kl_div
 
                 wandb.log(
                     {
-                        "VAE": loss,
+                        "Total": loss,
+                        "VGG": vgg_loss,
                         "Reconstruction": loss_dict["Reconstruction"],
-                        "KL Divergence": loss_dict["Kullback Leibler Divergence"],
+                        "Kullback Leibler Divergence": loss_dict["Kullback Leibler Divergence"],
                     }
                 )
 
-                if i % int(num_iters / 20) == 0 or i + 1 == num_iters:
+                if i % int(num_iters / 1000) == 0 or i + 1 == num_iters:
                     with th.no_grad():
                         vae.eval()
 
@@ -128,27 +182,34 @@ def train(latent_dim, learning_rate, number_filters, vae_alpha, vae_beta, kl_div
                         del sample
                         wandb.log({"Generated Images VAE": [wandb.Image(grid, caption=f"Step {i}")]})
 
-                if i % int(num_iters / 10) == 0 or i + 1 == num_iters:
+                if i % int(num_iters / 40) == 0 or i + 1 == num_iters:
                     with th.no_grad():
-                        fid_dict = validation.vae_fid(vae, int(batch_size), latent_dim, 5000, name)
+                        fid_dict = validation.vae_fid(vae, int(batch_size), (latent_dim,), 5000, name)
                         wandb.log(fid_dict)
                         mse = mse_loss(fake, real) * 5000
-                        score = fid_dict["FID"] + mse
+                        score = fid_dict["FID"] + mse + 1000 * vgg_loss
                         wandb.log({"Score": score})
-                        pbar.set_description(f"FID: {fid_dict['FID']:.2f} MSE: {mse:.2f}")
+                        pbar.set_description(f"FID: {fid_dict['FID']:.2f} MSE: {mse:.2f} VGG: {1000 * vgg_loss:.2f}")
 
                     if i >= num_iters / 2:
                         scores.append(score)
 
-                if th.isnan(loss).any():
+                if th.isnan(loss).any() or th.isinf(loss).any():
                     print("NaN losses, exiting...")
+                    print(
+                        {
+                            "Total": loss.detach().cpu().item(),
+                            "\nVGG": vgg_loss.detach().cpu().item(),
+                            "\nReconstruction": loss_dict["Reconstruction"].detach().cpu().item(),
+                            "\nKullback Leibler Divergence": loss_dict["Kullback Leibler Divergence"]
+                            .detach()
+                            .cpu()
+                            .item(),
+                        }
+                    )
                     wandb.log({"Score": 27000})
                     return
 
-            weights = np.sqrt(np.arange(1, len(scores) + 1))
-            weights /= sum(weights)
-            weighted_scores = sum([w * v for w, v in zip(weights, scores)])
-            wandb.log({"Score": weighted_scores})
             return
 
         except RuntimeError as e:
@@ -174,20 +235,15 @@ def train(latent_dim, learning_rate, number_filters, vae_alpha, vae_beta, kl_div
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--latent_dim", type=int, default=8)
-parser.add_argument("--learning_rate", type=float, default=-3.0)
-parser.add_argument("--number_filters", type=int, default=4)
-parser.add_argument("--vae_alpha", type=float, default=1.0)
-parser.add_argument("--vae_beta", type=float, default=0.0)
-parser.add_argument("--kl_divergence_weight", type=float, default=-3.0)
+parser.add_argument("--latent_dim", type=int, default=1024)
+parser.add_argument("--learning_rate", type=float, default=0.005)
+parser.add_argument("--number_filters", type=int, default=64)
+parser.add_argument("--vae_alpha", type=float, default=10.0)
+parser.add_argument("--vae_beta", type=float, default=1.0)
+parser.add_argument("--kl_divergence_weight", type=float, default=1.0)
 args = parser.parse_args()
 
 train(
-    2 ** args.latent_dim,
-    10 ** args.learning_rate,
-    2 ** args.number_filters,
-    10 ** args.vae_alpha,
-    10 ** args.vae_beta,
-    10 ** args.kl_divergence_weight,
+    args.latent_dim, args.learning_rate, args.number_filters, args.vae_alpha, args.vae_beta, args.kl_divergence_weight,
 )
 

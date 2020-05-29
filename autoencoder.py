@@ -150,9 +150,11 @@ class conv2DBatchNormRelu(th.nn.Module):
         )
 
         if with_bn:
-            self.cbr_unit = th.nn.Sequential(conv_mod, th.nn.BatchNorm2d(int(n_filters)), th.nn.ReLU(inplace=True))
+            self.cbr_unit = th.nn.Sequential(
+                conv_mod, th.nn.BatchNorm2d(int(n_filters)), FusedLeakyReLU(int(n_filters))
+            )
         else:
-            self.cbr_unit = th.nn.Sequential(conv_mod, th.nn.ReLU(inplace=True))
+            self.cbr_unit = th.nn.Sequential(conv_mod, FusedLeakyReLU(int(n_filters)))
 
     def forward(self, inputs):
         outputs = self.cbr_unit(inputs)
@@ -227,13 +229,10 @@ class SegNet(th.nn.Module):
     See LICENSE_AUTOENCODER
     """
 
-    def __init__(self, n_classes=3, in_channels=3, is_unpooling=True):
+    def __init__(self, in_channels=3):
         super(SegNet, self).__init__()
 
-        self.in_channels = in_channels
-        self.is_unpooling = is_unpooling
-
-        self.down1 = segnetDown2(self.in_channels, 64)
+        self.down1 = segnetDown2(in_channels, 64)
         self.down2 = segnetDown2(64, 128)
         self.down3 = segnetDown3(128, 256)
         self.down4 = segnetDown3(256, 512)
@@ -243,21 +242,52 @@ class SegNet(th.nn.Module):
         self.up4 = segnetUp3(512, 256)
         self.up3 = segnetUp3(256, 128)
         self.up2 = segnetUp2(128, 64)
-        self.up1 = segnetUp2(64, n_classes)
+        self.up1 = segnetUp2(64, in_channels)
+
+    def random_indices(self, shape):
+        batch, channel, height, width = shape
+        xy = th.randint(0, 2, size=[batch, channel, height, width, 2])
+        grid = th.arange(height * width).reshape(height, width)
+        indices = grid * 2 + (th.arange(height) * width * 2)[:, None] + xy[..., 0] + width * 2 * xy[..., 1]
+        return indices.cuda()
+
+    def encode(self, inputs):
+        down1, indices_1, unpool_shape1 = self.down1(inputs)
+        down2, indices_2, unpool_shape2 = self.down2(down1)
+        down3, indices_3, unpool_shape3 = self.down3(down2)
+        down4, indices_4, unpool_shape4 = self.down4(down3)
+        down5, indices_5, unpool_shape5 = self.down5(down4)
+        return down5
+
+    def decode(self, inp):
+        batch, _, height, width = inp.shape
+        up5 = self.up5(inp, self.random_indices([batch, 512, height, width]), [batch, 512, height * 2, width * 2])
+        up4 = self.up4(
+            up5, self.random_indices([batch, 512, height * 2, width * 2]), [batch, 512, height * 4, width * 4]
+        )
+        up3 = self.up3(
+            up4, self.random_indices([batch, 256, height * 4, width * 4]), [batch, 256, height * 8, width * 8]
+        )
+        up2 = self.up2(
+            up3, self.random_indices([batch, 128, height * 8, width * 8]), [batch, 128, height * 16, width * 16]
+        )
+        up1 = self.up1(
+            up2, self.random_indices([batch, 64, height * 16, width * 16]), [batch, 64, height * 32, width * 32]
+        )
+        return up1
 
     def forward(self, inputs):
-
         down1, indices_1, unpool_shape1 = self.down1(inputs)
         down2, indices_2, unpool_shape2 = self.down2(down1)
         down3, indices_3, unpool_shape3 = self.down3(down2)
         down4, indices_4, unpool_shape4 = self.down4(down3)
         down5, indices_5, unpool_shape5 = self.down5(down4)
 
-        up5 = self.up5(down5, indices_5, unpool_shape5)
-        up4 = self.up4(up5, indices_4, unpool_shape4)
-        up3 = self.up3(up4, indices_3, unpool_shape3)
-        up2 = self.up2(up3, indices_2, unpool_shape2)
-        up1 = self.up1(up2, indices_1, unpool_shape1)
+        up5 = self.up5(down5, indices_5.shape, unpool_shape5)
+        up4 = self.up4(up5, indices_4.shape, unpool_shape4)
+        up3 = self.up3(up4, indices_3.shape, unpool_shape3)
+        up2 = self.up2(up3, indices_2.shape, unpool_shape2)
+        up1 = self.up1(up2, indices_1.shape, unpool_shape1)
 
         return up1
 
@@ -295,3 +325,147 @@ class SegNet(th.nn.Module):
                 assert l1.bias.size() == l2.bias.size()
                 l2.weight.data = l1.weight.data
                 l2.bias.data = l1.bias.data
+
+
+class ConvSegNet(th.nn.Module):
+    """
+    Adapted from https://github.com/foamliu/Autoencoder
+    See LICENSE_AUTOENCODER
+    """
+
+    def __init__(self, in_channels=3):
+        super(ConvSegNet, self).__init__()
+
+        self.encoder = th.nn.Sequential(
+            conv2DBatchNormRelu(in_channels, 64, 3, 1, 1),
+            conv2DBatchNormRelu(64, 64, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            conv2DBatchNormRelu(64, 128, 3, 1, 1),
+            conv2DBatchNormRelu(128, 128, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            conv2DBatchNormRelu(128, 256, 3, 1, 1),
+            conv2DBatchNormRelu(256, 256, 3, 1, 1),
+            conv2DBatchNormRelu(256, 256, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            conv2DBatchNormRelu(256, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            th.nn.Tanh(),
+        )
+
+        self.decoder = th.nn.Sequential(
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 256, 3, 1, 1),
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(256, 256, 3, 1, 1),
+            conv2DBatchNormRelu(256, 256, 3, 1, 1),
+            conv2DBatchNormRelu(256, 128, 3, 1, 1),
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(128, 128, 3, 1, 1),
+            conv2DBatchNormRelu(128, 64, 3, 1, 1),
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(64, 64, 3, 1, 1),
+            conv2DBatchNormRelu(64, in_channels, 3, 1, 1),
+        )
+
+    def encode(self, inputs):
+        return self.encoder(inputs)
+
+    def decode(self, inputs):
+        return self.decoder(inputs)
+
+    def forward(self, inputs):
+        z = self.encode(inputs)
+        # print(z.min(), z.mean(), z.max(), z.shape)
+        return self.decode(z)
+
+
+class VariationalConvSegNet(th.nn.Module):
+    """
+    Adapted from https://github.com/foamliu/Autoencoder
+    See LICENSE_AUTOENCODER
+    """
+
+    def __init__(self, in_channels=3):
+        super(VariationalConvSegNet, self).__init__()
+
+        self.encoder = th.nn.Sequential(
+            conv2DBatchNormRelu(in_channels, 64, 3, 1, 1),
+            conv2DBatchNormRelu(64, 64, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            conv2DBatchNormRelu(64, 128, 3, 1, 1),
+            conv2DBatchNormRelu(128, 128, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            conv2DBatchNormRelu(128, 256, 3, 1, 1),
+            conv2DBatchNormRelu(256, 256, 3, 1, 1),
+            conv2DBatchNormRelu(256, 256, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            conv2DBatchNormRelu(256, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            th.nn.MaxPool2d(2, 2),
+            th.nn.Tanh(),
+            Flatten(),
+        )
+
+        self.fc_mu = th.nn.Linear(512 * 4 * 4, 512 * 4 * 4)
+        self.fc_var = th.nn.Linear(512 * 4 * 4, 512 * 4 * 4)
+
+        self.decoder = th.nn.Sequential(
+            UnFlatten(512, 4),
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 512, 3, 1, 1),
+            conv2DBatchNormRelu(512, 256, 3, 1, 1),
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(256, 256, 3, 1, 1),
+            conv2DBatchNormRelu(256, 256, 3, 1, 1),
+            conv2DBatchNormRelu(256, 128, 3, 1, 1),
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(128, 128, 3, 1, 1),
+            conv2DBatchNormRelu(128, 64, 3, 1, 1),
+            th.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
+            conv2DBatchNormRelu(64, 64, 3, 1, 1),
+            conv2DBatchNormRelu(64, in_channels, 3, 1, 1),
+            th.nn.Tanh(),
+        )
+
+    def reparameterize(self, mu, log_var):
+        std = th.exp(0.5 * log_var)
+        eps = th.randn_like(std)
+        return eps * std + mu
+
+    def encode(self, inputs):
+        result = self.encoder(inputs)
+
+        mu = self.fc_mu(result)
+        log_var = self.fc_var(result)
+
+        return mu, log_var
+
+    def decode(self, inputs):
+        return self.decoder(inputs)
+
+    def forward(self, inputs):
+        mu, log_var = self.encode(inputs)
+        z = self.reparameterize(mu, log_var)
+        return self.decode(z)
