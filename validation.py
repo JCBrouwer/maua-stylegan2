@@ -140,7 +140,7 @@ def fid(generator, batch_size, n_sample, truncation, inception_name, calculate_p
             with open(f"inception_{inception_name}_features.pkl", "rb") as f:
                 embeds = pickle.load(f)
                 real_feats = embeds["features"]
-            _, _, density, coverage = prdc(real_feats, features)
+            _, _, density, coverage = prdc(real_feats[:40000], features[:40000])
             ret_dict["Density"] = density
             ret_dict["Coverage"] = coverage
 
