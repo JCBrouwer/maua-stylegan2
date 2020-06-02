@@ -289,7 +289,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                         "g_optim": g_optim.state_dict(),
                         "d_optim": d_optim.state_dict(),
                     },
-                    f"checkpoints/{args.name}{str(i).zfill(6)}.pt",
+                    f"checkpoints/{args.name}-{wandb.run.dir.split('/')[-1].split('-')[-1]}-{str(i).zfill(6)}.pt",
                 )
 
 
@@ -464,7 +464,7 @@ if __name__ == "__main__":
 
     if get_rank() == 0:
         validation.get_dataset_inception_features(loader, args.path, args.name, args.size)
-        wandb.init(project=f"maua-stylegan", name="Cyphept 3")
+        wandb.init(project=f"maua-stylegan", name="Osyvhir Aon 1")
     scaler = th.cuda.amp.GradScaler()
 
     train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_ema, device)
