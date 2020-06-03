@@ -98,11 +98,16 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
         real_img = next(loader)
         real_img = real_img.to(device)
 
+        # print(real_img.shape)
+
         requires_grad(generator, False)
         requires_grad(discriminator, True)
 
         # with th.cuda.amp.autocast():
         noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
+
+        # print(noise[0].shape)
+
         fake_img, _ = generator(noise)
         fake_pred = discriminator(fake_img)
         real_pred = discriminator(real_img)
@@ -251,14 +256,14 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                 log_dict["Mean Path Length"] = mean_path_length
                 log_dict["Path Length"] = path_length_val
 
-            if i % 250 == 0:
+            if i % 100 == 0:
                 with th.no_grad():
                     g_ema.eval()
                     sample, _ = g_ema([sample_z])
                     grid = utils.make_grid(sample, nrow=6 * 256 // args.size, normalize=True, range=(-1, 1),)
                 log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
 
-            if i % 1000 == 0:
+            if i % 500 == 0:
                 pbar.set_description((f"Calculating FID..."))
                 fid_dict = validation.fid(g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name)
                 fid = fid_dict["FID"]
@@ -280,7 +285,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
 
             wandb.log(log_dict)
 
-            if i % 5000 == 0:
+            if i % 1000 == 0:
                 th.save(
                     {
                         "g": g_module.state_dict(),
@@ -304,9 +309,9 @@ if __name__ == "__main__":
     parser.add_argument("--hflip", type=bool, default=True)
 
     # training options
-    parser.add_argument("--iter", type=int, default=100_000)
+    parser.add_argument("--iter", type=int, default=500_000)
     parser.add_argument("--start_iter", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=12)
+    parser.add_argument("--batch_size", type=int, default=3)
     parser.add_argument("--checkpoint", type=str, default=None)
     parser.add_argument("--transfer_mapping_only", type=bool, default=False)
 
@@ -314,7 +319,7 @@ if __name__ == "__main__":
     parser.add_argument("--latent_size", type=int, default=512)
     parser.add_argument("--n_mlp", type=int, default=8)
     parser.add_argument("--n_sample", type=int, default=24)
-    parser.add_argument("--size", type=int, default=256)
+    parser.add_argument("--size", type=int, default=1024)
     parser.add_argument("--constant_input", type=bool, default=False)
 
     # loss options
@@ -328,7 +333,7 @@ if __name__ == "__main__":
     parser.add_argument("--channel_multiplier", type=int, default=2)
 
     # validation / logging options
-    parser.add_argument("--val_batch_size", type=int, default=4)
+    parser.add_argument("--val_batch_size", type=int, default=24)
     parser.add_argument("--fid_n_sample", type=int, default=5000)
     parser.add_argument("--fid_truncation", type=float, default=0.7)
     parser.add_argument("--ppl_space", choices=["z", "w"], default="w")
@@ -454,6 +459,7 @@ if __name__ == "__main__":
     )
 
     dataset = MultiResolutionDataset(args.path, transform, args.size)
+    # print(dataset, len(dataset))
     loader = data.DataLoader(
         dataset,
         batch_size=args.batch_size,
@@ -461,10 +467,11 @@ if __name__ == "__main__":
         num_workers=8,
         drop_last=True,
     )
+    # print(loader, len(loader))
 
     if get_rank() == 0:
         validation.get_dataset_inception_features(loader, args.path, args.name, args.size)
-        wandb.init(project=f"maua-stylegan", name="Osyvhir Aon 1")
+        wandb.init(project=f"maua-stylegan", name="Cyphept 1024")
     scaler = th.cuda.amp.GradScaler()
 
     train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_ema, device)

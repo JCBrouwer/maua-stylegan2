@@ -17,7 +17,6 @@ class MultiResolutionDataset(Dataset):
             self.length = int(txn.get("length".encode("utf-8")).decode("utf-8"))
 
         self.resolution = resolution
-        # self.resolution = 1024  # HACK to make current cyphis dataset (maybe?) work
         self.transform = transform
 
     def __len__(self):
@@ -26,6 +25,7 @@ class MultiResolutionDataset(Dataset):
     def __getitem__(self, index):
         with self.env.begin(write=False) as txn:
             key = f"{self.resolution}-{str(index).zfill(5)}".encode("utf-8")
+            # print(key)
             img_bytes = txn.get(key)
 
         buffer = BytesIO(img_bytes)

@@ -72,7 +72,7 @@ def vae_fid(vae, batch_size, latent_dim, n_sample, inception_name, calculate_prd
             with open(f"inception_{inception_name}_features.pkl", "rb") as f:
                 embeds = pickle.load(f)
                 real_feats = embeds["features"]
-            _, _, density, coverage = prdc(real_feats, features)
+            _, _, density, coverage = prdc(real_feats[:80000], features[:80000])
             ret_dict["Density"] = density
             ret_dict["Coverage"] = coverage
 
@@ -140,7 +140,7 @@ def fid(generator, batch_size, n_sample, truncation, inception_name, calculate_p
             with open(f"inception_{inception_name}_features.pkl", "rb") as f:
                 embeds = pickle.load(f)
                 real_feats = embeds["features"]
-            _, _, density, coverage = prdc(real_feats[:40000], features[:40000])
+            _, _, density, coverage = prdc(real_feats[:80000], features[:80000])
             ret_dict["Density"] = density
             ret_dict["Coverage"] = coverage
 
