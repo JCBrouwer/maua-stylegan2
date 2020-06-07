@@ -45,6 +45,7 @@ def accumulate(model1, model2, decay=0.5 ** (32.0 / 10_000)):
     par1 = dict(model1.named_parameters())
     par2 = dict(model2.named_parameters())
     for name, param in model1.named_parameters():
+        # print(name)
         param.data = decay * par1[name].data + (1 - decay) * par2[name].data
 
 
@@ -116,6 +117,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
         real_loss = F.softplus(-real_pred)
         fake_loss = F.softplus(fake_pred)
         d_loss = real_loss.mean() + fake_loss.mean()
+        # print(d_loss)
 
         discriminator.zero_grad()
         # scaler.scale(d_loss).backward()
@@ -142,6 +144,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
             # with th.cuda.amp.autocast():
             r1_loss = grad_real.pow(2).view(grad_real.shape[0], -1).sum(1).mean()
             weighted_r1_loss = args.r1 / 2.0 * r1_loss * args.d_reg_every + 0 * real_pred[0]
+            # print(weighted_r1_loss)
 
             discriminator.zero_grad()
             # scaler.scale(weighted_r1_loss).backward()
@@ -161,6 +164,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
 
         # non-saturating loss
         g_loss = F.softplus(-fake_pred).mean()
+        # print(g_loss)
 
         generator.zero_grad()
         # scaler.scale(g_loss).backward()
@@ -194,6 +198,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
             weighted_path_loss = args.path_regularize * args.g_reg_every * path_loss
             if args.path_batch_shrink:
                 weighted_path_loss += 0 * fake_img[0, 0, 0, 0]
+            # print(weighted_path_loss)
 
             generator.zero_grad()
             # scaler.scale(weighted_path_loss).backward()
@@ -229,6 +234,8 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                 "Fake Score": fake_score_val,
             }
 
+            # print(log_dict)
+
             if args.log_spec_norm:
                 G_norms = []
                 for name, spec_norm in g_module.named_buffers():
@@ -248,35 +255,51 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                 log_dict[f"Spectral Norms/D mean spectral norm"] = np.log(D_norms).mean()
                 log_dict[f"Spectral Norms/D max spectral norm"] = np.log(D_norms).max()
 
+            # print(log_dict)
+
             if i % args.d_reg_every == 0:
                 log_dict["R1"] = r1_val
+
+            # print(log_dict)
 
             if i % args.g_reg_every == 0:
                 log_dict["Path Length Regularization"] = path_loss_val
                 log_dict["Mean Path Length"] = mean_path_length
                 log_dict["Path Length"] = path_length_val
 
-            if i % 100 == 0:
+            # print(log_dict)
+
+            if i % 250 == 0:
                 with th.no_grad():
                     g_ema.eval()
                     sample, _ = g_ema([sample_z])
-                    grid = utils.make_grid(sample, nrow=6 * 256 // args.size, normalize=True, range=(-1, 1),)
+                    grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1),)
                 log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
 
-            if i % 500 == 0:
+            if i % 1000 == 0:
+                import time
+
+                # print("Calculating FID...")
+                start_time = time.time()
                 pbar.set_description((f"Calculating FID..."))
                 fid_dict = validation.fid(g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name)
                 fid = fid_dict["FID"]
                 density = fid_dict["Density"]
                 coverage = fid_dict["Coverage"]
+                # print(time.time() - start_time)
 
+                # print("Calculating PPL...")
+                # start_time = time.time()
                 pbar.set_description((f"Calculating PPL..."))
                 ppl = validation.ppl(
                     g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
                 )
+                # print(time.time() - start_time)
 
                 pbar.set_description(
-                    (f"FID: {fid:.4f}; Density: {density:.4f}; Coverage: {coverage:.4f}; PPL: {ppl:.4f};")
+                    (
+                        f"FID: {fid:.4f}; Density: {density:.4f}; Coverage: {coverage:.4f}; PPL: {ppl:.4f} in {time.time() - start_time:.1f}s"
+                    )
                 )
                 log_dict["Evaluation/FID"] = fid
                 log_dict["Evaluation/Density"] = density
@@ -294,7 +317,7 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                         "g_optim": g_optim.state_dict(),
                         "d_optim": d_optim.state_dict(),
                     },
-                    f"checkpoints/{args.name}-{wandb.run.dir.split('/')[-1].split('-')[-1]}-{str(i).zfill(6)}.pt",
+                    f"checkpoints/{args.name}-{wandb.run.dir.split('/')[-1].split('-')[-1]}-{int(fid)}-{int(ppl)}-{str(i).zfill(6)}.pt",
                 )
 
 
@@ -309,7 +332,7 @@ if __name__ == "__main__":
     parser.add_argument("--hflip", type=bool, default=True)
 
     # training options
-    parser.add_argument("--iter", type=int, default=500_000)
+    parser.add_argument("--iter", type=int, default=200_000)
     parser.add_argument("--start_iter", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=3)
     parser.add_argument("--checkpoint", type=str, default=None)
@@ -318,7 +341,7 @@ if __name__ == "__main__":
     # model options
     parser.add_argument("--latent_size", type=int, default=512)
     parser.add_argument("--n_mlp", type=int, default=8)
-    parser.add_argument("--n_sample", type=int, default=24)
+    parser.add_argument("--n_sample", type=int, default=18)
     parser.add_argument("--size", type=int, default=1024)
     parser.add_argument("--constant_input", type=bool, default=False)
 
@@ -333,7 +356,7 @@ if __name__ == "__main__":
     parser.add_argument("--channel_multiplier", type=int, default=2)
 
     # validation / logging options
-    parser.add_argument("--val_batch_size", type=int, default=24)
+    parser.add_argument("--val_batch_size", type=int, default=8)
     parser.add_argument("--fid_n_sample", type=int, default=5000)
     parser.add_argument("--fid_truncation", type=float, default=0.7)
     parser.add_argument("--ppl_space", choices=["z", "w"], default="w")
@@ -471,7 +494,7 @@ if __name__ == "__main__":
 
     if get_rank() == 0:
         validation.get_dataset_inception_features(loader, args.path, args.name, args.size)
-        wandb.init(project=f"maua-stylegan", name="Cyphept 1024")
+        wandb.init(project=f"maua-stylegan", name="Cyphept 512")
     scaler = th.cuda.amp.GradScaler()
 
     train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_ema, device)
