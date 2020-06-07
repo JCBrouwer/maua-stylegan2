@@ -10,6 +10,8 @@ from torch.autograd import Function
 
 from op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d
 
+from transform_layers import *
+
 
 class PixelNorm(nn.Module):
     def __init__(self):
@@ -139,10 +141,6 @@ class EqualLinear(nn.Module):
     def forward(self, input):
         if self.activation:
             out = F.linear(input, self.weight * self.scale)
-            # print()
-            # print(out)
-            # print(self.bias * self.lr_mul)
-            # print()
             out = fused_leaky_relu(out, self.bias * self.lr_mul)
 
         else:
@@ -311,6 +309,7 @@ class StyledConv(nn.Module):
         upsample=False,
         blur_kernel=[1, 3, 3, 1],
         demodulate=True,
+        layerID=-1,
     ):
         super().__init__()
 
@@ -328,13 +327,14 @@ class StyledConv(nn.Module):
         # self.bias = nn.Parameter(torch.zeros(1, out_channel, 1, 1))
         # self.activate = ScaledLeakyReLU(0.2)
         self.activate = FusedLeakyReLU(out_channel)
+        self.manipulation = ManipulationLayer(layerID)
 
-    def forward(self, input, style, noise=None):
+    def forward(self, input, style, noise=None, transform_dict_list=[]):
         out = self.conv(input, style)
         out = self.noise(out, noise=noise)
         # out = out + self.bias
         out = self.activate(out)
-
+        out = self.manipulation(out, transform_dict_list)
         return out
 
 
@@ -396,7 +396,10 @@ class Generator(nn.Module):
             self.input = ConstantInput(self.channels[4])
         else:
             self.input = LatentInput(style_dim, self.channels[4])
-        self.conv1 = StyledConv(self.channels[4], self.channels[4], 3, style_dim, blur_kernel=blur_kernel)
+        layerID = 0
+        self.conv1 = StyledConv(
+            self.channels[4], self.channels[4], 3, style_dim, blur_kernel=blur_kernel, layerID=layerID
+        )
         self.to_rgb1 = ToRGB(self.channels[4], style_dim, upsample=False)
 
         self.convs = nn.ModuleList()
@@ -414,11 +417,17 @@ class Generator(nn.Module):
         for i in range(3, self.log_size + 1):
             out_channel = self.channels[2 ** i]
 
+            layerID += 1
             self.convs.append(
-                StyledConv(in_channel, out_channel, 3, style_dim, upsample=True, blur_kernel=blur_kernel,)
+                StyledConv(
+                    in_channel, out_channel, 3, style_dim, upsample=True, blur_kernel=blur_kernel, layerID=layerID
+                )
             )
 
-            self.convs.append(StyledConv(out_channel, out_channel, 3, style_dim, blur_kernel=blur_kernel))
+            layerID += 1
+            self.convs.append(
+                StyledConv(out_channel, out_channel, 3, style_dim, blur_kernel=blur_kernel, layerID=layerID)
+            )
 
             self.to_rgbs.append(ToRGB(out_channel, style_dim))
 
@@ -448,12 +457,14 @@ class Generator(nn.Module):
         self,
         styles,
         return_latents=False,
+        return_activation_maps=False,
         inject_index=None,
         truncation=1,
         truncation_latent=None,
         input_is_latent=False,
         noise=None,
         randomize_noise=True,
+        transform_dict_list=[],
     ):
         if not input_is_latent:
             styles = [self.style(s) for s in styles]
@@ -490,26 +501,30 @@ class Generator(nn.Module):
 
             latent = torch.cat([latent, latent2], 1)
 
+        activation_map_list = []
         out = self.input(latent)
         out = self.conv1(out, latent[:, 0], noise=noise[0])
-
+        activation_map_list.append(out)
         skip = self.to_rgb1(out, latent[:, 1])
 
         i = 1
         for conv1, conv2, noise1, noise2, to_rgb in zip(
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
-            out = conv1(out, latent[:, i], noise=noise1)
-            out = conv2(out, latent[:, i + 1], noise=noise2)
+            out = conv1(out, latent[:, i], noise=noise1, transform_dict_list=transform_dict_list)
+            activation_map_list.append(out)
+            out = conv2(out, latent[:, i + 1], noise=noise2, transform_dict_list=transform_dict_list)
+            activation_map_list.append(out)
             skip = to_rgb(out, latent[:, i + 2], skip)
 
             i += 2
 
         image = skip
 
-        if return_latents:
+        if return_activation_maps:
+            return image, activation_map_list
+        elif return_latents:
             return image, latent
-
         else:
             return image, None
 
