@@ -134,3 +134,4 @@ wandb/
 
 checkpoints/
 maua-stylegan/
+.vscode
