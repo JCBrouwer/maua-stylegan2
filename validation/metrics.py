@@ -8,8 +8,8 @@ from torch.nn import functional as F
 import numpy as np
 from scipy import linalg
 
-from inception import InceptionV3
-import lpips
+from .inception import InceptionV3
+from . import lpips
 
 
 def vae_fid(vae, batch_size, latent_dim, n_sample, inception_name, calculate_prdc=True):
@@ -243,7 +243,7 @@ def ppl(generator, batch_size, n_sample, space, crop, latent_dim, eps=1e-4):
                 latent_e1 = lerp(latent_t0, latent_t1, lerp_t[:, None] + eps)
                 latent_e = torch.stack([latent_e0, latent_e1], 1).view(*latent.shape)
 
-            image, _ = generator([latent_e], input_is_latent=True, noise=noise)
+            image, _ = generator(latent_e, input_is_latent=True, noise=noise)
 
             if crop:
                 c = image.shape[2] // 8

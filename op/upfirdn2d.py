@@ -13,7 +13,7 @@ upfirdn2d_op = load(
 
 class UpFirDn2dBackward(Function):
     @staticmethod
-    # @torch.cuda.amp.custom_fwd
+    # @torch.cuda.amp.custom_fwd(cast_inputs=torch.float16)
     def forward(ctx, grad_output, kernel, grad_kernel, up, down, pad, g_pad, in_size, out_size):
 
         up_x, up_y = up
@@ -71,7 +71,7 @@ class UpFirDn2dBackward(Function):
 
 class UpFirDn2d(Function):
     @staticmethod
-    # @torch.cuda.amp.custom_fwd
+    # @torch.cuda.amp.custom_fwd(cast_inputs=torch.float16)
     def forward(ctx, input, kernel, up, down, pad):
         up_x, up_y = up
         down_x, down_y = down

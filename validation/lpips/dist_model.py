@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import sys
 import numpy as np
 import torch
@@ -15,10 +13,9 @@ import functools
 import skimage.transform
 from tqdm import tqdm
 
-from IPython import embed
 
 from . import networks_basic as networks
-import lpips as util
+from . import util
 
 
 class DistModel(BaseModel):

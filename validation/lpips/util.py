@@ -7,42 +7,6 @@ from skimage.measure import compare_ssim
 import torch
 from torch.autograd import Variable
 
-from lpips import dist_model
-
-
-class PerceptualLoss(torch.nn.Module):
-    def __init__(
-        self, model="net-lin", net="alex", colorspace="rgb", spatial=False, use_gpu=True, gpu_ids=[0]
-    ):  # VGG using our perceptually-learned weights (LPIPS metric)
-        # def __init__(self, model='net', net='vgg', use_gpu=True): # "default" way of using VGG as a perceptual loss
-        super(PerceptualLoss, self).__init__()
-        # print('Setting up Perceptual loss...')
-        self.use_gpu = use_gpu
-        self.spatial = spatial
-        self.gpu_ids = gpu_ids
-        self.model = dist_model.DistModel()
-        self.model.initialize(
-            model=model, net=net, use_gpu=use_gpu, colorspace=colorspace, spatial=self.spatial, gpu_ids=gpu_ids
-        )
-        # print('...[%s] initialized'%self.model.name())
-        # print('...Done')
-
-    def forward(self, pred, target, normalize=False):
-        """
-        Pred and target are Variables.
-        If normalize is True, assumes the images are between [0,1] and then scales them between [-1,+1]
-        If normalize is False, assumes the images are already between [-1,+1]
-
-        Inputs pred and target are Nx3xHxW
-        Output pytorch Variable N long
-        """
-
-        if normalize:
-            target = 2 * target - 1
-            pred = 2 * pred - 1
-
-        return self.model.forward(target, pred)
-
 
 def normalize_tensor(in_feat, eps=1e-10):
     norm_factor = torch.sqrt(torch.sum(in_feat ** 2, dim=1, keepdim=True))
@@ -174,6 +138,7 @@ def tensor2im(image_tensor, imtype=np.uint8, cent=1.0, factor=255.0 / 2.0):
     image_numpy = image_tensor[0].cpu().float().numpy()
     image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + cent) * factor
     return image_numpy.astype(imtype)
+
 
 def im2tensor(image, imtype=np.uint8, cent=1.0, factor=255.0 / 2.0):
     # def im2tensor(image, imtype=np.uint8, cent=1., factor=1.):

@@ -1,7 +1,7 @@
 import argparse
 import math
 import random
-import os
+import os, gc
 
 import numpy as np
 import torch as th
@@ -14,9 +14,8 @@ from tqdm import tqdm
 
 import wandb
 import validation
-from spectral_normalization import track_spectral_norm
 
-from model import Generator, Discriminator
+from models.stylegan2 import Generator, Discriminator
 from dataset import MultiResolutionDataset
 from distributed import (
     get_rank,
@@ -73,10 +72,10 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
     mean_path_length = 0
 
     d_loss_val = 0
-    r1_loss = th.tensor(0.0, device=device)
+    r1_loss = th.zeros(size=(1,), device=device)
     g_loss_val = 0
-    path_loss = th.tensor(0.0, device=device)
-    path_lengths = th.tensor(0.0, device=device)
+    path_loss = th.zeros(size=(1,), device=device)
+    path_lengths = th.zeros(size=(1,), device=device)
     mean_path_length_avg = 0
     loss_dict = {}
 
@@ -234,8 +233,6 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                 "Fake Score": fake_score_val,
             }
 
-            # print(log_dict)
-
             if args.log_spec_norm:
                 G_norms = []
                 for name, spec_norm in g_module.named_buffers():
@@ -255,46 +252,37 @@ def train(args, loader, generator, discriminator, g_optim, d_optim, scaler, g_em
                 log_dict[f"Spectral Norms/D mean spectral norm"] = np.log(D_norms).mean()
                 log_dict[f"Spectral Norms/D max spectral norm"] = np.log(D_norms).max()
 
-            # print(log_dict)
-
             if i % args.d_reg_every == 0:
                 log_dict["R1"] = r1_val
-
-            # print(log_dict)
 
             if i % args.g_reg_every == 0:
                 log_dict["Path Length Regularization"] = path_loss_val
                 log_dict["Mean Path Length"] = mean_path_length
                 log_dict["Path Length"] = path_length_val
 
-            # print(log_dict)
-
             if i % 250 == 0:
+                gc.collect()
+                th.cuda.empty_cache()
                 with th.no_grad():
                     g_ema.eval()
                     sample, _ = g_ema([sample_z])
-                    grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1),)
+                    grid = utils.make_grid(sample, nrow=4, normalize=True, range=(-1, 1),)
                 log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
 
             if i % 1000 == 0:
                 import time
 
-                # print("Calculating FID...")
                 start_time = time.time()
                 pbar.set_description((f"Calculating FID..."))
                 fid_dict = validation.fid(g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name)
                 fid = fid_dict["FID"]
                 density = fid_dict["Density"]
                 coverage = fid_dict["Coverage"]
-                # print(time.time() - start_time)
 
-                # print("Calculating PPL...")
-                # start_time = time.time()
                 pbar.set_description((f"Calculating PPL..."))
                 ppl = validation.ppl(
                     g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
                 )
-                # print(time.time() - start_time)
 
                 pbar.set_description(
                     (
@@ -341,7 +329,7 @@ if __name__ == "__main__":
     # model options
     parser.add_argument("--latent_size", type=int, default=512)
     parser.add_argument("--n_mlp", type=int, default=8)
-    parser.add_argument("--n_sample", type=int, default=18)
+    parser.add_argument("--n_sample", type=int, default=16)
     parser.add_argument("--size", type=int, default=1024)
     parser.add_argument("--constant_input", type=bool, default=False)
 
@@ -396,13 +384,13 @@ if __name__ == "__main__":
                 mod = generator
                 for attr in name.replace(".weight", "").split("."):
                     mod = getattr(mod, attr)
-                track_spectral_norm(mod)
+                validation.track_spectral_norm(mod)
         for name, parameter in discriminator.named_parameters():
             if "weight" in name and parameter.squeeze().dim() > 1:
                 mod = discriminator
                 for attr in name.replace(".weight", "").split("."):
                     mod = getattr(mod, attr)
-                track_spectral_norm(mod)
+                validation.track_spectral_norm(mod)
 
     g_ema = Generator(
         args.size,
