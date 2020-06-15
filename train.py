@@ -481,7 +481,7 @@ if __name__ == "__main__":
     # print(loader, len(loader))
 
     if get_rank() == 0:
-        validation.get_dataset_inception_features(loader, args.path, args.name, args.size)
+        validation.get_dataset_inception_features(loader, args.name, args.size)
         wandb.init(project=f"maua-stylegan", name="Cyphept 512")
     scaler = th.cuda.amp.GradScaler()
 

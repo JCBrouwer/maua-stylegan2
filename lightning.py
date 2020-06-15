@@ -223,7 +223,7 @@ class StyleGAN2(pl.LightningModule):
             super(StyleGAN2, self).optimizer_step(cur_epoch, batch_idx, optimizer, optimizer_idx, closure)
 
     def prepare_data(self):
-        validation.get_dataset_inception_features(self.train_dataloader(), self.path, self.name, self.size)
+        validation.get_dataset_inception_features(self.train_dataloader(), self.name, self.size)
 
     def val_dataloader(self):
         return [[th.arange(0, 1)]]
