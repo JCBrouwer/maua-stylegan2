@@ -86,9 +86,13 @@ class RandomApply(nn.Module):
         self.p = p
 
     def forward(self, x):
-        if random.random() > self.p:
-            return x
-        return self.fn(x)
+        x_out = []
+        for ex in x:
+            if random.random() > self.p:
+                x_out.append(ex[None, :])
+            else:
+                x_out.append(self.fn(ex))
+        return torch.cat(x_out)
 
 
 # exponential moving average
@@ -130,6 +134,10 @@ class OutputHiddenLayer(nn.Module):
         elif type(self.layer) == int:
             children = [*self.net.children()]
             return children[self.layer]
+        elif type(self.layer) == tuple:
+            children = [*self.net.children()]
+            grand_children = [*children[self.layer[0]].children()]
+            return grand_children[self.layer[1]]
         return None
 
     def _register_hook(self):

@@ -959,12 +959,12 @@ class Trainer:
 
         # regular
         generated_images = self.generate_truncated(self.GAN.S, self.GAN.G, latents, n, trunc_psi=self.trunc_psi)
-        grid = torchvision.utils.make_grid(generated_images, nrow=int(16 / 9 * num_rows))
+        grid = torchvision.utils.make_grid(generated_images, nrow=num_rows)
         wandb.log({"Generated Images": [wandb.Image(grid, caption=f"Step {num}")]})
 
         # moving averages
         generated_images = self.generate_truncated(self.GAN.SE, self.GAN.GE, latents, n, trunc_psi=self.trunc_psi)
-        grid = torchvision.utils.make_grid(generated_images, nrow=int(16 / 9 * num_rows))
+        grid = torchvision.utils.make_grid(generated_images, nrow=num_rows)
         wandb.log({"Generated Images EMA": [wandb.Image(grid, caption=f"Step {num}")]})
 
         # mixing regularities
@@ -986,7 +986,7 @@ class Trainer:
         mixed_latents = [(tmp1, tt), (tmp2, num_layers - tt)]
 
         generated_images = self.generate_truncated(self.GAN.SE, self.GAN.GE, mixed_latents, n, trunc_psi=self.trunc_psi)
-        grid = torchvision.utils.make_grid(generated_images, nrow=int(16 / 9 * num_rows))
+        grid = torchvision.utils.make_grid(generated_images, nrow=num_rows)
         wandb.log({"Style Mixing": [wandb.Image(grid, caption=f"Step {num}")]})
 
     @torch.no_grad()
@@ -1158,8 +1158,8 @@ if __name__ == "__main__":
     parser.add_argument("data", type=str)
     parser.add_argument("name", type=str)
     parser.add_argument("--results_dir", type=str, default="/home/hans/neurout/")
-    parser.add_argument("--models_dir", type=str, default="/home/hans/modelzoo/")
-    parser.add_argument("--new", type=bool, default=True)
+    parser.add_argument("--models_dir", type=str, default="/home/hans/modelzoo/maua-sg2/")
+    parser.add_argument("--new", type=bool, default=False)
     parser.add_argument("--load_from", type=str, default=-1)
     parser.add_argument("--image_size", type=int, default=256)
     parser.add_argument("--network_capacity", type=int, default=16)
@@ -1179,6 +1179,8 @@ if __name__ == "__main__":
     parser.add_argument("--fq_dict_size", default=256)
     parser.add_argument("--attn_layers", default=[])
     args = parser.parse_args()
+
+    wandb.init(project=f"maua-stylegan", name="lucidrains-" + args.name)
 
     model = Trainer(
         args.name,
@@ -1214,8 +1216,6 @@ if __name__ == "__main__":
         exit()
 
     model.set_data_src(args.data)
-
-    wandb.init(project=f"maua-stylegan", name="lucidrains-" + args.name)
 
     PBAR = tqdm(range(args.num_train_steps - model.steps), mininterval=10.0, desc=f"{args.name}<{args.data}>")
     for _ in PBAR:

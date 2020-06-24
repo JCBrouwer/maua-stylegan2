@@ -167,7 +167,7 @@ def train(latent_dim, num_repeats, learning_rate, lambda_vgg, lambda_mse):
 
                 th.save(
                     {"vae": vae.state_dict(), "vae_optim": vae_optim.state_dict()},
-                    f"checkpoints/vae-{name}-{wandb.run.dir.split('/')[-1].split('-')[-1]}.pt",
+                    f"/home/hans/modelzoo/maua-sg2/vae-{name}-{wandb.run.dir.split('/')[-1].split('-')[-1]}.pt",
                 )
 
         if th.isnan(loss).any() or th.isinf(loss).any():

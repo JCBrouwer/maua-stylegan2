@@ -343,7 +343,7 @@ if __name__ == "__main__":
     stylegan2.train_dataloader()
 
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        filepath="checkpoints/" + args.name + "-{epoch}-{val_loss:.0f}", save_top_k=10
+        filepath="/home/hans/modelzoo/maua-sg2/" + args.name + "-{epoch}-{val_loss:.0f}", save_top_k=10
     )
 
     wandb_logger = pl.loggers.WandbLogger(project="maua-stylegan")
