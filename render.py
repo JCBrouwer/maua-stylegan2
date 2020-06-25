@@ -58,7 +58,7 @@ def render(generator, latents, noise, batch_size, duration, truncation=1, manipu
         latent_slice = latents[n : n + batch_size]
         noise_slice = [(noise_scale[n : n + batch_size] if noise_scale is not None else None) for noise_scale in noise]
 
-        outputs = generator(
+        outputs, _ = generator(
             styles=latent_slice,
             noise=noise_slice,
             truncation=truncation,
@@ -66,6 +66,7 @@ def render(generator, latents, noise, batch_size, duration, truncation=1, manipu
             randomize_noise=True,
             input_is_latent=True,
         )
+        print(outputs.min(), outputs.mean(), outputs.max(), outputs.shape)
 
         split_queue.put(outputs)
 

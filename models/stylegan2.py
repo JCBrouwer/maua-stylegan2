@@ -582,6 +582,9 @@ class Generator(nn.Module):
         activation_map_list.append(out)
         image = self.to_rgb1(out, latent[:, 1])
 
+        # print(len(self.convs[::2]), len(self.convs[1::2]), len(noise[1::2]), len(noise[2::2]))
+        # exit()
+
         i = 1
         for conv1, conv2, noise1, noise2, to_rgb in zip(
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs

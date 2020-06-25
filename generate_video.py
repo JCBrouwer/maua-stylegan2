@@ -25,7 +25,7 @@ if __name__ == "__main__":
     args.latent = 512
     args.n_mlp = 8
 
-    g_ema = Generator(
+    generator = Generator(
         args.G_res,
         args.latent,
         args.n_mlp,
@@ -34,14 +34,14 @@ if __name__ == "__main__":
         checkpoint=args.ckpt,
         output_size=args.out_size,
     )
-    g_ema = th.nn.DataParallel(g_ema.cuda())
+    generator = th.nn.DataParallel(generator.cuda())
 
     with th.no_grad():
         latents = th.randn((args.num_frames, 512)).cuda()
-        latents = g_ema(latents, map_latents=True).cpu().numpy()
+        latents = generator(latents, map_latents=True).cpu().numpy()
         latents = ndi.gaussian_filter(latents, [5, 0, 0])
         latents = th.from_numpy(latents).cuda()
-        print("input latents: ", latents.shape)
+        print("latent shape: ", latents.shape)
 
         noise = [
             np.random.normal(
@@ -50,15 +50,17 @@ if __name__ == "__main__":
             for s in range(5, 2 * 8, 1)
         ]
         noise = [th.from_numpy(ndi.gaussian_filter(n, [5, 0, 0, 0])).cuda() for n in noise]
+        print("noise shapes: ")
         [print(n.shape) for n in noise]
+        print()
 
         manipulations = [
             {"layer": 0, "transform": "double-width", "params": None, "indicies": None},
-            {"layer": 4, "transform": "translate", "params": [0.25, 0.0], "indicies": "all"},
+            {"layer": 4, "transform": "translate", "params": [0.05, 0.0], "indicies": "all"},
         ]
 
         render(
-            generator=g_ema,
+            generator=generator,
             latents=latents,
             noise=noise,
             duration=args.duration,

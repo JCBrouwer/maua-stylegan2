@@ -14,45 +14,49 @@ class Erode(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
+    def forward(self, batch, params, indicies):
         if not isinstance(params[0], int) or params[0] < 0:
             print("Erosion parameter must be a positive integer")
             # raise ValueError
-
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                tf = th.ops.my_ops.erode(d_, params[0])
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    tf = th.ops.my_ops.erode(d_, params[0])
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class Dilate(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
+    def forward(self, batch, params, indicies):
         if not isinstance(params[0], int) or params[0] < 0:
             print("Dilation parameter must be a positive integer")
             # raise ValueError
-
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                tf = th.ops.my_ops.dilate(d_, params[0])
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    tf = th.ops.my_ops.dilate(d_, params[0])
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class Translate(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
+    def forward(self, batch, params, indicies):
         if (
             not isinstance(params[0], float)
             or not isinstance(params[1], float)
@@ -63,157 +67,182 @@ class Translate(th.nn.Module):
         ):
             print("Translation must have two parameters, which should be floats between -1 and 1.")
             # raise ValueError
-        print(x.shape)
-        x_array = list(th.split(x, 1, 1))
-        # [print(dim.shape) for dim in x_array]
-        for i, dim in enumerate(x_array):
-            if indicies == "all" or i in indicies:
-                d_ = th.squeeze(dim)
-                print(d_.shape)
-                tf = th.ops.my_ops.translate(d_, params[0], params[1])
-                print(tf.shape)
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                print(tf.shape)
-                x_array[i] = tf
-        print(th.cat(x_array, 1).shape)
-        return th.cat(x_array, 1)
+        # print("batch", batch.shape)
+        print(batch.min(), batch.mean(), batch.max(), batch.shape)
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    tf = th.ops.my_ops.translate(d_, params[0], params[1])
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        # print("batch", th.cat(new_xs, 0).reshape(batch.shape).shape)
+        output = th.cat(new_xs, 0).reshape(batch.shape)
+        print(output.min(), output.mean(), output.max(), output.shape)
+        return output
 
 
 class Scale(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
+    def forward(self, batch, params, indicies):
         if not isinstance(params[0], float):
             print("Scale parameter should be a float.")
-            # raise ValueError
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                tf = th.ops.my_ops.scale(d_, params[0])
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+        new_xs = []
+        for x in batch:  # raise ValueError
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    tf = th.ops.my_ops.scale(d_, params[0])
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class Rotate(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
+    def forward(self, batch, params, indicies):
         if not isinstance(params[0], float) or params[0] < 0 or params[0] > 360:
             print("Rotation parameter should be a float between 0 and 360 degrees.")
             # raise ValueError
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                tf = th.ops.my_ops.rotate(d_, params[0])
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+        print("batch", batch.shape)
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    tf = th.ops.my_ops.rotate(d_, params[0])
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        print("batch", th.cat(new_xs, 0).reshape(batch.shape).shape)
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class FlipHorizontal(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                tf = d_.flip([1])
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+    def forward(self, batch, params, indicies):
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    tf = d_.flip([1])
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class FlipVertical(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                tf = d_.flip([0])
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+    def forward(self, batch, params, indicies):
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    tf = d_.flip([0])
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class Invert(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                ones = th.ones(d_.size(), dtype=d_.dtype, layout=d_.layout, device=d_.device)
-                tf = ones - d_
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+    def forward(self, batch, params, indicies):
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    ones = th.ones(d_.size(), dtype=d_.dtype, layout=d_.layout, device=d_.device)
+                    tf = ones - d_
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class BinaryThreshold(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
+    def forward(self, batch, params, indicies):
         if not isinstance(params[0], float) or params[0] < -1 or params[0] > 1:
             print("Binary threshold parameter should be a float between -1 and 1.")
             # raise ValueError
-
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                t = th.autograd.Variable(th.Tensor([params[0]]))
-                t = t.to(d_.device)
-                tf = (d_ > t).float() * 1
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    t = th.autograd.Variable(th.Tensor([params[0]]))
+                    t = t.to(d_.device)
+                    tf = (d_ > t).float() * 1
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class ScalarMultiply(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
+    def forward(self, batch, params, indicies):
         if not isinstance(params[0], float):
             print("Scalar multiply parameter should be a float")
             # raise ValueError
-
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                tf = d_ * params[0]
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    tf = d_ * params[0]
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class Ablate(th.nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params, indicies):
-        x_array = list(th.split(x, 1, 1))
-        for i, dim in enumerate(x_array):
-            if i in indicies:
-                d_ = th.squeeze(dim)
-                tf = d_ * 0
-                tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
-                x_array[i] = tf
-        return th.cat(x_array, 1)
+    def forward(self, batch, params, indicies):
+        new_xs = []
+        for x in batch:
+            x_array = list(th.split(x, 1, 1))
+            for i, dim in enumerate(x_array):
+                if indicies == "all" or i in indicies:
+                    d_ = th.squeeze(dim)
+                    tf = d_ * 0
+                    tf = th.unsqueeze(th.unsqueeze(tf, 0), 0)
+                    x_array[i] = tf
+            new_xs.append(th.cat(x_array, 1))
+        return th.cat(new_xs, 0).reshape(batch.shape)
 
 
 class DoubleWidth(th.nn.Module):
@@ -284,7 +313,7 @@ class ManipulationLayer(th.nn.Module):
             # if transform_dict["layer"] == -1:
             #     self.save_activations(input, transform_dict["index"])
             if transform_dict["layer"] == self.layer:
-                print(f"applying {transform_dict['transform']}({transform_dict['params']}) on layer {self.layer}")
+                # print(f"applying {transform_dict['transform']}({transform_dict['params']}) on layer {self.layer}")
                 out = self.layer_options[transform_dict["transform"]](
                     out, transform_dict["params"], transform_dict["indicies"]
                 )

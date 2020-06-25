@@ -127,10 +127,14 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
 
             # with th.cuda.amp.autocast():
             noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
-
             fake_img, _ = generator(noise)
-            fake_pred = discriminator(fake_img)
-            real_pred = discriminator(real_img)
+
+            if args.augment_D:
+                fake_pred = discriminator(augment(fake_img))
+                real_pred = discriminator(augment(real_img))
+            else:
+                fake_pred = discriminator(fake_img)
+                real_pred = discriminator(real_img)
 
             # logistic loss
             real_loss = F.softplus(-real_pred)
@@ -141,7 +145,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
             loss_dict["real_score"] += real_pred.mean().detach()
             loss_dict["fake_score"] += fake_pred.mean().detach()
 
-            if i > 10_000 or i == 0:
+            if i > 10000 or i == 0:
                 if args.contrastive > 0:
                     contrast_learner(fake_img.clone().detach(), accumulate=True)
                     contrast_learner(real_img, accumulate=True)
@@ -168,7 +172,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
         d_optim.step()
 
         # R1 regularization
-        if i % args.d_reg_every == 0:
+        if args.r1 > 0 and i % args.d_reg_every == 0:
 
             discriminator.zero_grad()
 
@@ -180,6 +184,11 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                 real_img.requires_grad = True
 
                 # with th.cuda.amp.autocast():
+                # if args.augment_D:
+                #     real_pred = discriminator(
+                #         augment(real_img)
+                #     )  # RuntimeError: derivative for grid_sampler_2d_backward is not implemented :(
+                # else:
                 real_pred = discriminator(real_img)
                 real_pred_sum = real_pred.sum()
 
@@ -210,7 +219,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
             noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob, device)
             fake_img, _ = generator(noise)
 
-            if args.augment_G and i > 10_000:
+            if args.augment_G:
                 fake_img = augment(fake_img)
 
             fake_pred = discriminator(fake_img)
@@ -228,7 +237,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
         g_optim.step()
 
         # path length regularization
-        if i % args.g_reg_every == 0:
+        if args.path_regularize > 0 and i % args.g_reg_every == 0:
 
             generator.zero_grad()
 
@@ -313,10 +322,10 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                 log_dict[f"Spectral Norms/D mean spectral norm"] = np.log(D_norms).mean()
                 log_dict[f"Spectral Norms/D max spectral norm"] = np.log(D_norms).max()
 
-            if i % args.d_reg_every == 0:
+            if args.r1 > 0 and i % args.d_reg_every == 0:
                 log_dict["R1"] = r1_val
 
-            if i % args.g_reg_every == 0:
+            if args.path_regularize > 0 and i % args.g_reg_every == 0:
                 log_dict["Path Length Regularization"] = path_loss_val
                 log_dict["Mean Path Length"] = mean_path_length
                 log_dict["Path Length"] = path_length_val
@@ -390,7 +399,7 @@ if __name__ == "__main__":
     parser.add_argument("--hflip", type=bool, default=True)
 
     # training options
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=6)
     parser.add_argument("--num_accumulate", type=int, default=1)
 
     parser.add_argument("--checkpoint", type=str, default=None)
@@ -404,19 +413,20 @@ if __name__ == "__main__":
     parser.add_argument("--n_mlp", type=int, default=8)
     parser.add_argument("--n_sample", type=int, default=60)
     parser.add_argument("--constant_input", type=bool, default=False)
+    parser.add_argument("--channel_multiplier", type=int, default=2)
 
     # loss options
+    parser.add_argument("--lr", type=float, default=0.002)
     parser.add_argument("--r1", type=float, default=10)
     parser.add_argument("--path_regularize", type=float, default=2)
     parser.add_argument("--path_batch_shrink", type=int, default=2)
-    parser.add_argument("--contrastive", type=float, default=0)
-    parser.add_argument("--balanced_consistency", type=float, default=5)
-    parser.add_argument("--augment_G", type=bool, default=True)
     parser.add_argument("--d_reg_every", type=int, default=16)
     parser.add_argument("--g_reg_every", type=int, default=4)
     parser.add_argument("--mixing_prob", type=float, default=0.9)
-    parser.add_argument("--lr", type=float, default=0.002)
-    parser.add_argument("--channel_multiplier", type=int, default=2)
+    parser.add_argument("--augment_D", type=bool, default=True)
+    parser.add_argument("--augment_G", type=bool, default=True)
+    parser.add_argument("--contrastive", type=float, default=0)
+    parser.add_argument("--balanced_consistency", type=float, default=5)
 
     # validation / logging options
     parser.add_argument("--val_batch_size", type=int, default=8)
@@ -583,7 +593,7 @@ if __name__ == "__main__":
 
     if get_rank() == 0:
         validation.get_dataset_inception_features(loader, args.name, args.size)
-        wandb.init(project=f"maua-stylegan", name="Cyphept BCR", config=vars(args))
+        wandb.init(project=f"maua-stylegan", name="Cyphept Correct BCR", config=vars(args))
     scaler = th.cuda.amp.GradScaler()
 
     train(args, loader, generator, discriminator, contrast_learner, augment_fn, g_optim, d_optim, scaler, g_ema, device)
