@@ -7,7 +7,6 @@ from torch.nn import functional as F
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d
-from transform_layers import ManipulationLayer
 
 
 class PixelNorm(nn.Module):
@@ -269,7 +268,7 @@ class NoiseInjection(nn.Module):
         if noise is None:
             batch, _, height, width = image.shape
             noise = image.new_empty(batch, 1, height, width).normal_()
-        return image + self.weight * noise
+        return image + self.weight * noise.to(image.device)
 
 
 class ConstantInput(nn.Module):
@@ -298,6 +297,25 @@ class LatentInput(nn.Module):
         out = self.linear(inputs[:, 0])
         out = self.activate(out)
         return out.reshape((batch, self.channel, self.size, self.size))
+
+
+class ManipulationLayer(th.nn.Module):
+    def __init__(self, layer):
+        super().__init__()
+        self.layer = layer
+
+    def forward(self, input, tranforms_dict_list):
+        out = input
+        for transform_dict in tranforms_dict_list:
+            # if transform_dict["layer"] == -1:
+            #     self.save_activations(input, transform_dict["index"])
+            if transform_dict["layer"] == self.layer:
+                # print(f"applying {transform_dict['transform']} on layer {self.layer}")
+                # print(out.shape)
+                out = transform_dict["transform"].to(out.device)(out)
+                # print(out.shape)
+                # print()
+        return out
 
 
 class StyledConv(nn.Module):
@@ -335,6 +353,7 @@ class StyledConv(nn.Module):
         # print("styleconv in", inputs.shape, style.shape)
         out = self.conv(inputs, style)
         # print("conv out", out.shape, noise.shape)
+        # out = self.noise(out, noise=self.manipulation(noise.cuda(), transform_dict_list))
         out = self.noise(out, noise=noise)
         # out = out + self.bias
         # print("noise out", out.shape)
@@ -413,7 +432,7 @@ class Generator(nn.Module):
         else:
             self.input = LatentInput(style_dim, self.channels[4])
 
-        # self.const_manipulation = ManipulationLayer(0)
+        self.const_manipulation = ManipulationLayer(0)
 
         layerID = 1
         self.conv1 = StyledConv(
@@ -477,13 +496,22 @@ class Generator(nn.Module):
                 layer0 = const[:, :, ch // 4 : 3 * ch // 4, cw // 4 : 3 * cw // 4]
             else:
                 layer0 = const
-            self.input.input = th.nn.Parameter(layer0 + th.normal(0, const.std() / 2.0))
+            self.input.input = th.nn.Parameter(layer0 + th.normal(th.zeros_like(layer0), const.std()))
             _, _, height, width = self.input.input.shape
 
-            del self.noises
+        if output_size == 1920:
             for i in range(self.num_layers):
-                self.noises.register_buffer(f"noise_{i}", th.randn(1, 1, height * 2 ** i, width * 2 ** i))
-                # print((1, 1, height * 2 ** i, width * 2 ** i))
+                noise_i = getattr(self.noises, f"noise_{i}")
+                if size == 256:
+                    b, c, h, w = noise_i.shape
+                    noise_i = th.randn((b, c, h * 2, w * 2))
+                if size == 512:
+                    b, c, h, w = noise_i.shape
+                    noise_i = th.randn((b, c, h * 2, w * 2))
+                b, c, h, w = noise_i.shape
+                noise_i = th.randn((b, c, h, w * 2))
+                setattr(self.noises, f"noise_{i}", noise_i)
+                print(getattr(self.noises, f"noise_{i}").shape)
 
     def make_noise(self):
         device = self.input.input.device
@@ -548,7 +576,10 @@ class Generator(nn.Module):
             noise = [None] * self.num_layers
         for ns, noise_scale in enumerate(noise):
             if not randomize_noise and noise_scale is None:
-                noise[ns] = getattr(self, f"noise_{ns}")
+                try:
+                    noise[ns] = getattr(self.noises, f"noise_{ns}")
+                except:
+                    break
 
         if not truncation == 1:
             if self.truncation_latent is None:
@@ -559,31 +590,12 @@ class Generator(nn.Module):
 
         activation_map_list = []
 
-        # print(latent.shape)
         out = self.input(latent)
-
-        # print(out.shape)
-        # out = self.const_manipulation(out, transform_dict_list)
-        # _, _, _, w = out.shape
-        # out = th.cat(
-        #     [
-        #         out[:, :, :, : w // 2 + 1][:, :, :, list(range(w // 2, 0, -1))],  # first half mirrored
-        #         out,  #                                                           middle section
-        #         out[:, :, :, w // 2 :][:, :, :, list(range(w // 2, 0, -1))],  # second half mirrored
-        #     ],
-        #     axis=3,
-        # )
-
-        # print(out.shape, latent[:, 0].shape, noise[0].shape)
+        out = self.const_manipulation(out, transform_dict_list)
         out = self.conv1(out, latent[:, 0], noise=noise[0], transform_dict_list=transform_dict_list)
-
-        # print(out.shape)
 
         activation_map_list.append(out)
         image = self.to_rgb1(out, latent[:, 1])
-
-        # print(len(self.convs[::2]), len(self.convs[1::2]), len(noise[1::2]), len(noise[2::2]))
-        # exit()
 
         i = 1
         for conv1, conv2, noise1, noise2, to_rgb in zip(

@@ -1,7 +1,7 @@
 import argparse
 import math
 import random
-import os, gc
+import os, gc, sys
 import time
 
 import numpy as np
@@ -25,6 +25,9 @@ from distributed import (
     reduce_sum,
     get_world_size,
 )
+
+sys.path.insert(0, "../lookahead_minimax")
+from lookahead_minimax import LookaheadMinimax
 
 from contrastive_learner import ContrastiveLearner, RandomApply
 from kornia import augmentation as augs
@@ -415,18 +418,23 @@ if __name__ == "__main__":
     parser.add_argument("--constant_input", type=bool, default=False)
     parser.add_argument("--channel_multiplier", type=int, default=2)
 
-    # loss options
+    # optimizer options
     parser.add_argument("--lr", type=float, default=0.002)
-    parser.add_argument("--r1", type=float, default=10)
-    parser.add_argument("--path_regularize", type=float, default=2)
+    parser.add_argument("--lookahead", type=bool, default=True)
+    parser.add_argument("--la_steps", type=float, default=5)
+    parser.add_argument("--la_alpha", type=float, default=0.5)
+
+    # loss options
+    parser.add_argument("--r1", type=float, default=0)
+    parser.add_argument("--path_regularize", type=float, default=0)
     parser.add_argument("--path_batch_shrink", type=int, default=2)
     parser.add_argument("--d_reg_every", type=int, default=16)
     parser.add_argument("--g_reg_every", type=int, default=4)
     parser.add_argument("--mixing_prob", type=float, default=0.9)
-    parser.add_argument("--augment_D", type=bool, default=True)
-    parser.add_argument("--augment_G", type=bool, default=True)
+    parser.add_argument("--augment_D", type=bool, default=False)
+    parser.add_argument("--augment_G", type=bool, default=False)
     parser.add_argument("--contrastive", type=float, default=0)
-    parser.add_argument("--balanced_consistency", type=float, default=5)
+    parser.add_argument("--balanced_consistency", type=float, default=0)
 
     # validation / logging options
     parser.add_argument("--val_batch_size", type=int, default=8)
@@ -440,7 +448,7 @@ if __name__ == "__main__":
     parser.add_argument("--eval_every", type=int, default=1000)
     parser.add_argument("--checkpoint_every", type=int, default=1000)
 
-    # DevOps options
+    # (multi-)GPU options
     parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--cudnn_benchmark", type=bool, default=True)
 
@@ -494,8 +502,8 @@ if __name__ == "__main__":
     augment_fn = nn.Sequential(
         nn.ReflectionPad2d(int((math.sqrt(2) - 1) * args.size / 4)),  # zoom out
         augs.RandomHorizontalFlip(),
-        RandomApply(augs.RandomAffine(degrees=0, translate=(0.25, 0.25), shear=(15, 15)), p=0.2),
-        RandomApply(augs.RandomRotation(180), p=0.2),
+        RandomApply(augs.RandomAffine(degrees=0, translate=(0.25, 0.25), shear=(15, 15)), p=0.1),
+        RandomApply(augs.RandomRotation(180), p=0.1),
         augs.RandomResizedCrop(size=(args.size, args.size), scale=(1, 1), ratio=(1, 1)),
         RandomApply(augs.RandomResizedCrop(size=(args.size, args.size), scale=(0.5, 0.9)), p=0.1),  # zoom in
         RandomApply(augs.RandomErasing(), p=0.1),
@@ -516,6 +524,11 @@ if __name__ == "__main__":
         discriminator.parameters(), lr=args.lr * d_reg_ratio, betas=(0 ** d_reg_ratio, 0.99 ** d_reg_ratio),
     )
 
+    if args.lookahead:
+        g_optim = LookaheadMinimax(
+            g_optim, d_optim, la_steps=args.la_steps, la_alpha=args.la_alpha, accumulate=args.num_accumulate
+        )
+
     if args.checkpoint is not None:
         print("load model:", args.checkpoint)
 
@@ -523,8 +536,7 @@ if __name__ == "__main__":
 
         try:
             ckpt_name = os.path.basename(args.checkpoint)
-            args.start_iter = int(os.path.splitext(ckpt_name)[0].replace(args.name, ""))
-
+            args.start_iter = int(os.path.splitext(ckpt_name)[-1].replace(args.name, ""))
         except ValueError:
             pass
 
@@ -541,8 +553,11 @@ if __name__ == "__main__":
 
             discriminator.load_state_dict(checkpoint["d"])
 
-            g_optim.load_state_dict(checkpoint["g_optim"])
-            d_optim.load_state_dict(checkpoint["d_optim"])
+            if args.lookahead:
+                g_optim.load_state_dict(checkpoint["g_optim"], checkpoint["d_optim"])
+            else:
+                g_optim.load_state_dict(checkpoint["g_optim"])
+                d_optim.load_state_dict(checkpoint["d_optim"])
 
         del checkpoint
         th.cuda.empty_cache()
