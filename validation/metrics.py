@@ -1,5 +1,6 @@
 import os
 import pickle
+import random
 
 from sklearn.metrics import pairwise_distances
 from tqdm import tqdm
@@ -96,6 +97,10 @@ def fid(generator, batch_size, n_sample, truncation, inception_name, calculate_p
     features = []
 
     for batch in batch_sizes:
+        if truncation is None:
+            trunc = random.uniform(0.9, 1.5)
+        else:
+            trunc = truncation
         latent = torch.randn(batch, 512).cuda()
         img, _ = generator([latent], truncation=truncation, truncation_latent=mean_latent)
         feat = inception(img)[0].view(img.shape[0], -1)

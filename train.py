@@ -175,11 +175,11 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
         d_optim.step()
 
         # R1 regularization
+        loss_dict["r1"] = th.tensor(0, device=device).float()
         if args.r1 > 0 and i % args.d_reg_every == 0:
 
             discriminator.zero_grad()
 
-            loss_dict["r1"] = 0
             for _ in range(args.num_accumulate):
                 real_img = next(loader)
                 real_img = real_img.to(device)
@@ -240,11 +240,14 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
         g_optim.step()
 
         # path length regularization
+        loss_dict["path"], loss_dict["path_length"] = (
+            th.tensor(0, device=device).float(),
+            th.tensor(0, device=device).float(),
+        )
         if args.path_regularize > 0 and i % args.g_reg_every == 0:
 
             generator.zero_grad()
 
-            loss_dict["path"], loss_dict["path_length"] = 0, 0
             for _ in range(args.num_accumulate):
                 path_batch_size = max(1, args.batch_size // args.path_batch_shrink)
 
@@ -387,7 +390,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                         "g_optim": g_optim.state_dict(),
                         "d_optim": d_optim.state_dict(),
                     },
-                    f"/home/hans/modelzoo/maua-sg2/{args.name}-{wandb.run.dir.split('/')[-1].split('-')[-1]}-{int(fid)}-{int(ppl)}-{str(i).zfill(6)}.pt",
+                    f"/home/hans/modelzoo/maua-sg2/{args.name}-{args.runname}-{wandb.run.dir.split('/')[-1].split('-')[-1]}-{int(fid)}-{int(ppl)}-{str(i).zfill(6)}.pt",
                 )
 
 
@@ -398,6 +401,7 @@ if __name__ == "__main__":
 
     # data options
     parser.add_argument("path", type=str)
+    parser.add_argument("--runname", type=str)
     parser.add_argument("--vflip", type=bool, default=False)
     parser.add_argument("--hflip", type=bool, default=True)
 
@@ -408,10 +412,11 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint", type=str, default=None)
     parser.add_argument("--transfer_mapping_only", type=bool, default=False)
     parser.add_argument("--start_iter", type=int, default=0)
-    parser.add_argument("--iter", type=int, default=200_000)
+    parser.add_argument("--iter", type=int, default=30_000)
 
     # model options
     parser.add_argument("--size", type=int, default=256)
+    parser.add_argument("--min_rgb_size", type=int, default=128)
     parser.add_argument("--latent_size", type=int, default=512)
     parser.add_argument("--n_mlp", type=int, default=8)
     parser.add_argument("--n_sample", type=int, default=60)
@@ -420,13 +425,13 @@ if __name__ == "__main__":
 
     # optimizer options
     parser.add_argument("--lr", type=float, default=0.002)
-    parser.add_argument("--lookahead", type=bool, default=True)
+    parser.add_argument("--lookahead", type=bool, default=False)
     parser.add_argument("--la_steps", type=float, default=5)
     parser.add_argument("--la_alpha", type=float, default=0.5)
 
     # loss options
-    parser.add_argument("--r1", type=float, default=0)
-    parser.add_argument("--path_regularize", type=float, default=0)
+    parser.add_argument("--r1", type=float, default=10)
+    parser.add_argument("--path_regularize", type=float, default=2)
     parser.add_argument("--path_batch_shrink", type=int, default=2)
     parser.add_argument("--d_reg_every", type=int, default=16)
     parser.add_argument("--g_reg_every", type=int, default=4)
@@ -439,11 +444,11 @@ if __name__ == "__main__":
     # validation / logging options
     parser.add_argument("--val_batch_size", type=int, default=8)
     parser.add_argument("--fid_n_sample", type=int, default=5000)
-    parser.add_argument("--fid_truncation", type=float, default=0.7)
+    parser.add_argument("--fid_truncation", type=float, default=None)
     parser.add_argument("--ppl_space", choices=["z", "w"], default="w")
     parser.add_argument("--ppl_n_sample", type=int, default=2500)
     parser.add_argument("--ppl_crop", type=bool, default=False)
-    parser.add_argument("--log_spec_norm", type=bool, default=True)
+    parser.add_argument("--log_spec_norm", type=bool, default=False)
     parser.add_argument("--img_every", type=int, default=250)
     parser.add_argument("--eval_every", type=int, default=1000)
     parser.add_argument("--checkpoint_every", type=int, default=1000)
@@ -471,6 +476,7 @@ if __name__ == "__main__":
         args.n_mlp,
         channel_multiplier=args.channel_multiplier,
         constant_input=args.constant_input,
+        min_rgb_size=args.min_rgb_size,
     ).to(device)
     discriminator = Discriminator(args.size, channel_multiplier=args.channel_multiplier).to(device)
 
@@ -494,6 +500,7 @@ if __name__ == "__main__":
         args.n_mlp,
         channel_multiplier=args.channel_multiplier,
         constant_input=args.constant_input,
+        min_rgb_size=args.min_rgb_size,
     ).to(device)
     g_ema.requires_grad_(False)
     g_ema.eval()
@@ -548,10 +555,10 @@ if __name__ == "__main__":
                     mapping_state_dict[key.replace("generator.", "")] = val
             generator.load_state_dict(mapping_state_dict, strict=False)
         else:
-            generator.load_state_dict(checkpoint["g"])
-            g_ema.load_state_dict(checkpoint["g_ema"])
+            generator.load_state_dict(checkpoint["g"], strict=False)
+            g_ema.load_state_dict(checkpoint["g_ema"], strict=False)
 
-            discriminator.load_state_dict(checkpoint["d"])
+            discriminator.load_state_dict(checkpoint["d"], strict=False)
 
             if args.lookahead:
                 g_optim.load_state_dict(checkpoint["g_optim"], checkpoint["d_optim"])
@@ -608,7 +615,7 @@ if __name__ == "__main__":
 
     if get_rank() == 0:
         validation.get_dataset_inception_features(loader, args.name, args.size)
-        wandb.init(project=f"maua-stylegan", name="Cyphept Correct BCR", config=vars(args))
+        wandb.init(project=f"maua-stylegan-transfer", name=args.runname, config=vars(args))
     scaler = th.cuda.amp.GradScaler()
 
     train(args, loader, generator, discriminator, contrast_learner, augment_fn, g_optim, d_optim, scaler, g_ema, device)
