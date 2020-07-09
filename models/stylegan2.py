@@ -398,6 +398,7 @@ class Generator(nn.Module):
         constant_input=False,
         checkpoint=None,
         output_size=None,
+        min_rgb_size=4,
     ):
         super().__init__()
 
@@ -426,6 +427,7 @@ class Generator(nn.Module):
         self.log_size = int(math.log(size, 2))
         self.num_layers = (self.log_size - 2) * 2 + 1
         self.n_latent = self.log_size * 2 - 2
+        self.min_rgb_size = min_rgb_size
 
         if constant_input:
             self.input = ConstantInput(self.channels[4])
@@ -475,43 +477,6 @@ class Generator(nn.Module):
 
         if checkpoint is not None:
             self.load_state_dict(th.load(checkpoint)["g_ema"])
-
-        if not output_size is None and constant_input:
-            const = self.input.input
-            if size != 1024:
-                means = th.zeros(size=(1, 512, int(4 * 1024 / size), int(4 * 1024 / size)))
-                const = th.normal(mean=means, std=th.ones_like(means) * const.std())
-
-            _, _, ch, cw = const.shape
-            if output_size == 1920:
-                layer0 = th.cat(
-                    [
-                        const[:, :, :, : cw // 2 + 1][:, :, :, list(range(cw // 2, 0, -1))],
-                        const,
-                        const[:, :, :, cw // 2 :],
-                    ],
-                    axis=3,
-                )
-            elif output_size == 512:
-                layer0 = const[:, :, ch // 4 : 3 * ch // 4, cw // 4 : 3 * cw // 4]
-            else:
-                layer0 = const
-            self.input.input = th.nn.Parameter(layer0 + th.normal(th.zeros_like(layer0), const.std()))
-            _, _, height, width = self.input.input.shape
-
-        if output_size == 1920:
-            for i in range(self.num_layers):
-                noise_i = getattr(self.noises, f"noise_{i}")
-                if size == 256:
-                    b, c, h, w = noise_i.shape
-                    noise_i = th.randn((b, c, h * 2, w * 2))
-                if size == 512:
-                    b, c, h, w = noise_i.shape
-                    noise_i = th.randn((b, c, h * 2, w * 2))
-                b, c, h, w = noise_i.shape
-                noise_i = th.randn((b, c, h, w * 2))
-                setattr(self.noises, f"noise_{i}", noise_i)
-                print(getattr(self.noises, f"noise_{i}").shape)
 
     def make_noise(self):
         device = self.input.input.device
@@ -576,10 +541,7 @@ class Generator(nn.Module):
             noise = [None] * self.num_layers
         for ns, noise_scale in enumerate(noise):
             if not randomize_noise and noise_scale is None:
-                try:
-                    noise[ns] = getattr(self.noises, f"noise_{ns}")
-                except:
-                    break
+                noise[ns] = getattr(self.noises, f"noise_{ns}")
 
         if not truncation == 1:
             if self.truncation_latent is None:
@@ -593,19 +555,25 @@ class Generator(nn.Module):
         out = self.input(latent)
         out = self.const_manipulation(out, transform_dict_list)
         out = self.conv1(out, latent[:, 0], noise=noise[0], transform_dict_list=transform_dict_list)
-
         activation_map_list.append(out)
-        image = self.to_rgb1(out, latent[:, 1])
+
+        current_size = 4
+        if self.min_rgb_size <= current_size:
+            image = self.to_rgb1(out, latent[:, 1])
+        else:
+            image = None
 
         i = 1
         for conv1, conv2, noise1, noise2, to_rgb in zip(
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
             out = conv1(out, latent[:, i], noise=noise1, transform_dict_list=transform_dict_list)
+            current_size *= 2
             activation_map_list.append(out)
             out = conv2(out, latent[:, i + 1], noise=noise2, transform_dict_list=transform_dict_list)
             activation_map_list.append(out)
-            image = to_rgb(out, latent[:, i + 2], image)
+            if self.min_rgb_size <= current_size:
+                image = to_rgb(out, latent[:, i + 2], image)
             i += 2
 
         if return_activation_maps:

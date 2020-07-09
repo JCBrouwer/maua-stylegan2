@@ -1,9 +1,10 @@
-import uuid, math
+import gc, uuid, math
 import queue
 import ffmpeg
 import PIL.Image
 import numpy as np
 import torch as th
+import torch.utils.data as data
 from threading import Thread
 from functools import partial
 import kornia.geometry.transform as kT
@@ -12,7 +13,7 @@ import kornia.augmentation as kA
 th.set_grad_enabled(False)
 
 
-def render(generator, latents, noise, batch_size, duration, truncation=1, manipulations=[], output_file=None):
+def render(generator, latents, noise, batch_size, duration, out_size, truncation=1, manipulations=[], output_file=None):
     output_file = (
         output_file if output_file is not None else f"/home/hans/neurout/GAN Bending/{uuid.uuid4().hex[:8]}.mp4"
     )
@@ -32,9 +33,9 @@ def render(generator, latents, noise, batch_size, duration, truncation=1, manipu
                 jobs_out.put(img.cpu().numpy().astype(np.uint8))
             jobs_in.task_done()
 
-    res = "1920x1080"
+    res = "1024x1024" if out_size == 1024 else ("512x512" if out_size == 512 else "1920x1080")
     video = (
-        ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=24, s=res)
+        ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / duration, s=res)
         .output(output_file, framerate=len(latents) / duration, vcodec="libx264", preset="slow", v="warning",)
         .global_args("-benchmark", "-stats", "-hide_banner")
         .overwrite_output()
@@ -58,42 +59,45 @@ def render(generator, latents, noise, batch_size, duration, truncation=1, manipu
     renderer = Thread(target=make_video, args=(render_queue,))
     renderer.daemon = True
 
-    latents = latents.float()
-    noise = [(noise_scale.float() if noise_scale is not None else None) for noise_scale in noise]
-    for n in range(0, len(latents), batch_size):
-        latent_slice = latents[n : n + batch_size]
-        noise_slice = [(noise_scale[n : n + batch_size] if noise_scale is not None else None) for noise_scale in noise]
+    latents = latents.float().pin_memory()
 
-        manipulation_slice = []
-        for manip in manipulations:
-            manipulation_slice.append({"layer": manip["layer"]})
-            _, _, layer_h, layer_w = noise[manip["layer"]].shape
-            if manip["transform"] == "translate":
-                manipulation_slice[-1]["transform"] = th.nn.Sequential(
-                    th.nn.ReflectionPad2d((int(layer_w / 2), int(layer_w / 2), 0, 0)),
-                    th.nn.ReflectionPad2d((layer_w, layer_w, 0, 0)),
-                    th.nn.ReflectionPad2d((layer_w, 0, 0, 0)),
-                    kT.Translate(manip["params"][n : n + batch_size].cuda()),
-                    kA.CenterCrop((layer_h, layer_w)),
-                )
-            elif manip["transform"] == "rotate":
-                manipulation_slice[-1]["transform"] = th.nn.Sequential(
-                    th.nn.ReflectionPad2d(int(max(layer_h, layer_w) * (1 - math.sqrt(2) / 2))),
-                    kT.Rotate(manip["params"][n : n + batch_size].cuda()),
-                    kA.CenterCrop((layer_h, layer_w)),
-                )
-            else:
-                manipulation_slice[-1]["transform"] = manip["transform"]
+    for ni, noise_scale in enumerate(noise):
+        noise[ni] = noise_scale.float().pin_memory()
+
+    for n in range(0, len(latents), batch_size):
+        latent_batch = latents[n:n+batch_size].cuda()
+        noise_batch = [noise_scale[n:n+batch_size].cuda() for noise_scale in noise]
+
+        manipulation_batch = []
+        if manipulations is not None:
+            for manip in manipulations:
+                manipulation_batch.append({"layer": manip["layer"]})
+                _, _, layer_h, layer_w = noise[manip["layer"]].shape
+                if manip["transform"] == "translate":
+                    manipulation_batch[-1]["transform"] = th.nn.Sequential(
+                        th.nn.ReflectionPad2d((int(layer_w / 2), int(layer_w / 2), 0, 0)),
+                        th.nn.ReflectionPad2d((layer_w, layer_w, 0, 0)),
+                        th.nn.ReflectionPad2d((layer_w, 0, 0, 0)),
+                        kT.Translate(manip["params"][n : n+ batch_size].cuda()),
+                        kA.CenterCrop((layer_h, layer_w)),
+                    )
+                elif manip["transform"] == "rotate":
+                    manipulation_batch[-1]["transform"] = th.nn.Sequential(
+                        th.nn.ReflectionPad2d(int(max(layer_h, layer_w) * (1 - math.sqrt(2) / 2))),
+                        kT.Rotate(manip["params"][n : n+ batch_size].cuda()),
+                        kA.CenterCrop((layer_h, layer_w)),
+                    )
+                else:
+                    manipulation_batch[-1]["transform"] = manip["transform"]
 
         outputs, _ = generator(
-            styles=latent_slice,
-            noise=noise_slice,
+            styles=latent_batch,
+            noise=noise_batch,
             truncation=truncation,
-            transform_dict_list=manipulation_slice,
+            transform_dict_list=manipulation_batch,
             randomize_noise=False,
             input_is_latent=True,
         )
-        # print(outputs.min(), outputs.mean(), outputs.max(), outputs.shape)
 
         split_queue.put(outputs)
 
