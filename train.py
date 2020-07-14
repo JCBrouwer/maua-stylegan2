@@ -76,7 +76,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
     pbar = range(args.iter)
 
     if get_rank() == 0:
-        pbar = tqdm(pbar, initial=args.start_iter, dynamic_ncols=True, smoothing=0.01)
+        pbar = tqdm(pbar, initial=args.start_iter, dynamic_ncols=True, smoothing=0)
 
     mean_path_length = 0
 
@@ -189,15 +189,14 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                         real_pred_sum = real_pred.sum()
 
                     (grad_real,) = th.autograd.grad(outputs=real_pred_sum, inputs=real_img, create_graph=True)
-                    # grad_real = grad_real * (1.0 / scaler.get_scale())
 
-                    # with th.cuda.amp.autocast():
                     r1_loss = grad_real.pow(2).view(grad_real.shape[0], -1).sum(1).mean()
                     weighted_r1_loss = args.r1 / 2.0 * r1_loss * args.d_reg_every + 0 * real_pred[0]
 
                     loss_dict["r1"] += r1_loss.detach()
 
                     weighted_r1_loss /= args.num_accumulate
+
                 scaler.scale(weighted_r1_loss).backward()
             scaler.step(d_optim)
             scaler.update()
@@ -223,6 +222,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                 loss_dict["g"] += g_loss.detach()
 
                 g_loss /= args.num_accumulate
+
             scaler.scale(g_loss).backward()
         scaler.step(g_optim)
         scaler.update()
@@ -247,28 +247,11 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                     noisy_img_sum = (fake_img * img_noise).sum()
 
                     (grad,) = th.autograd.grad(outputs=noisy_img_sum, inputs=latents, create_graph=True)
-                    print(grad.min(), grad.mean(), grad.max(), grad.shape)
-                print(noisy_img_sum.min(), noisy_img_sum.mean(), noisy_img_sum.max(), noisy_img_sum.shape)
-                print(
-                    scaler.scale(noisy_img_sum).min(),
-                    scaler.scale(noisy_img_sum).mean(),
-                    scaler.scale(noisy_img_sum).max(),
-                    scaler.scale(noisy_img_sum).shape,
-                )
-                (grad,) = th.autograd.grad(outputs=scaler.scale(noisy_img_sum), inputs=latents, create_graph=True)
-                print(grad.min(), grad.mean(), grad.max(), grad.shape)
-                grad = grad * (1.0 / scaler.get_scale())
-                print(grad.min(), grad.mean(), grad.max(), grad.shape)
 
-                with th.cuda.amp.autocast():
                     path_lengths = th.sqrt(grad.pow(2).sum(2).mean(1))
-                    print(path_lengths)
                     path_mean = mean_path_length + 0.01 * (path_lengths.mean() - mean_path_length)
-                    print(path_mean)
                     path_loss = (path_lengths - path_mean).pow(2).mean()
-                    print(path_loss)
                     mean_path_length = path_mean.detach()
-                    print(mean_path_length)
 
                     loss_dict["path"] += path_loss.detach()
                     loss_dict["path_length"] += path_lengths.mean().detach()
@@ -278,7 +261,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                         weighted_path_loss += 0 * fake_img[0, 0, 0, 0]
 
                     weighted_path_loss /= args.num_accumulate
-                print(weighted_path_loss)
+
                 scaler.scale(weighted_path_loss).backward()
             scaler.step(g_optim)
             scaler.update()
@@ -307,12 +290,6 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                 "Contrastive": cl_reg_val,
                 "Consistency": bc_reg_val,
             }
-
-            pbar.set_description(
-                (
-                    f"G: {g_loss_val}, Fake: {fake_score_val}, Real: {real_score_val}, D: {d_loss_val}, R1: {r1_val}, Path: {path_length_val}, Contrast: {cl_reg_val}, Consist: {bc_reg_val}"
-                )
-            )
 
             if args.log_spec_norm:
                 G_norms = []
@@ -354,7 +331,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                         sample = th.cat(sample)
                         grid = utils.make_grid(sample, nrow=10, normalize=True, range=(-1, 1))
                 log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
-            args.eval_every = 25
+
             if i % args.eval_every == 0:
                 with th.cuda.amp.autocast():
                     start_time = time.time()
@@ -368,20 +345,25 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                     density = fid_dict["Density"]
                     coverage = fid_dict["Coverage"]
 
-                    ppl = validation.ppl(
-                        g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
-                    )
+                    # ppl = validation.ppl(
+                    #     g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
+                    # )
 
                 pbar.set_description(
                     (
-                        f"FID: {fid:.4f}; Density: {density:.4f}; Coverage: {coverage:.4f}; PPL: {ppl:.4f} in {time.time() - start_time:.1f}s"
+                        f"FID: {fid:.4f}; Density: {density:.4f}; Coverage: {coverage:.4f} in {time.time() - start_time:.1f}s"
                     )
                 )
+                # pbar.set_description(
+                #     (
+                #         f"FID: {fid:.4f}; Density: {density:.4f}; Coverage: {coverage:.4f}; PPL: {ppl:.4f} in {time.time() - start_time:.1f}s"
+                #     )
+                # )
                 log_dict["Evaluation/FID"] = fid
                 log_dict["Sweep/FID_smooth"] = gaussian_filter(np.array(fids), [10])[-1]
                 log_dict["Evaluation/Density"] = density
                 log_dict["Evaluation/Coverage"] = coverage
-                log_dict["Evaluation/PPL"] = ppl
+                # log_dict["Evaluation/PPL"] = ppl
 
                 gc.collect()
                 th.cuda.empty_cache()
@@ -398,7 +380,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                         "g_optim": g_optim.state_dict(),
                         "d_optim": d_optim.state_dict(),
                     },
-                    f"/home/hans/modelzoo/maua-sg2/{args.name}-{args.runname}-{wandb.run.dir.split('/')[-1].split('-')[-1]}-{int(fid)}-{str(i).zfill(6)}.pt",
+                    f"/home/hans/modelzoo/maua-sg2/{args.name}-{args.runname}-{wandb.run.dir.split('/')[-1].split('-')[-1]}-{int(fid)}-{args.size}-{str(i).zfill(6)}.pt",
                 )
 
 
@@ -414,7 +396,7 @@ if __name__ == "__main__":
     parser.add_argument("--hflip", type=bool, default=True)
 
     # training options
-    parser.add_argument("--batch_size", type=int, default=12)
+    parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--num_accumulate", type=int, default=1)
 
     parser.add_argument("--checkpoint", type=str, default=None)
@@ -444,7 +426,7 @@ if __name__ == "__main__":
     parser.add_argument("--path_batch_shrink", type=int, default=2)
     parser.add_argument("--d_reg_every", type=int, default=16)
     parser.add_argument("--g_reg_every", type=int, default=4)
-    parser.add_argument("--mixing_prob", type=float, default=0.9)
+    parser.add_argument("--mixing_prob", type=float, default=0.75)
     parser.add_argument("--augment_D", type=bool, default=False)
     parser.add_argument("--augment_G", type=bool, default=False)
     parser.add_argument("--contrastive", type=float, default=0)
@@ -452,10 +434,10 @@ if __name__ == "__main__":
 
     # validation / logging options
     parser.add_argument("--val_batch_size", type=int, default=8)
-    parser.add_argument("--fid_n_sample", type=int, default=500)
+    parser.add_argument("--fid_n_sample", type=int, default=5000)
     parser.add_argument("--fid_truncation", type=float, default=None)
     parser.add_argument("--ppl_space", choices=["z", "w"], default="w")
-    parser.add_argument("--ppl_n_sample", type=int, default=250)
+    parser.add_argument("--ppl_n_sample", type=int, default=2500)
     parser.add_argument("--ppl_crop", type=bool, default=False)
     parser.add_argument("--log_spec_norm", type=bool, default=False)
     parser.add_argument("--img_every", type=int, default=250)
@@ -628,10 +610,10 @@ if __name__ == "__main__":
 
     if get_rank() == 0:
         validation.get_dataset_inception_features(loader, args.name, args.size)
-    if args.runname is not None:
-        wandb.init(project=f"maua-stylegan-sweep", name=args.runname, config=vars(args))
-    else:
-        wandb.init(project=f"maua-stylegan-sweep", config=vars(args))
+        if args.runname is not None:
+            wandb.init(project=f"maua-stylegan-sweep", name=args.runname, config=vars(args))
+        else:
+            wandb.init(project=f"maua-stylegan-sweep", config=vars(args))
     scaler = th.cuda.amp.GradScaler()
 
     train(args, loader, generator, discriminator, contrast_learner, augment_fn, g_optim, d_optim, scaler, g_ema, device)
