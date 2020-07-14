@@ -102,7 +102,7 @@ def fid(generator, batch_size, n_sample, truncation, inception_name, calculate_p
         else:
             trunc = truncation
         latent = torch.randn(batch, 512).cuda()
-        img, _ = generator([latent], truncation=truncation, truncation_latent=mean_latent)
+        img, _ = generator([latent], truncation=trunc, truncation_latent=mean_latent)
         feat = inception(img)[0].view(img.shape[0], -1)
         features.append(feat.to("cpu"))
     features = torch.cat(features, 0).numpy()

@@ -12,6 +12,7 @@ from torch.utils import data
 import torch.distributed as dist
 from torchvision import transforms, utils
 from tqdm import tqdm
+from scipy.ndimage import gaussian_filter
 
 import wandb
 import validation
@@ -99,6 +100,8 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
 
     sample_z = th.randn(args.n_sample, args.latent_size, device=device)
 
+    fids = []
+
     for idx in pbar:
         i = idx + args.start_iter
 
@@ -117,14 +120,6 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
             th.tensor(0, device=device).float(),
         )
         for _ in range(args.num_accumulate):
-            # sample = []
-            # for _ in range(0, len(sample_z), args.batch_size):
-            #     subsample = next(loader)
-            #     sample.append(subsample)
-            # sample = th.cat(sample)
-            # utils.save_image(sample, "reals-no-augment.png", nrow=10, normalize=True)
-            # utils.save_image(augment(sample), "reals-augment.png", nrow=10, normalize=True)
-
             real_img = next(loader)
             real_img = real_img.to(device)
 
@@ -347,9 +342,6 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                         sample.append(subsample.cpu())
                     sample = th.cat(sample)
                     grid = utils.make_grid(sample, nrow=10, normalize=True, range=(-1, 1))
-                    # utils.save_image(sample, "fakes-no-augment.png", nrow=10, normalize=True)
-                    # utils.save_image(augment(sample), "fakes-augment.png", nrow=10, normalize=True)
-                    # exit()
                 log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
 
             if i % args.eval_every == 0:
@@ -357,7 +349,8 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                 pbar.set_description((f"Calculating FID..."))
                 fid_dict = validation.fid(g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name)
                 fid = fid_dict["FID"]
-                density = fid_dict["Density"]
+                fids.append(fid)
+		        density = fid_dict["Density"]
                 coverage = fid_dict["Coverage"]
 
                 pbar.set_description((f"Calculating PPL..."))
@@ -371,6 +364,7 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                     )
                 )
                 log_dict["Evaluation/FID"] = fid
+                log_dict["Sweep/FID_smooth"] = gaussian_filter(np.array(fids), [10])[-1]
                 log_dict["Evaluation/Density"] = density
                 log_dict["Evaluation/Coverage"] = coverage
                 log_dict["Evaluation/PPL"] = ppl
@@ -401,18 +395,18 @@ if __name__ == "__main__":
 
     # data options
     parser.add_argument("path", type=str)
-    parser.add_argument("--runname", type=str)
+    parser.add_argument("--runname", type=str, default=None)
     parser.add_argument("--vflip", type=bool, default=False)
     parser.add_argument("--hflip", type=bool, default=True)
 
     # training options
-    parser.add_argument("--batch_size", type=int, default=6)
+    parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--num_accumulate", type=int, default=1)
 
     parser.add_argument("--checkpoint", type=str, default=None)
     parser.add_argument("--transfer_mapping_only", type=bool, default=False)
     parser.add_argument("--start_iter", type=int, default=0)
-    parser.add_argument("--iter", type=int, default=30_000)
+    parser.add_argument("--iter", type=int, default=60_000)
 
     # model options
     parser.add_argument("--size", type=int, default=256)
@@ -424,14 +418,15 @@ if __name__ == "__main__":
     parser.add_argument("--channel_multiplier", type=int, default=2)
 
     # optimizer options
-    parser.add_argument("--lr", type=float, default=0.002)
-    parser.add_argument("--lookahead", type=bool, default=False)
-    parser.add_argument("--la_steps", type=float, default=5)
+    parser.add_argument("--lr", type=float, default=0.0001)
+    parser.add_argument("--d_lr_ratio", type=float, default=1.0)
+    parser.add_argument("--lookahead", type=bool, default=True)
+    parser.add_argument("--la_steps", type=float, default=500)
     parser.add_argument("--la_alpha", type=float, default=0.5)
 
     # loss options
-    parser.add_argument("--r1", type=float, default=10)
-    parser.add_argument("--path_regularize", type=float, default=2)
+    parser.add_argument("--r1", type=float, default=4)
+    parser.add_argument("--path_regularize", type=float, default=1)
     parser.add_argument("--path_batch_shrink", type=int, default=2)
     parser.add_argument("--d_reg_every", type=int, default=16)
     parser.add_argument("--g_reg_every", type=int, default=4)
@@ -528,7 +523,7 @@ if __name__ == "__main__":
         generator.parameters(), lr=args.lr * g_reg_ratio, betas=(0 ** g_reg_ratio, 0.99 ** g_reg_ratio),
     )
     d_optim = th.optim.Adam(
-        discriminator.parameters(), lr=args.lr * d_reg_ratio, betas=(0 ** d_reg_ratio, 0.99 ** d_reg_ratio),
+        discriminator.parameters(), lr=args.lr * d_reg_ratio * args.d_lr_ratio, betas=(0 ** d_reg_ratio, 0.99 ** d_reg_ratio),
     )
 
     if args.lookahead:
@@ -615,7 +610,10 @@ if __name__ == "__main__":
 
     if get_rank() == 0:
         validation.get_dataset_inception_features(loader, args.name, args.size)
-        wandb.init(project=f"maua-stylegan-transfer", name=args.runname, config=vars(args))
+	if args.runname is not None:
+            wandb.init(project=f"maua-stylegan-sweep", name=args.runname, config=vars(args))
+        else:
+            wandb.init(project=f"maua-stylegan-sweep", config=vars(args))
     scaler = th.cuda.amp.GradScaler()
 
     train(args, loader, generator, discriminator, contrast_learner, augment_fn, g_optim, d_optim, scaler, g_ema, device)
