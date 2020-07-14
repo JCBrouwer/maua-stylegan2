@@ -83,7 +83,7 @@ class InceptionV3(nn.Module):
         if use_fid_inception:
             inception = fid_inception_v3()
         else:
-            inception = models.inception_v3(pretrained=True, init_weights=False)
+            inception = models.inception_v3(pretrained=True)  # , init_weights=False)
 
         # Block 0: input to maxpool1
         block0 = [

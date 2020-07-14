@@ -138,10 +138,8 @@ class EqualLinear(nn.Module):
         if self.activation:
             out = F.linear(inputs, self.weight * self.scale)
             out = fused_leaky_relu(out, self.bias * self.lr_mul)
-
         else:
             out = F.linear(inputs, self.weight * self.scale, bias=self.bias * self.lr_mul)
-
         return out
 
     def __repr__(self):

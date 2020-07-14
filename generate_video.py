@@ -15,24 +15,25 @@ from render import render
 from models.stylegan2 import Generator
 from models.stylegan1 import G_style
 
+
 def gaussian_filter(x, sigma):
     radius = sigma * 4
     channels = x.shape[1]
-    
+
     kernel = th.arange(-radius, radius + 1, dtype=th.float32, device="cuda")
     kernel = th.exp(-0.5 / sigma ** 2 * kernel ** 2)
     kernel = kernel / kernel.sum()
     kernel = kernel.view(1, 1, len(kernel)).repeat(channels, 1, 1)
 
     dim = len(x.shape)
-    
+
     if dim == 3:
         x = x.transpose(0, 2)
     elif dim == 4:
         t, c, h, w = x.shape
         x = x.view(h * w, c, t)
     else:
-        raise("Only 3- or 4-dimensional tensors are supported.")
+        raise ("Only 3- or 4-dimensional tensors are supported.")
 
     x = F.pad(x, (radius, radius), mode="circular")
     x = F.conv1d(x, weight=kernel, groups=channels)
@@ -57,9 +58,9 @@ def lerp(val, low, high):
     return (1 - val) * low + val * high
 
 
-def get_latent_loops(base_latent_selection, loop_starting_latents, n_frames, num_loops, smoothing, s=True):    
+def get_latent_loops(base_latent_selection, loop_starting_latents, n_frames, num_loops, smoothing, s=True):
     base_latents = []
-    
+
     for n in range(len(base_latent_selection)):
         for val in np.linspace(0.0, 1.0, int(n_frames // max(1, num_loops) // len(base_latent_selection))):
             base_latents.append(
@@ -81,7 +82,7 @@ def get_latent_loops(base_latent_selection, loop_starting_latents, n_frames, num
 
 if "main" in __name__:
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument("--ckpt", type=str)
     parser.add_argument("--G_res", type=int, default=1024)
     parser.add_argument("--out_size", type=int, default=1024)
@@ -94,9 +95,9 @@ if "main" in __name__:
     parser.add_argument("--stylegan1", type=bool, default=False)
     parser.add_argument("--slerp", type=bool, default=True)
     parser.add_argument("--latents", type=str, default=None)
-    
+
     args = parser.parse_args()
-    
+
     th.set_grad_enabled(False)
     th.backends.cudnn.benchmark = True
     mp.set_start_method("spawn")
@@ -184,7 +185,7 @@ if "main" in __name__:
         def __init__(self, noise):
             super(addNoise, self).__init__()
             self.noise = noise
-        
+
         def forward(self, x):
             return x + self.noise
 
@@ -192,21 +193,28 @@ if "main" in __name__:
     if log_min_res > 2:
         reflects = []
         for lres in range(2, log_min_res):
-            half = 2**(lres-1)
-            reflects.append(th.nn.ReplicationPad2d((half,half,half,half)))
-        manipulations += [{"layer": 0, "transform": th.nn.Sequential(*reflects, addNoise(2*th.randn(size=(1,1,2**log_min_res,2**log_min_res), device="cuda")))}]
+            half = 2 ** (lres - 1)
+            reflects.append(th.nn.ReplicationPad2d((half, half, half, half)))
+        manipulations += [
+            {
+                "layer": 0,
+                "transform": th.nn.Sequential(
+                    *reflects, addNoise(2 * th.randn(size=(1, 1, 2 ** log_min_res, 2 ** log_min_res), device="cuda"))
+                ),
+            }
+        ]
 
-    #tl = 4
-    #width = lambda s: (2 if args.out_size == 1920 else 1) * 2 ** int(s)
-    #translation = th.tensor([np.linspace(0, width(tl), args.num_frames+1), np.zeros((args.num_frames+1,))]).float().T[:-1]
-    #manipulations += [{"layer": tl, "transform": "translate", "params": translation}]
+    # tl = 4
+    # width = lambda s: (2 if args.out_size == 1920 else 1) * 2 ** int(s)
+    # translation = th.tensor([np.linspace(0, width(tl), args.num_frames+1), np.zeros((args.num_frames+1,))]).float().T[:-1]
+    # manipulations += [{"layer": tl, "transform": "translate", "params": translation}]
 
-    #rl = 6
-    #rotation = th.nn.Sigmoid()(th.tensor(np.linspace(0.0, 1.0, args.num_frames+1), device="cuda").float())
-    #rotation -= rotation.min()
-    #rotation /= rotation.max()
-    #rotation = rotation[:-1]
-    #manipulations += [{"layer": rl, "transform": "rotate", "params": (360.0 * rotation).cpu()}]
+    # rl = 6
+    # rotation = th.nn.Sigmoid()(th.tensor(np.linspace(0.0, 1.0, args.num_frames+1), device="cuda").float())
+    # rotation -= rotation.min()
+    # rotation /= rotation.max()
+    # rotation = rotation[:-1]
+    # manipulations += [{"layer": rl, "transform": "rotate", "params": (360.0 * rotation).cpu()}]
 
     render(
         generator=generator,

@@ -3,6 +3,7 @@ import os
 import torch
 from torch.autograd import Function
 from torch.utils.cpp_extension import load
+import torch.nn.functional as F
 
 module_path = os.path.dirname(__file__)
 upfirdn2d_op = load(
@@ -13,7 +14,7 @@ upfirdn2d_op = load(
 
 class UpFirDn2dBackward(Function):
     @staticmethod
-    # @torch.cuda.amp.custom_fwd(cast_inputs=torch.float16)
+    @torch.cuda.amp.custom_fwd(cast_inputs=torch.float16)
     def forward(ctx, grad_output, kernel, grad_kernel, up, down, pad, g_pad, in_size, out_size):
 
         up_x, up_y = up
@@ -45,7 +46,7 @@ class UpFirDn2dBackward(Function):
         return grad_input
 
     @staticmethod
-    # @torch.cuda.amp.custom_bwd
+    @torch.cuda.amp.custom_bwd
     def backward(ctx, gradgrad_input):
         (kernel,) = ctx.saved_tensors
 
@@ -71,7 +72,7 @@ class UpFirDn2dBackward(Function):
 
 class UpFirDn2d(Function):
     @staticmethod
-    # @torch.cuda.amp.custom_fwd(cast_inputs=torch.float16)
+    @torch.cuda.amp.custom_fwd(cast_inputs=torch.float16)
     def forward(ctx, input, kernel, up, down, pad):
         up_x, up_y = up
         down_x, down_y = down
@@ -108,7 +109,7 @@ class UpFirDn2d(Function):
         return out
 
     @staticmethod
-    # @torch.cuda.amp.custom_bwd
+    @torch.cuda.amp.custom_bwd
     def backward(ctx, grad_output):
         kernel, grad_kernel = ctx.saved_tensors
 
@@ -124,26 +125,42 @@ def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0)):
     return out
 
 
-def upfirdn2d_native(input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1):
+def upfirdn2d_native(input, kernel, up=1, down=1, pad=(0, 0)):
+    up_x, up_y = up, up
+    down_x, down_y = down, down
+    pad_x0, pad_x1, pad_y0, pad_y1 = pad[0], pad[1], pad[0], pad[1]
     _, in_h, in_w, minor = input.shape
     kernel_h, kernel_w = kernel.shape
 
+    print(input.shape)
     out = input.view(-1, in_h, 1, in_w, 1, minor)
+    print(out.shape)
     out = F.pad(out, [0, 0, 0, up_x - 1, 0, 0, 0, up_y - 1])
+    print(out.shape)
     out = out.view(-1, in_h * up_y, in_w * up_x, minor)
+    print(out.shape)
 
     out = F.pad(out, [0, 0, max(pad_x0, 0), max(pad_x1, 0), max(pad_y0, 0), max(pad_y1, 0)])
+    print(out.shape)
     out = out[
         :, max(-pad_y0, 0) : out.shape[1] - max(-pad_y1, 0), max(-pad_x0, 0) : out.shape[2] - max(-pad_x1, 0), :,
     ]
+    print(out.shape)
 
     out = out.permute(0, 3, 1, 2)
+    print(out.shape)
     out = out.reshape([-1, 1, in_h * up_y + pad_y0 + pad_y1, in_w * up_x + pad_x0 + pad_x1])
+    print(out.shape)
     w = torch.flip(kernel, [0, 1]).view(1, 1, kernel_h, kernel_w)
     out = F.conv2d(out, w)
+    print(out.shape)
     out = out.reshape(
         -1, minor, in_h * up_y + pad_y0 + pad_y1 - kernel_h + 1, in_w * up_x + pad_x0 + pad_x1 - kernel_w + 1,
     )
+    print(out.shape)
     out = out.permute(0, 2, 3, 1)
+    print(out.shape)
+    out = out[:, ::down_y, ::down_x, :]
+    print(out.shape)
 
-    return out[:, ::down_y, ::down_x, :]
+    return out
