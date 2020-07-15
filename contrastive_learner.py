@@ -6,12 +6,6 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from torchvision.models import resnet50
-from kornia import augmentation as augs
-from kornia import filters
-
-# helper functions
-
 
 def identity(x):
     return x
@@ -159,9 +153,6 @@ class OutputHiddenLayer(nn.Module):
         return hidden
 
 
-# main class
-
-
 class ContrastiveLearner(nn.Module):
     def __init__(
         self,
@@ -170,30 +161,15 @@ class ContrastiveLearner(nn.Module):
         hidden_layer=-2,
         project_hidden=True,
         project_dim=128,
-        augment_both=True,
         use_nt_xent_loss=False,
-        augment_fn=None,
         use_bilinear=False,
         use_momentum=False,
         momentum_value=0.999,
         key_encoder=None,
         temperature=0.1,
-        fp16=False,
     ):
         super().__init__()
         self.net = OutputHiddenLayer(net, layer=hidden_layer)
-
-        DEFAULT_AUG = nn.Sequential(
-            RandomApply(augs.ColorJitter(0.8, 0.8, 0.8, 0.2), p=0.8),
-            augs.RandomGrayscale(p=0.2),
-            augs.RandomHorizontalFlip(),
-            RandomApply(filters.GaussianBlur2d((3, 3), (1.5, 1.5)), p=0.1),
-            augs.RandomResizedCrop((image_size, image_size)),
-        )
-
-        self.augment = default(augment_fn, DEFAULT_AUG)
-
-        self.augment_both = augment_both
 
         self.temperature = temperature
         self.use_nt_xent_loss = use_nt_xent_loss
@@ -213,12 +189,8 @@ class ContrastiveLearner(nn.Module):
         self.queries = None
         self.keys = None
 
-        self.fp16 = fp16
-
         # send a mock image tensor to instantiate parameters
         init = torch.randn(1, 3, image_size, image_size, device="cuda")
-        if self.fp16:
-            init = init.half()
         self.forward(init)
 
     @singleton("key_encoder")
@@ -235,12 +207,9 @@ class ContrastiveLearner(nn.Module):
     @singleton("projection")
     def _get_projection_fn(self, hidden):
         _, dim = hidden.shape
-        fn = nn.Sequential(
+        return nn.Sequential(
             nn.Linear(dim, dim, bias=False), nn.LeakyReLU(inplace=True), nn.Linear(dim, self.project_dim, bias=False)
         ).to(hidden)
-        if self.fp16:
-            fn.half()
-        return fn
 
     def reset_moving_average(self):
         assert self.use_momentum, "must be using momentum method for key encoder"
@@ -258,21 +227,13 @@ class ContrastiveLearner(nn.Module):
         self.queries = self.keys = None
         return loss
 
-    def forward(self, x, accumulate=False):
+    def forward(self, x, aug_x, accumulate=False):
         b, c, h, w, device = *x.shape, x.device
-        transform_fn = self.augment if self.augment_both else noop
 
-        query_encoder = self.net
-        if self.fp16:
-            queries = query_encoder(transform_fn(x.float()).half())
-        else:
-            queries = query_encoder(transform_fn(x))
+        queries = self.net(aug_x)
 
         key_encoder = self.net if not self.use_momentum else self._get_key_encoder()
-        if self.fp16:
-            keys = key_encoder(self.augment(x.float()).half())
-        else:
-            keys = key_encoder(self.augment(x))
+        keys = key_encoder(aug_x)
 
         if self.use_momentum:
             keys = keys.detach()
