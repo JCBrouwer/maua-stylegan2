@@ -13,6 +13,7 @@ import torch.distributed as dist
 from torchvision import transforms, utils
 from tqdm import tqdm
 from scipy.ndimage import gaussian_filter
+import apex
 
 import wandb
 import validation
@@ -53,7 +54,6 @@ def accumulate(model1, model2, decay=0.5 ** (32.0 / 10_000)):
     par1 = dict(model1.named_parameters())
     par2 = dict(model2.named_parameters())
     for name, param in model1.named_parameters():
-        # print(name)
         param.data = decay * par1[name].data + (1 - decay) * par2[name].data
 
 
@@ -70,7 +70,7 @@ def make_noise(batch_size, latent_dim, prob, device):
         return [th.randn(batch_size, latent_dim, device=device)]
 
 
-def train(args, loader, generator, discriminator, contrast_learner, augment, g_optim, d_optim, scaler, g_ema, device):
+def train(args, loader, generator, discriminator, contrast_learner, augment, g_optim, d_optim, g_ema, device):
     loader = sample_data(loader)
 
     pbar = range(args.iter)
@@ -97,6 +97,10 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
         g_module = generator
         d_module = discriminator
         cl_module = contrast_learner
+
+    scaler = th.cuda.amp.GradScaler(growth_factor=1.111)
+    r1_scaler = th.cuda.amp.GradScaler(growth_factor=1.111)
+    path_scaler = th.cuda.amp.GradScaler(growth_factor=1.111)
 
     sample_z = th.randn(args.n_sample, args.latent_size, device=device)
 
@@ -165,7 +169,6 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                 d_loss /= args.num_accumulate
             scaler.scale(d_loss).backward()
         scaler.step(d_optim)
-        scaler.update()
 
         # R1 regularization
         loss_dict["r1"] = th.tensor(0, device=device).float()
@@ -188,8 +191,10 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                         real_pred = discriminator(real_img)
                         real_pred_sum = real_pred.sum()
 
-                    (grad_real,) = th.autograd.grad(outputs=real_pred_sum, inputs=real_img, create_graph=True)
+                (scaled_grad,) = th.autograd.grad(r1_scaler.scale(real_pred_sum), real_img, create_graph=True)
+                grad_real = scaled_grad * (1.0 / r1_scaler.get_scale())
 
+                with th.cuda.amp.autocast():
                     r1_loss = grad_real.pow(2).view(grad_real.shape[0], -1).sum(1).mean()
                     weighted_r1_loss = args.r1 / 2.0 * r1_loss * args.d_reg_every + 0 * real_pred[0]
 
@@ -197,9 +202,9 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
 
                     weighted_r1_loss /= args.num_accumulate
 
-                scaler.scale(weighted_r1_loss).backward()
-            scaler.step(d_optim)
-            scaler.update()
+                r1_scaler.scale(weighted_r1_loss).backward()
+            r1_scaler.step(d_optim)
+            r1_scaler.update()
 
         requires_grad(generator, True)
         requires_grad(discriminator, False)
@@ -225,7 +230,6 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
 
             scaler.scale(g_loss).backward()
         scaler.step(g_optim)
-        scaler.update()
 
         # path length regularization
         loss_dict["path"], loss_dict["path_length"] = (
@@ -246,12 +250,15 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                     img_noise = th.randn_like(fake_img) / math.sqrt(fake_img.shape[2] * fake_img.shape[3])
                     noisy_img_sum = (fake_img * img_noise).sum()
 
-                    (grad,) = th.autograd.grad(outputs=noisy_img_sum, inputs=latents, create_graph=True)
+                (scaled_grad,) = th.autograd.grad(path_scaler.scale(noisy_img_sum), latents, create_graph=True)
+                grad = scaled_grad * (1.0 / path_scaler.get_scale())
 
+                with th.cuda.amp.autocast():
                     path_lengths = th.sqrt(grad.pow(2).sum(2).mean(1))
                     path_mean = mean_path_length + 0.01 * (path_lengths.mean() - mean_path_length)
                     path_loss = (path_lengths - path_mean).pow(2).mean()
-                    mean_path_length = path_mean.detach()
+                    if not th.isnan(path_mean):
+                        mean_path_length = path_mean.detach()
 
                     loss_dict["path"] += path_loss.detach()
                     loss_dict["path_length"] += path_lengths.mean().detach()
@@ -262,9 +269,11 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
 
                     weighted_path_loss /= args.num_accumulate
 
-                scaler.scale(weighted_path_loss).backward()
-            scaler.step(g_optim)
-            scaler.update()
+                path_scaler.scale(weighted_path_loss).backward()
+            path_scaler.step(g_optim)
+            path_scaler.update()
+
+        scaler.update()
 
         accumulate(g_ema, g_module)
 
@@ -291,6 +300,12 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                 "Consistency": bc_reg_val,
             }
 
+            if args.r1 > 0 and i % args.d_reg_every == 0:
+                log_dict["R1"] = r1_val
+
+            if args.path_regularize > 0 and i % args.g_reg_every == 0:
+                log_dict["Path Length Regularization"] = path_loss_val
+
             if args.log_spec_norm:
                 G_norms = []
                 for name, spec_norm in g_module.named_buffers():
@@ -310,14 +325,6 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                 log_dict[f"Spectral Norms/D mean spectral norm"] = np.log(D_norms).mean()
                 log_dict[f"Spectral Norms/D max spectral norm"] = np.log(D_norms).max()
 
-            if args.r1 > 0 and i % args.d_reg_every == 0:
-                log_dict["R1"] = r1_val
-
-            if args.path_regularize > 0 and i % args.g_reg_every == 0:
-                log_dict["Path Length Regularization"] = path_loss_val
-                log_dict["Mean Path Length"] = mean_path_length
-                log_dict["Path Length"] = path_length_val
-
             if i % args.img_every == 0:
                 gc.collect()
                 th.cuda.empty_cache()
@@ -334,8 +341,6 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
 
             if i % args.eval_every == 0:
                 with th.cuda.amp.autocast():
-                    start_time = time.time()
-
                     fid_dict = validation.fid(
                         g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name
                     )
@@ -348,17 +353,6 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                     # ppl = validation.ppl(
                     #     g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
                     # )
-
-                pbar.set_description(
-                    (
-                        f"FID: {fid:.4f}; Density: {density:.4f}; Coverage: {coverage:.4f} in {time.time() - start_time:.1f}s"
-                    )
-                )
-                # pbar.set_description(
-                #     (
-                #         f"FID: {fid:.4f}; Density: {density:.4f}; Coverage: {coverage:.4f}; PPL: {ppl:.4f} in {time.time() - start_time:.1f}s"
-                #     )
-                # )
                 log_dict["Evaluation/FID"] = fid
                 log_dict["Sweep/FID_smooth"] = gaussian_filter(np.array(fids), [10])[-1]
                 log_dict["Evaluation/Density"] = density
@@ -369,6 +363,11 @@ def train(args, loader, generator, discriminator, contrast_learner, augment, g_o
                 th.cuda.empty_cache()
 
             wandb.log(log_dict)
+            pbar.set_description(
+                (
+                    f"FID :{fid:.4f}   Dens :{density:.4f}   Cov :{coverage:.4f}   G :{g_loss_val:.4f}   D :{d_loss_val:.4f}   R1 :{r1_val:.4f}   Path :{path_loss_val:.4f}"
+                )
+            )
 
             if i % args.checkpoint_every == 0:
                 th.save(
@@ -406,7 +405,7 @@ if __name__ == "__main__":
 
     # model options
     parser.add_argument("--size", type=int, default=256)
-    parser.add_argument("--min_rgb_size", type=int, default=128)
+    parser.add_argument("--min_rgb_size", type=int, default=4)
     parser.add_argument("--latent_size", type=int, default=512)
     parser.add_argument("--n_mlp", type=int, default=8)
     parser.add_argument("--n_sample", type=int, default=60)
@@ -414,9 +413,9 @@ if __name__ == "__main__":
     parser.add_argument("--channel_multiplier", type=int, default=2)
 
     # optimizer options
-    parser.add_argument("--lr", type=float, default=0.0001)
+    parser.add_argument("--lr", type=float, default=0.002)
     parser.add_argument("--d_lr_ratio", type=float, default=1.0)
-    parser.add_argument("--lookahead", type=bool, default=True)
+    parser.add_argument("--lookahead", type=bool, default=False)
     parser.add_argument("--la_steps", type=float, default=500)
     parser.add_argument("--la_alpha", type=float, default=0.5)
 
@@ -614,6 +613,5 @@ if __name__ == "__main__":
             wandb.init(project=f"maua-stylegan-sweep", name=args.runname, config=vars(args))
         else:
             wandb.init(project=f"maua-stylegan-sweep", config=vars(args))
-    scaler = th.cuda.amp.GradScaler()
 
-    train(args, loader, generator, discriminator, contrast_learner, augment_fn, g_optim, d_optim, scaler, g_ema, device)
+    train(args, loader, generator, discriminator, contrast_learner, augment_fn, g_optim, d_optim, g_ema, device)
