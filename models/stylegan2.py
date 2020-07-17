@@ -627,26 +627,30 @@ class ConvLayer(nn.Sequential):
 
 
 class ResBlock(nn.Module):
-    def __init__(self, in_channel, out_channel, blur_kernel=[1, 3, 3, 1]):
+    def __init__(self, in_channel, out_channel, blur_kernel=[1, 3, 3, 1], use_skip=True):
         super().__init__()
 
         self.conv1 = ConvLayer(in_channel, in_channel, 3)
         self.conv2 = ConvLayer(in_channel, out_channel, 3, downsample=True)
 
-        self.skip = ConvLayer(in_channel, out_channel, 1, downsample=True, activate=False, bias=False)
+        if use_skip:
+            self.skip = ConvLayer(in_channel, out_channel, 1, downsample=True, activate=False, bias=False)
+        else:
+            self.skip = None
 
     def forward(self, inputs):
         out = self.conv1(inputs)
         out = self.conv2(out)
 
-        skip = self.skip(inputs)
-        out = (out + skip) / math.sqrt(2)
+        if self.skip is not None:
+            skip = self.skip(inputs)
+            out = (out + skip) / math.sqrt(2)
 
         return out
 
 
 class Discriminator(nn.Module):
-    def __init__(self, size, channel_multiplier=2, blur_kernel=[1, 3, 3, 1]):
+    def __init__(self, size, channel_multiplier=2, blur_kernel=[1, 3, 3, 1], use_skip=True):
         super().__init__()
 
         channels = {
@@ -670,7 +674,7 @@ class Discriminator(nn.Module):
         for i in range(log_size, 2, -1):
             out_channel = channels[2 ** (i - 1)]
 
-            convs.append(ResBlock(in_channel, out_channel, blur_kernel))
+            convs.append(ResBlock(in_channel, out_channel, blur_kernel, use_skip=use_skip))
 
             in_channel = out_channel
 

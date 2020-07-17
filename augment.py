@@ -257,30 +257,12 @@ def affine_grid(grid, mat):
 
 
 def get_padding(G, height, width):
-    extreme = (
-        G[:, :2, :]
-        @ torch.tensor([(-1.0, -1, 1), (-1, 1, 1), (1, -1, 1), (1, 1, 1)]).t()
-    )
+    extreme = G[:, :2, :] @ torch.tensor([(-1.0, -1, 1), (-1, 1, 1), (1, -1, 1), (1, 1, 1)]).t()
 
     size = torch.tensor((width, height))
 
-    pad_low = (
-        ((extreme.min(-1).values + 1) * size)
-        .clamp(max=0)
-        .abs()
-        .ceil()
-        .max(0)
-        .values.to(torch.int64)
-        .tolist()
-    )
-    pad_high = (
-        (extreme.max(-1).values * size - size)
-        .clamp(min=0)
-        .ceil()
-        .max(0)
-        .values.to(torch.int64)
-        .tolist()
-    )
+    pad_low = ((extreme.min(-1).values + 1) * size).clamp(max=0).abs().ceil().max(0).values.to(torch.int64).tolist()
+    pad_high = (extreme.max(-1).values * size - size).clamp(min=0).ceil().max(0).values.to(torch.int64).tolist()
 
     return pad_low[0], pad_high[0], pad_low[1], pad_high[1]
 
@@ -294,16 +276,10 @@ def try_sample_affine_and_pad(img, p, pad_k, G=None):
         if G is None:
             G_try = sample_affine(p, batch, height, width)
 
-        pad_x1, pad_x2, pad_y1, pad_y2 = get_padding(
-            torch.inverse(G_try), height, width
-        )
+        pad_x1, pad_x2, pad_y1, pad_y2 = get_padding(torch.inverse(G_try), height, width)
 
         try:
-            img_pad = F.pad(
-                img,
-                (pad_x1 + pad_k, pad_x2 + pad_k, pad_y1 + pad_k, pad_y2 + pad_k),
-                mode="reflect",
-            )
+            img_pad = F.pad(img, (pad_x1 + pad_k, pad_x2 + pad_k, pad_y1 + pad_k, pad_y2 + pad_k), mode="reflect",)
 
         except RuntimeError:
             continue
@@ -322,9 +298,7 @@ def random_apply_affine(img, p, G=None, antialiasing_kernel=SYM6):
     kernel = torch.ger(kernel, kernel).to(img)
     kernel_flip = torch.flip(kernel, (0, 1))
 
-    img_pad, G, (pad_x1, pad_x2, pad_y1, pad_y2) = try_sample_affine_and_pad(
-        img, p, pad_k, G
-    )
+    img_pad, G, (pad_x1, pad_x2, pad_y1, pad_y2) = try_sample_affine_and_pad(img, p, pad_k, G)
 
     p_ux1 = pad_x1
     p_ux2 = pad_x2 + 1
@@ -346,15 +320,11 @@ def random_apply_affine(img, p, G=None, antialiasing_kernel=SYM6):
         device=img_2x.device,
     ).to(img_2x)
     grid = affine_grid(grid, torch.inverse(G)[:, :2, :].to(img_2x))
-    grid = grid * torch.tensor(
-        [w_o / w_p, h_o / h_p], device=grid.device
-    ) + torch.tensor(
+    grid = grid * torch.tensor([w_o / w_p, h_o / h_p], device=grid.device) + torch.tensor(
         [(w_o + 2 * p_ux1) / w_p - 1, (h_o + 2 * p_uy1) / h_p - 1], device=grid.device
     )
 
-    img_affine = F.grid_sample(
-        img_2x, grid, mode="bilinear", align_corners=False, padding_mode="zeros"
-    )
+    img_affine = F.grid_sample(img_2x, grid, mode="bilinear", align_corners=False, padding_mode="zeros")
 
     img_down = upfirdn2d(img_affine, kernel, down=2)
 

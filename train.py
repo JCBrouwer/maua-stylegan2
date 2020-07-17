@@ -162,8 +162,8 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
             noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob)
             fake_img_og, _ = generator(noise)
             if args.augment:
-                fake_img = augment(fake_img_og, ada_aug_p)
-                real_img = augment(real_img_og, ada_aug_p)
+                fake_img, _ = augment(fake_img_og, ada_aug_p)
+                real_img, _ = augment(real_img_og, ada_aug_p)
             else:
                 fake_img = fake_img_og
                 real_img = real_img_og
@@ -214,7 +214,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                 pred_signs, n_pred = ada_augment.tolist()
 
                 r_t_stat = pred_signs / n_pred
-                loss_dict["Rt"] = r_t_stat
+                loss_dict["Rt"] = th.tensor(r_t_stat, device=device).float()
                 if r_t_stat > args.ada_target:
                     sign = 1
                 else:
@@ -223,7 +223,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                 ada_aug_p += sign * ada_aug_step * n_pred
                 ada_aug_p = min(1, max(0, ada_aug_p))
                 ada_augment.mul_(0)
-                loss_dict["Augment"] = ada_aug_p
+                loss_dict["Augment"] = th.tensor(ada_aug_p, device=device).float()
 
         requires_grad(generator, True)
         requires_grad(discriminator, False)
@@ -233,7 +233,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
             noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob)
             fake_img, _ = generator(noise)
             if args.augment:
-                fake_img = augment(fake_img, ada_aug_p)
+                fake_img, _ = augment(fake_img, ada_aug_p)
             fake_pred = discriminator(fake_img)
             g_loss = g_non_saturating_loss(fake_pred)
             loss_dict["Generator"] += g_loss.detach()
@@ -299,7 +299,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                 )
 
                 log_dict["Evaluation/FID"] = fid
-                log_dict["Sweep/FID_smooth"] = gaussian_filter(np.array(fids), [10])[-1]
+                log_dict["Sweep/FID_smooth"] = gaussian_filter(np.array(fids), [5])[-1]
                 log_dict["Evaluation/Density"] = density
                 log_dict["Evaluation/Coverage"] = coverage
                 log_dict["Evaluation/PPL"] = ppl
@@ -310,8 +310,10 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
             wandb.log(log_dict)
             description = (
                 f"FID: {fid:.4f}   PPL: {ppl:.4f}   Dens: {density:.4f}   Cov: {coverage:.4f}   "
-                + f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}   Aug: {ada_aug_p:.4f}"
+                + f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
             )
+            if "Augment" in log_dict:
+                description += f"   Aug: {log_dict['Augment']:.4f}   Rt: {log_dict['Rt']:.4f}"
             if "R1 Penalty" in log_dict:
                 description += f"   R1: {log_dict['R1 Penalty']:.4f}"
             if "Path Length Regularization" in log_dict:
@@ -360,6 +362,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_sample", type=int, default=60)
     parser.add_argument("--constant_input", type=bool, default=False)
     parser.add_argument("--channel_multiplier", type=int, default=2)
+    parser.add_argument("--d_skip", type=bool, default=True)
 
     # optimizer options
     parser.add_argument("--lr", type=float, default=0.002)
@@ -382,7 +385,7 @@ if __name__ == "__main__":
     parser.add_argument("--balanced_consistency", type=float, default=0)
     parser.add_argument("--augment_p", type=float, default=0)
     parser.add_argument("--ada_target", type=float, default=0.6)
-    parser.add_argument("--ada_length", type=int, default=500 * 1000)
+    parser.add_argument("--ada_length", type=int, default=40_000)
 
     # validation options
     parser.add_argument("--val_batch_size", type=int, default=8)
@@ -425,7 +428,9 @@ if __name__ == "__main__":
         constant_input=args.constant_input,
         min_rgb_size=args.min_rgb_size,
     ).to(device)
-    discriminator = Discriminator(args.size, channel_multiplier=args.channel_multiplier).to(device)
+    discriminator = Discriminator(args.size, channel_multiplier=args.channel_multiplier, use_skip=args.d_skip).to(
+        device
+    )
 
     if args.log_spec_norm:
         for name, parameter in generator.named_parameters():
