@@ -17,6 +17,10 @@ from models.stylegan1 import G_style
 
 
 def gaussian_filter(x, sigma):
+    dim = len(x.shape)
+    if dim != 3 and dim != 4:
+        raise Exception("Only 3- or 4-dimensional tensors are supported.")
+
     radius = sigma * 4
     channels = x.shape[1]
 
@@ -25,22 +29,16 @@ def gaussian_filter(x, sigma):
     kernel = kernel / kernel.sum()
     kernel = kernel.view(1, 1, len(kernel)).repeat(channels, 1, 1)
 
-    dim = len(x.shape)
-
-    if dim == 3:
-        x = x.transpose(0, 2)
-    elif dim == 4:
+    if dim == 4:
         t, c, h, w = x.shape
-        x = x.view(h * w, c, t)
-    else:
-        raise ("Only 3- or 4-dimensional tensors are supported.")
+        x = x.view(t, c, h * w)
+    x = x.transpose(0, 2)
 
     x = F.pad(x, (radius, radius), mode="circular")
     x = F.conv1d(x, weight=kernel, groups=channels)
 
-    if dim == 3:
-        x = x.transpose(0, 2)
-    else:
+    x = x.transpose(0, 2)
+    if dim == 4:
         x = x.view(t, c, h, w)
 
     return x
@@ -123,7 +121,7 @@ if "main" in __name__:
     else:
         styles = th.randn((int(args.duration), 512), device="cuda")
         styles = generator(styles, map_latents=True)
-    styles = get_latent_loops(styles, 0, args.num_frames, num_loops=1, smoothing=10, s=args.slerp)
+    styles = get_latent_loops(styles, 0, args.num_frames, num_loops=1, smoothing=30, s=args.slerp)
 
     latents = th.randn((args.num_frames, 512), device="cuda")
     latents = generator(latents, map_latents=True)
@@ -206,11 +204,38 @@ if "main" in __name__:
 
     # tl = 4
     # width = lambda s: (2 if args.out_size == 1920 else 1) * 2 ** int(s)
-    # translation = th.tensor([np.linspace(0, width(tl), args.num_frames+1), np.zeros((args.num_frames+1,))]).float().T[:-1]
-    # manipulations += [{"layer": tl, "transform": "translate", "params": translation}]
+    # translation = (
+    #     th.tensor([np.linspace(0, width(tl), args.num_frames + 1), np.zeros((args.num_frames + 1,))]).float().T[:-1]
+    # )
+    # manipulations += [{"layer": tl, "transform": "translateX", "params": translation}]
+
+    zl = 6
+    print(
+        th.cat(
+            [
+                th.linspace(-1, 3, int(args.num_frames / 2)),
+                th.linspace(3, -1, args.num_frames - int(args.num_frames / 2)) + 1,
+            ]
+        ).shape
+    )
+    zoom = gaussian_filter(
+        th.cat(
+            [
+                th.linspace(0, 3, int(args.num_frames / 2), dtype=th.float32, device="cuda"),
+                th.linspace(3, 0, args.num_frames - int(args.num_frames / 2), dtype=th.float32, device="cuda") + 1,
+            ]
+        )[:, None, None],
+        30,
+    ).squeeze()
+    zoom -= zoom.min()
+    zoom /= zoom.max()
+    # zoom *= 1.5
+    zoom += 0.5
+    print(zoom.min().item(), zoom.max().item(), zoom.shape)
+    manipulations += [{"layer": zl, "transform": "zoom", "params": zoom}]
 
     # rl = 6
-    # rotation = th.nn.Sigmoid()(th.tensor(np.linspace(0.0, 1.0, args.num_frames+1), device="cuda").float())
+    # rotation = th.nn.Sigmoid()(th.tensor(np.linspace(0.0, 1.0, args.num_frames + 1), device="cuda").float())
     # rotation -= rotation.min()
     # rotation /= rotation.max()
     # rotation = rotation[:-1]

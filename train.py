@@ -313,7 +313,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                 + f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
             )
             if "Augment" in log_dict:
-                description += f"   Aug: {log_dict['Augment']:.4f}   Rt: {log_dict['Rt']:.4f}"
+                description += f"   Aug: {log_dict['Augment']:.4f}"  #   Rt: {log_dict['Rt']:.4f}"
             if "R1 Penalty" in log_dict:
                 description += f"   R1: {log_dict['R1 Penalty']:.4f}"
             if "Path Length Regularization" in log_dict:
@@ -340,7 +340,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # data options
-    parser.add_argument("path", type=str)
+    parser.add_argument("--path", type=str, default="/home/hans/trainsets/cyphept")
     parser.add_argument("--runname", type=str, default=None)
     parser.add_argument("--vflip", type=bool, default=False)
     parser.add_argument("--hflip", type=bool, default=True)
@@ -349,7 +349,11 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--num_accumulate", type=int, default=1)
 
-    parser.add_argument("--checkpoint", type=str, default=None)
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,  # "/home/hans/modelzoo/maua-sg2/cyphept-baseline-2ohkjhvp-77-256-040000.pt"
+    )
     parser.add_argument("--transfer_mapping_only", type=bool, default=False)
     parser.add_argument("--start_iter", type=int, default=0)
     parser.add_argument("--iter", type=int, default=60_000)
@@ -388,11 +392,11 @@ if __name__ == "__main__":
     parser.add_argument("--ada_length", type=int, default=40_000)
 
     # validation options
-    parser.add_argument("--val_batch_size", type=int, default=8)
-    parser.add_argument("--fid_n_sample", type=int, default=5000)
+    parser.add_argument("--val_batch_size", type=int, default=6)
+    parser.add_argument("--fid_n_sample", type=int, default=2500)
     parser.add_argument("--fid_truncation", type=float, default=None)
     parser.add_argument("--ppl_space", choices=["z", "w"], default="w")
-    parser.add_argument("--ppl_n_sample", type=int, default=2500)
+    parser.add_argument("--ppl_n_sample", type=int, default=1250)
     parser.add_argument("--ppl_crop", type=bool, default=False)
 
     # logging options

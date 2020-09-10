@@ -1,4 +1,4 @@
-import os, sys, math
+import os, gc, sys, math
 import random
 
 import torch as th
@@ -351,8 +351,8 @@ class StyledConv(nn.Module):
         # print("styleconv in", inputs.shape, style.shape)
         out = self.conv(inputs, style)
         # print("conv out", out.shape, noise.shape)
-        # out = self.noise(out, noise=self.manipulation(noise.cuda(), transform_dict_list))
-        out = self.noise(out, noise=noise)
+        out = self.noise(out, noise=self.manipulation(noise.cuda(), transform_dict_list))
+        # out = self.noise(out, noise=noise)
         # out = out + self.bias
         # print("noise out", out.shape)
         out = self.activate(out)
@@ -475,6 +475,11 @@ class Generator(nn.Module):
 
         if checkpoint is not None:
             self.load_state_dict(th.load(checkpoint)["g_ema"])
+
+        for layer_idx in range(self.num_layers):
+            res = (layer_idx + 5) // 2
+            shape = [1, 1, 2 ** res, 2 ** res * (2 if output_size == 1920 else 1)]
+            setattr(self.noises, f"noise_{layer_idx}", th.randn(*shape))
 
     def make_noise(self):
         device = self.input.input.device
