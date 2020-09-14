@@ -552,9 +552,13 @@ class G_style(nn.Sequential):
         if output_size == 1920:
             layer0 = th.cat(
                 [
-                    const[:, :, :, : cw // 2 + 1][:, :, :, list(range(cw // 2, 0, -1))],
+                    const[:, :, :, [0]],
+                    const[:, :, :, [0]],
+                    # const[:, :, :, : cw // 2 + 1][:, :, :, list(range(cw // 2, 0, -1))],
                     const,
-                    const[:, :, :, cw // 2 :],
+                    # const[:, :, :, cw // 2 :],
+                    const[:, :, :, [-1]],
+                    const[:, :, :, [-1]],
                 ],
                 axis=3,
             )
@@ -603,6 +607,7 @@ class G_style(nn.Sequential):
             styles = th.where(do_trunc, interp, styles)
 
         # Input: Disentangled latents (W) [minibatch, num_layers, dlatent_size].
+        # print(styles.shape, len(noise), len(self.g_synthesis.blocks.values()))
         for i, block in enumerate(self.g_synthesis.blocks.values()):
             if i == 0:
                 x = block(styles[:, 2 * i : 2 * i + 2], noise=noise[i])

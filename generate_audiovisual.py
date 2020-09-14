@@ -1,20 +1,24 @@
-import os
-import gc
-import time
-import uuid
-import json
-import render
-import generate
+import os, gc
+import time, uuid, json
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
+
 import torch as th
+import torch.nn.functional as F
+
 import madmom as mm
 import librosa as rosa
 import scipy.signal as signal
-import matplotlib.pyplot as plt
-import torch.nn.functional as F
-from models.stylegan2 import Generator
+
+from functools import partial
+import kornia.augmentation as kA
+import kornia.geometry.transform as kT
+
+import render
+import generate
 from models.stylegan1 import G_style
+from models.stylegan2 import Generator
 
 time_taken = time.time()
 th.set_grad_enabled(False)
@@ -38,7 +42,7 @@ parser.add_argument("--slerp", type=bool, default=True)
 parser.add_argument("--latents", type=str, default=None)
 parser.add_argument("--random_latents", action="store_true")
 parser.add_argument("--color_latents", type=str, default=None)
-parser.add_argument("--color_layer", type=int, default=8)
+parser.add_argument("--color_layer", type=int, default=6)
 
 args = parser.parse_args()
 
@@ -54,7 +58,7 @@ def gaussian_filter(x, sigma, causal=False):
     kernel = th.arange(-radius, radius + 1, dtype=th.float32, device=x.device)
     kernel = th.exp(-0.5 / sigma ** 2 * kernel ** 2)
     if causal:
-        kernel[:radius] = 0
+        kernel[:radius] *= 0.1
     kernel = kernel / kernel.sum()
     kernel = kernel.view(1, 1, len(kernel)).repeat(channels, 1, 1)
 
@@ -126,6 +130,9 @@ def wrapping_slice(tensor, start, length, return_indices=False):
         indices = th.zeros(1, dtype=th.int64)
     if return_indices:
         return indices
+    # print(indices)
+    # print(indices.shape)
+    # print(indices.dtype)
     return tensor[indices]
 
 
@@ -155,17 +162,17 @@ def plot_spectra(spectra, chroma=False):
 
 
 if __name__ == "__main__":
-    args.ckpt = f"/home/hans/modelzoo/maua-sg2/cyphept-CYPHEPT-2q5b2lk6-33-1024-145000.pt"
-    args.audio_file = f"../../datasets/naamloos.wav"
-    args.bpm = 170
+    args.ckpt = "/home/hans/modelzoo/lakspe_stylegan1.pt"  # f"/home/hans/modelzoo/maua-sg2/cyphept-CYPHEPT-2q5b2lk6-33-1024-145000.pt"
+    args.audio_file = f"../../datasets/ifyouwantloop.wav"
+    args.bpm = 130
     args.fps = 30
-    args.duration = None
     args.offset = 0
+    args.duration = None
 
     file_root = args.audio_file.split("/")[-1].split(".")[0]
     metadata_file = f"workspace/{file_root}_metadata.json"
-    intro_file = f"workspace/{file_root}_drop_latents.npy"
-    drop_file = f"workspace/{file_root}_intro_latents.npy"
+    intro_file = f"workspace/lakspe_intro_latents2.npy"
+    drop_file = f"workspace/lakspe_drop_latents2.npy"
     latent_file = f"workspace/{file_root}_latents.npy"
     noise_file = f"workspace/{file_root}_noise.npy"
 
@@ -188,35 +195,35 @@ if __name__ == "__main__":
 
     prms = {
         "intro_num_beats": 64,
-        "intro_loop_smoothing": 30,
-        "intro_loop_factor": 0.4,
-        "intro_loop_len": 12,
+        "intro_loop_smoothing": 40,
+        "intro_loop_factor": 0.6,
+        "intro_loop_len": 4,
         "drop_num_beats": 32,
-        "drop_loop_smoothing": 15,
+        "drop_loop_smoothing": 27,
         "drop_loop_factor": 1,
-        "drop_loop_len": 6,
-        "onset_smooth": 2,
-        "onset_clip": 95,
+        "drop_loop_len": 4,
+        "onset_smooth": 1,
+        "onset_clip": 90,
         "freq_mod": 10,
         "freq_mod_offset": 0,
         "freq_smooth": 5,
         "freq_latent_smooth": 4,
-        "freq_latent_layer": 1,
-        "freq_latent_weight": 2,
+        "freq_latent_layer": 0,
+        "freq_latent_weight": 1,
         "high_freq_mod": 10,
         "high_freq_mod_offset": 0,
-        "high_freq_smooth": 4,
-        "high_freq_latent_smooth": 5,
-        "high_freq_latent_layer": 2,
-        "high_freq_latent_weight": 1.5,
+        "high_freq_smooth": 3,
+        "high_freq_latent_smooth": 6,
+        "high_freq_latent_layer": 0,
+        "high_freq_latent_weight": 1,
         "rms_smooth": 5,
         "bass_smooth": 5,
-        "bass_clip": 65,
-        "drop_clip": 75,
+        "bass_clip": 90,
+        "drop_clip": 70,
         "drop_smooth": 5,
         "drop_weight": 1,
-        "high_noise_clip": 100,
-        "high_noise_weight": 1.5,
+        "high_noise_clip": 98,
+        "high_noise_weight": 1,
         "low_noise_weight": 1,
     }
 
@@ -225,11 +232,9 @@ if __name__ == "__main__":
 
     if not os.path.exists(f"workspace/{file_root}_onsets.npy"):
         print(f"processing audio files...")
-        main_audio, sr = rosa.load(args.audio_file)  # , offset=args.offset, duration=args.duration)
+        main_audio, sr = rosa.load(args.audio_file)
 
-        sig = mm.audio.signal.Signal(
-            args.audio_file, num_channels=1
-        )  # , start=args.offset, stop=args.offset + args.duration)
+        sig = mm.audio.signal.Signal(args.audio_file, num_channels=1)
         sig_frames = mm.audio.signal.FramedSignal(sig, frame_size=2048, hop_size=441)
         stft = mm.audio.stft.ShortTimeFourierTransform(sig_frames, ciruclar_shift=True)
         spec = mm.audio.spectrogram.Spectrogram(stft, ciruclar_shift=True)
@@ -300,13 +305,34 @@ if __name__ == "__main__":
         np.save(f"workspace/{file_root}_rms.npy", rms.astype(np.float32))
         np.save(f"workspace/{file_root}_bass_sum.npy", bass_sum.astype(np.float32))
 
-    onsets = th.from_numpy(np.load(f"workspace/{file_root}_onsets.npy"))
-    pitches_mean = th.from_numpy(np.load(f"workspace/{file_root}_pitches_mean.npy"))
-    average_pitch = th.from_numpy(np.load(f"workspace/{file_root}_average_pitch.npy"))
-    high_pitches_mean = th.from_numpy(np.load(f"workspace/{file_root}_high_pitches_mean.npy"))
-    high_average_pitch = th.from_numpy(np.load(f"workspace/{file_root}_high_average_pitch.npy"))
-    rms = th.from_numpy(np.load(f"workspace/{file_root}_rms.npy"))
-    bass_sum = th.from_numpy(np.load(f"workspace/{file_root}_bass_sum.npy"))
+    onsets = th.from_numpy(np.load(f"workspace/{file_root}_onsets.npy"))[:num_frames]
+    pitches_mean = th.from_numpy(np.load(f"workspace/{file_root}_pitches_mean.npy"))[:num_frames]
+    average_pitch = th.from_numpy(np.load(f"workspace/{file_root}_average_pitch.npy"))[:num_frames]
+    high_pitches_mean = th.from_numpy(np.load(f"workspace/{file_root}_high_pitches_mean.npy"))[:num_frames]
+    high_average_pitch = th.from_numpy(np.load(f"workspace/{file_root}_high_average_pitch.npy"))[:num_frames]
+    rms = th.from_numpy(np.load(f"workspace/{file_root}_rms.npy"))[:num_frames]
+    bass_sum = th.from_numpy(np.load(f"workspace/{file_root}_bass_sum.npy"))[:num_frames]
+
+    def get_spline_loops(base_latent_selection, n_frames, num_loops, loop=True):
+        from scipy import interpolate
+
+        if loop:
+            base_latent_selection = np.concatenate([base_latent_selection, base_latent_selection[[0]]])
+
+        x = np.linspace(0, 1, int(n_frames // max(1, num_loops)))
+        # print(int(n_frames // max(1, num_loops)), num_loops, int(n_frames // max(1, num_loops) * num_loops))
+        base_latents = np.zeros((len(x), *base_latent_selection.shape[1:]))
+        for lay in range(base_latent_selection.shape[1]):
+            for lat in range(base_latent_selection.shape[2]):
+                tck = interpolate.splrep(
+                    np.linspace(0, 1, base_latent_selection.shape[0]), base_latent_selection[:, lay, lat]
+                )
+                base_latents[:, lay, lat] = interpolate.splev(x, tck)
+
+        base_latents = th.cat([th.from_numpy(base_latents)] * int(n_frames / len(base_latents)), axis=0)
+        base_latents = th.cat([base_latents, base_latents[0 : num_frames - len(base_latents)],])
+        # print(base_latents.shape)
+        return base_latents
 
     def get_latent_loops(base_latent_selection, loop_starting_latents, n_frames, num_loops, smoothing):
         base_latents = []
@@ -323,12 +349,14 @@ if __name__ == "__main__":
         base_latents = gaussian_filter(base_latents, smoothing * smf)
         base_latents = th.cat([base_latents] * int(n_frames / len(base_latents)), axis=0)
         base_latents = th.cat([base_latents[:, None, :]] * 18, axis=1)
+        base_latents = th.cat([base_latents, base_latents[0 : num_frames - len(base_latents)],])
         return base_latents
 
-    intro_selection = th.from_numpy(np.load(intro_file))
-    drop_selection = th.from_numpy(np.load(drop_file))
-
-    if args.random_latents:
+    latent_files_exist = os.path.exists(intro_file) and os.path.exists(drop_file)
+    if latent_files_exist:
+        intro_selection = th.from_numpy(np.load(intro_file))[1:]
+        drop_selection = th.from_numpy(np.load(drop_file))
+    if args.random_latents or not latent_files_exist:
         print("generating random latents")
         generator = Generator(
             args.G_res,
@@ -347,32 +375,95 @@ if __name__ == "__main__":
         gc.collect()
         th.cuda.empty_cache()
 
-    intro_loops = get_latent_loops(
-        base_latent_selection=wrapping_slice(intro_selection, 0, prms["intro_loop_len"]) * 2,
-        loop_starting_latents=0,
-        n_frames=num_frames,
-        num_loops=args.bpm / 60.0 * args.duration / prms["intro_num_beats"],
-        smoothing=prms["intro_loop_smoothing"] * smf,
-    )
+    num_sections = 4
+    section_size = len(intro_selection) / num_sections
     intro_latents = th.cat(
         [
-            prms["intro_loop_factor"] * intro_loops + (1 - prms["intro_loop_factor"]) * intro_selection[[0], :],
-            prms["intro_loop_factor"] * intro_loops[0 : num_frames - len(intro_loops)]
-            + (1 - prms["intro_loop_factor"]) * intro_selection[[0], :],
+            get_spline_loops(
+                base_latent_selection=wrapping_slice(
+                    intro_selection, int(section * section_size), prms["intro_loop_len"]
+                ),
+                # loop_starting_latents=0,
+                n_frames=int(num_frames / num_sections),
+                num_loops=args.bpm / 60.0 * args.duration / prms["intro_num_beats"],
+                # smoothing=prms["intro_loop_smoothing"] * smf,
+                loop=False,
+            )[: int(num_frames / num_sections)]
+            for section in range(num_sections)
         ]
     )
+    intro_latents = th.cat([intro_latents] + [intro_latents[[-1]]] * (num_frames - len(intro_latents)))
 
-    drop_loops = get_latent_loops(
-        base_latent_selection=wrapping_slice(drop_selection, 0, prms["drop_loop_len"]),
-        loop_starting_latents=0,
-        n_frames=num_frames,
-        num_loops=args.bpm / 60.0 * args.duration / prms["drop_num_beats"],
-        smoothing=prms["drop_loop_smoothing"] * smf,
+    # intro_latents = prms["intro_loop_factor"] * (
+    #     intro_loops + (1 - prms["intro_loop_factor"]) * intro_selection[[-2], :]
+    # )
+
+    # drop_latents = get_spline_loops(
+    #     base_latent_selection=wrapping_slice(th.tensor(reversed(drop_selection)), 4, prms["drop_loop_len"]),
+    #     # loop_starting_latents=0,
+    #     n_frames=num_frames,
+    #     num_loops=args.bpm / 60.0 * args.duration / prms["drop_num_beats"],
+    #     # smoothing=prms["drop_loop_smoothing"] * smf,
+    # )
+    drop_latents = th.cat(
+        [
+            get_spline_loops(
+                base_latent_selection=wrapping_slice(
+                    reversed(drop_selection), int(section * section_size), prms["drop_loop_len"]
+                ),
+                # loop_starting_latents=0,
+                n_frames=int(num_frames / num_sections),
+                num_loops=args.bpm / 60.0 * args.duration / prms["drop_num_beats"],
+                # smoothing=prms["drop_loop_smoothing"] * smf,
+                loop=False,
+            )[: int(num_frames / num_sections)]
+            for section in range(num_sections)
+        ]
     )
-    drop_latents = (
-        prms["drop_loop_factor"] * th.cat([drop_loops, drop_loops[0 : num_frames - len(drop_loops)]])
-        + (1 - prms["drop_loop_factor"]) * drop_selection[[0], :]
-    )
+    drop_latents = th.cat([drop_latents] + [drop_latents[[-1]]] * (num_frames - len(drop_latents)))
+    print(drop_latents.shape)
+
+    for trans in [section * int(num_frames / num_sections) for section in range(num_sections)]:
+        if trans == 0:
+            continue
+        transition_window = int(args.fps / 2)
+        transin = max(0, int(round(trans - transition_window)))
+        transout = min(len(intro_latents), int(round(trans)))
+
+        # interp from start of transition window to new track start_time to make transition smoother
+        transition = []
+        linsp = th.linspace(0.0, 1.0, transout - transin)[:, None]
+        for val in linsp:
+            transition.append(
+                th.cat([slerp(val, intro_latents[transin, 0], intro_latents[transout, 0],)[None, :]] * 18, axis=0,)[
+                    None, :
+                ]
+            )
+
+        transition = th.cat(transition)
+        intro_latents[transin:transout] = (1 - linsp[:, None]) * intro_latents[transin:transout] + linsp[
+            :, None
+        ] * transition
+
+        transition = []
+        linsp = th.linspace(0.0, 1.0, transout - transin)[:, None]
+        for val in linsp:
+            transition.append(
+                th.cat([slerp(val, drop_latents[transin, 0], drop_latents[transout, 0],)[None, :]] * 18, axis=0,)[
+                    None, :
+                ]
+            )
+        transition = th.cat(transition)
+        drop_latents[transin:transout] = (1 - linsp[:, None]) * drop_latents[transin:transout] + linsp[
+            :, None
+        ] * transition
+
+    # drop_latents = (
+    #     prms["drop_loop_factor"] * th.cat([drop_loops, drop_loops[0 : num_frames - len(drop_loops)]])
+    #     + (1 - prms["drop_loop_factor"]) * drop_selection[[3], :]
+    # )
+    print(intro_latents.shape)
+    print(drop_latents.shape)
 
     rms = gaussian_filter(rms, prms["rms_smooth"] * smf, causal=True)
     main_weight = gaussian_filter(
@@ -382,36 +473,51 @@ if __name__ == "__main__":
     main_weight = main_weight[:, None, None]
     plot_signals([main_weight])
 
-    freqs = (average_pitch + pitches_mean) / prms["freq_mod"]
-    freqs = gaussian_filter(freqs, prms["freq_smooth"] * smf, causal=True)
+    # freqs = (average_pitch + pitches_mean) / prms["freq_mod"]
+    # freqs = gaussian_filter(freqs, prms["freq_smooth"] * smf, causal=True)
 
-    plot_signals([average_pitch, pitches_mean, freqs])
-    freqs = (freqs + 0 + prms["freq_mod_offset"]) % (drop_selection.shape[0] - 1)
-    freqs = freqs.int()
+    # plot_signals([average_pitch, pitches_mean, freqs])
+    # freqs = (freqs + 0 + prms["freq_mod_offset"]) % (intro_selection.shape[0] - 1)
+    # freqs = freqs.int()
 
-    plot_signals([freqs])
-    reactive_latents = th.from_numpy(drop_selection.numpy()[freqs, :, :])  # torch indexing doesn't work the same :(
-    reactive_latents = gaussian_filter(reactive_latents, prms["freq_latent_smooth"] * smf)
+    # plot_signals([freqs])
+    # reactive_latents = th.from_numpy(intro_selection.numpy()[freqs, :, :])  # torch indexing doesn't work the same :(
+    # reactive_latents = gaussian_filter(reactive_latents, prms["freq_latent_smooth"] * smf)
+    reactive_latents = get_spline_loops(
+        base_latent_selection=wrapping_slice(reversed(drop_selection), 0, len(drop_selection)),
+        # loop_starting_latents=0,
+        n_frames=num_frames,
+        num_loops=1,  # args.bpm / 60.0 * args.duration / prms["intro_num_beats"] // 2,
+        # smoothing=prms["intro_loop_smoothing"] * smf,
+    )
+    print(reactive_latents.shape)
 
     layr = prms["freq_latent_layer"]
     drop_latents[:, layr:] = (1 - main_weight) * drop_latents[:, layr:] + reactive_latents[:, layr:] * prms[
         "freq_latent_weight"
     ] * main_weight
 
-    high_freqs = (high_average_pitch + high_pitches_mean) / prms["high_freq_mod"]
-    high_freqs = gaussian_filter(high_freqs, prms["high_freq_smooth"] * smf, causal=True)
-    plot_signals([high_average_pitch, high_pitches_mean, high_freqs])
-    high_freqs = (high_freqs + 0 + prms["high_freq_mod_offset"]) % (intro_selection.shape[0] - 1)
-    high_freqs = high_freqs.int()
+    # high_freqs = (high_average_pitch + high_pitches_mean) / prms["high_freq_mod"]
+    # high_freqs = gaussian_filter(high_freqs, prms["high_freq_smooth"] * smf, causal=True)
+    # plot_signals([high_average_pitch, high_pitches_mean, high_freqs])
+    # high_freqs = (high_freqs + 0 + prms["high_freq_mod_offset"]) % (intro_selection.shape[0] - 1)
+    # high_freqs = high_freqs.int()
 
-    plot_signals([high_freqs])
-    reactive_latents = th.from_numpy(intro_selection.numpy()[high_freqs, :, :])  # torch indexing doesn't work
-    reactive_latents = gaussian_filter(reactive_latents, prms["high_freq_latent_smooth"] * smf)
+    # plot_signals([high_freqs])
+    # reactive_latents = th.from_numpy(intro_selection.numpy()[high_freqs, :, :])  # torch indexing doesn't work
+    # reactive_latents = gaussian_filter(reactive_latents, prms["high_freq_latent_smooth"] * smf)
+    reactive_latents = get_spline_loops(
+        base_latent_selection=wrapping_slice(reversed(intro_selection), 4, len(intro_selection)),
+        # loop_starting_latents=0,
+        n_frames=num_frames,
+        num_loops=1,  # args.bpm / 60.0 * args.duration / prms["intro_num_beats"] // 2,
+        # smoothing=prms["intro_loop_smoothing"] * smf,
+    )
 
     layr = prms["high_freq_latent_layer"]
-    intro_latents[:, layr:] = (1 - main_weight) * intro_latents[:, layr:] + reactive_latents[:, layr:] * prms[
-        "high_freq_latent_weight"
-    ] * main_weight
+    intro_latents[:, layr:] = (1 - main_weight) * intro_latents[:, layr:] + main_weight * reactive_latents[
+        :, layr:
+    ] * prms["high_freq_latent_weight"]
 
     bass_weight = gaussian_filter(bass_sum, prms["bass_smooth"] * smf, causal=True)
     bass_weight = percentile_clip(bass_weight, prms["bass_clip"])
@@ -420,30 +526,30 @@ if __name__ == "__main__":
     drop_weight = percentile_clip(drop_weight, prms["drop_clip"])
     drop_weight = gaussian_filter(drop_weight, prms["drop_smooth"] * smf, causal=True)
     drop_weight = normalize(drop_weight) * prms["drop_weight"]
-    drop_weight[: int(3473 * (68 / args.duration))] *= 0.4 * drop_weight[: int(3473 * (68 / args.duration))]
+    drop_weight[: int(29.5 / args.duration * num_frames)] = 0.5 * drop_weight[: int(29.5 / args.duration * num_frames)]
     drop_weight = drop_weight[:, None, None]
     plot_signals([drop_weight])
 
     latents = drop_weight * drop_latents + (1 - drop_weight) * intro_latents
 
     if args.color_latents is not None:
-        color_latents = th.from_numpy(np.load(args.color_latents))
+        color_latents = th.from_numpy(np.load(intro_file))  # args.color_latents
         latents[:, args.color_layer :, :] = (
-            latents[:, args.color_layer :, :] * 3 / 5 + color_latents[[0], args.color_layer :, :] * 2 / 5
+            latents[:, args.color_layer :, :] * 2 / 5 + color_latents[[0], args.color_layer :, :] * 3 / 5
         )
         latents[:, args.color_layer :, :] = (
-            latents[:, args.color_layer :, :] * 3 / 5 + color_latents[[0], args.color_layer :, :] * 2 / 5
+            latents[:, args.color_layer :, :] * 2 / 5 + color_latents[[0], args.color_layer :, :] * 3 / 5
         )
 
-    latents = gaussian_filter(latents.float().cuda(), int(round(3 * smf))).cpu()
+    latents = gaussian_filter(latents.float().cuda(), int(round(4 * smf))).cpu()
 
-    high_noise_mod = percentile_clip(main_weight.squeeze() ** 2, prms["high_noise_clip"])
+    high_noise_mod = drop_weight.squeeze() * percentile_clip(main_weight.squeeze() ** 2, prms["high_noise_clip"])
     high_noise_mod *= prms["high_noise_weight"]
     high_noise_mod = high_noise_mod[:, None, None, None].float()
     plot_signals([high_noise_mod])
 
-    low_noise_mod = (1 - drop_weight) * main_weight
-    low_noise_mod = normalize(low_noise_mod.squeeze())
+    low_noise_mod = (1 - drop_weight.squeeze()) * main_weight.squeeze()
+    low_noise_mod = normalize(low_noise_mod)
     low_noise_mod *= prms["low_noise_weight"]
     low_noise_mod = low_noise_mod[:, None, None, None].float()
     plot_signals([low_noise_mod])
@@ -465,14 +571,20 @@ if __name__ == "__main__":
         side_fn = lambda x: int(x / 2)
 
     max_noise_scale = 2 * (7 + 1)
+    max_noise_scale = 8
     for s in range(range_min, min(max_noise_scale, range_max)):
         h = 2 ** side_fn(s)
         w = (2 if args.size == 1920 else 1) * 2 ** side_fn(s)
         print(num_frames, 1, h, w)
 
-        noise_noisy = gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), int(round(smf))).cpu()
-        noise_vox = gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), int(round(10 * smf))).cpu()
-        noise_smooth = gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), int(round(20 * smf))).cpu()
+        noise_noisy = gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(smf)))).cpu()
+        # print(noise_noisy.mean(), noise_noisy.std())
+        noise_vox = gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(10 * smf)))).cpu()
+        # print(noise_vox.mean(), noise_vox.std())
+        noise_smooth = gaussian_filter(
+            th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(20 * smf)))
+        ).cpu()
+        # print(noise_smooth.mean(), noise_smooth.std())
 
         noise.append(
             high_noise_mod * noise_noisy
@@ -480,6 +592,23 @@ if __name__ == "__main__":
             + low_noise_mod * noise_vox
             + (1 - low_noise_mod) * noise_smooth
         )
+        noise[-1] /= noise[-1].std() * 4
+        # print(noise[-1].mean(), noise[-1].std())
+        # print((noise[-1] / noise[-1].std()).mean(), (noise[-1] / noise[-1].std()).std())
+
+        # print(
+        #     [
+        #         np.mean(noise[-1][int(idx) : int(idx + num_frames / 8)].numpy())
+        #         for idx in np.linspace(0, int(7 / 8 * num_frames), 8)
+        #     ]
+        # )
+        # print(
+        #     [
+        #         np.std(noise[-1][int(idx) : int(idx + num_frames / 8)].numpy())
+        #         for idx in np.linspace(0, int(7 / 8 * num_frames), 8)
+        #     ]
+        # )
+        # print()
 
         del noise_noisy, noise_vox, noise_smooth
         gc.collect()
@@ -512,77 +641,102 @@ if __name__ == "__main__":
 
     class Print(th.nn.Module):
         def forward(self, x):
-            print(x.shape)
+            print(x.shape, [x.min().item(), x.mean().item(), x.max().item()], th.std(x).item())
             return x
 
     manipulations = [
-        {
-            "layer": 0,
-            "transform": th.nn.Sequential(
-                # Print(),
-                th.nn.ReplicationPad2d((2, 2, 0, 0)),
-                addNoise(0.25 * th.randn(size=(1, 1, 2 ** log_min_res, 2 * 2 ** log_min_res), device="cuda")),
-                # Print(),
-            ),
-        }
+        # {
+        #     "layer": 0,
+        #     "transform": th.nn.Sequential(
+        #         th.nn.ReplicationPad2d((1, 1, 0, 0)),
+        #         th.nn.ReplicationPad2d((1, 1, 0, 0)),
+        #         addNoise(0.025 * th.randn(size=(1, 1, 2 ** log_min_res, 2 * 2 ** log_min_res), device="cuda")),
+        #     ),
+        # }
     ]
 
-    # if log_min_res > 2:
-    #     reflects = []
-    #     for lres in range(2, log_min_res):
-    #         half = 2 ** (lres - 1)
-    #         reflects.append(th.nn.ReplicationPad2d((half, half, half, half)))
-    #     manipulations += [
-    #         {
-    #             "layer": 0,
-    #             "transform": th.nn.Sequential(
-    #                 *reflects, addNoise(2 * th.randn(size=(1, 1, 2 ** log_min_res, 2 ** log_min_res), device="cuda")),
-    #             ),
-    #         }
-    #     ]
+    if log_min_res > 2:
+        reflects = []
+        for lres in range(2, log_min_res):
+            half = 2 ** (lres - 1)
+            reflects.append(th.nn.ReplicationPad2d((half, half, half, half)))
+        manipulations += [
+            {
+                "layer": 0,
+                "transform": th.nn.Sequential(
+                    *reflects, addNoise(2 * th.randn(size=(1, 1, 2 ** log_min_res, 2 ** log_min_res), device="cuda")),
+                ),
+            }
+        ]
+
+    class Manipulation(th.nn.Module):
+        def __init__(self, sequential_fn, batch):
+            super(Manipulation, self).__init__()
+            self.sequential = sequential_fn(batch)
+
+        def forward(self, x):
+            return self.sequential(x)
 
     tl = 4
     width = lambda s: (2 if args.size == 1920 else 1) * 2 ** int(s)
-    intro_start = int(3473 * (22.5 / args.duration))
-    intro_end = int(3473 * (45 / args.duration))
-    intro_scroll_loop_length = int(12 * args.fps)
-    intro_scroll_loop_num = int((intro_end - intro_start) / intro_scroll_loop_length)
-    intro_scroll_truncated = (intro_end - intro_start) - intro_scroll_loop_num * intro_scroll_loop_length
+    smooth_noise = 0.1 * th.randn(size=(1, 1, 2 ** int(tl), 5 * width(tl)), device="cuda")
 
-    drop_start = int(3473 * (67.5 / args.duration))
-    drop_end = int(3473 * (113 / args.duration))
-    drop_scroll_loop_length = int(6 * args.fps)
-    drop_scroll_loop_num = int((drop_end - drop_start) / drop_scroll_loop_length)
-    drop_scroll_truncated = (drop_end - drop_start) - drop_scroll_loop_num * drop_scroll_loop_length
-    translation = (
-        th.tensor(
-            [
-                np.concatenate(
-                    [
-                        np.zeros(intro_start),
-                        # intro drums scroll
-                        np.concatenate([np.linspace(0, width(tl), intro_scroll_loop_length)] * intro_scroll_loop_num),
-                        np.linspace(0, width(tl), intro_scroll_loop_length)[:intro_scroll_truncated],
-                        np.linspace(
-                            np.linspace(0, width(tl), intro_scroll_loop_length)[intro_scroll_truncated + 1],
-                            0,
-                            drop_start - intro_end,
-                        ),
-                        # drop scroll
-                        np.concatenate([np.linspace(0, width(tl), drop_scroll_loop_length)] * drop_scroll_loop_num),
-                        np.linspace(0, width(tl), drop_scroll_loop_length)[:drop_scroll_truncated],
-                        np.ones(num_frames - drop_end)
-                        * np.linspace(0, width(tl), drop_scroll_loop_length)[drop_scroll_truncated + 1],
-                    ]
-                ),
-                np.zeros(num_frames),
-            ]
-        )
-        .float()
-        .T
-    )
-    assert latents.shape[0] == translation.shape[0]
-    manipulations += [{"layer": tl, "transform": "translateX", "params": translation}]
+    class Translate(Manipulation):
+        def __init__(self, layer, batch):
+            layer_h = width = 2 ** int(layer)
+            layer_w = width = (2 if args.size == 1920 else 1) * 2 ** int(layer)
+            sequential_fn = lambda b: th.nn.Sequential(
+                th.nn.ReflectionPad2d((int(layer_w / 2), int(layer_w / 2), 0, 0)),
+                th.nn.ReflectionPad2d((layer_w, layer_w, 0, 0)),
+                th.nn.ReflectionPad2d((layer_w, 0, 0, 0)),
+                addNoise(smooth_noise),
+                kT.Translate(b),
+                kA.CenterCrop((layer_h, layer_w)),
+            )
+            super(Translate, self).__init__(sequential_fn, batch)
+
+    # drop_start = int(5591 * (45 / args.duration))
+    # drop_end = int(5591 * (135 / args.duration))
+    # scroll_loop_length = int(6 * args.fps)
+    # scroll_loop_num = int((drop_end - drop_start) / scroll_loop_length)
+    # scroll_trunc = (drop_end - drop_start) - scroll_loop_num * scroll_loop_length
+    # translation = (
+    #     th.tensor(
+    #         [
+    #             np.concatenate(
+    #                 [
+    #                     np.zeros(drop_start),
+    #                     # drop scroll
+    #                     np.concatenate([np.linspace(0, width(tl), scroll_loop_length)] * scroll_loop_num),
+    #                     np.linspace(0, width(tl), scroll_loop_length)[:scroll_trunc],
+    #                     np.ones(num_frames - drop_end) * np.linspace(0, width(tl), scroll_loop_length)[scroll_trunc + 1]
+    #                     if num_frames - drop_end > 0
+    #                     else [1],
+    #                 ]
+    #             ),
+    #             np.zeros(num_frames),
+    #         ]
+    #     )
+    #     .float()
+    #     .T
+    # )[:num_frames]
+    # translation.T[0, drop_start - args.fps : drop_start + args.fps] = gaussian_filter(
+    #     translation.T[0, drop_start - 5 * args.fps : drop_start + 5 * args.fps], 5
+    # )[4 * args.fps : -4 * args.fps]
+    # assert latents.shape[0] == translation.shape[0]
+    # transform = lambda batch: partial(Translate, tl)(batch)
+    # manipulations += [{"layer": tl, "transform": transform, "params": translation}]
+
+    # class Zoom(Manipulation):
+    #     def __init__(self, layer, batch):
+    #         layer_h = width = 2 ** int(layer)
+    #         layer_w = width = (2 if args.size == 1920 else 1) * 2 ** int(layer)
+    #         sequential_fn = lambda b: th.nn.Sequential(
+    #             th.nn.ReflectionPad2d(int(max(layer_h, layer_w)) - 1),
+    #             kT.Scale(b),
+    #             kA.CenterCrop((layer_h, layer_w)),
+    #         )
+    #         super(Zoom, self).__init__(sequential_fn, batch)
 
     # zl = 6
     # print(
@@ -609,12 +763,23 @@ if __name__ == "__main__":
     # print(zoom.min().item(), zoom.max().item(), zoom.shape)
     # manipulations += [{"layer": zl, "transform": "zoom", "params": zoom}]
 
-    # # rl = 6
-    # # rotation = th.nn.Sigmoid()(th.tensor(np.linspace(0.0, 1.0, num_frames + 1), device="cuda").float())
-    # # rotation -= rotation.min()
-    # # rotation /= rotation.max()
-    # # rotation = rotation[:-1]
-    # # manipulations += [{"layer": rl, "transform": "rotate", "params": (360.0 * rotation).cpu()}]
+    # class Rotate(Manipulation):
+    #     def __init__(self, layer, batch):
+    #         layer_h = width = 2 ** int(layer)
+    #         layer_w = width = (2 if args.size == 1920 else 1) * 2 ** int(layer)
+    #         sequential_fn = lambda b:th.nn.Sequential(
+    #             th.nn.ReflectionPad2d(int(max(layer_h, layer_w) * (1 - math.sqrt(2) / 2))),
+    #             kT.Rotate(b),
+    #             kA.CenterCrop((layer_h, layer_w)),
+    #         )
+    #         super(Rotate, self).__init__(sequential_fn, batch)
+
+    # rl = 6
+    # rotation = th.nn.Sigmoid()(th.tensor(np.linspace(0.0, 1.0, num_frames + 1), device="cuda").float())
+    # rotation -= rotation.min()
+    # rotation /= rotation.max()
+    # rotation = rotation[:-1]
+    # manipulations += [{"layer": rl, "transform": "rotate", "params": (360.0 * rotation).cpu()}]
 
     print(f"rendering {num_frames} frames...")
     checkpoint_title = args.ckpt.split("/")[-1].split(".")[0].lower()
@@ -633,6 +798,7 @@ if __name__ == "__main__":
         out_size=args.size,
         output_file=title,
     )
+
 
 print(f"Took {(time.time() - time_taken)/60:.2f} minutes")
 

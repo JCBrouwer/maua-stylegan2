@@ -6,11 +6,9 @@ import numpy as np
 import torch as th
 import torch.utils.data as data
 from threading import Thread
-from functools import partial
-import kornia.geometry.transform as kT
-import kornia.augmentation as kA
 
 th.set_grad_enabled(False)
+th.backends.cudnn.benchmark = True
 
 
 class Print(th.nn.Module):
@@ -23,11 +21,11 @@ def render(
     generator,
     latents,
     noise,
-    audio_file,
     offset,
     duration,
     batch_size,
     out_size,
+    audio_file=None,
     truncation=1,
     manipulations=[],
     output_file=None,
@@ -49,25 +47,33 @@ def render(
                 jobs_out.put(img.cpu().numpy().astype(np.uint8))
             jobs_in.task_done()
 
-    audio = ffmpeg.input(audio_file, ss=offset, to=offset + duration, guess_layout_max=0)
-
     res = "1024x1024" if out_size == 1024 else ("512x512" if out_size == 512 else "1920x1080")
-    video = (
-        ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / duration, s=res)
-        .output(
-            audio,
-            output_file,
-            framerate=len(latents) / duration,
-            vcodec="libx264",
-            preset="slow",
-            audio_bitrate="320K",
-            ac=2,
-            v="warning",
+    if audio_file is not None:
+        audio = ffmpeg.input(audio_file, ss=offset, to=offset + duration, guess_layout_max=0)
+        video = (
+            ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / duration, s=res)
+            .output(
+                audio,
+                output_file,
+                framerate=len(latents) / duration,
+                vcodec="libx264",
+                preset="slow",
+                audio_bitrate="320K",
+                ac=2,
+                v="warning",
+            )
+            .global_args("-benchmark", "-stats", "-hide_banner")
+            .overwrite_output()
+            .run_async(pipe_stdin=True)
         )
-        .global_args("-benchmark", "-stats", "-hide_banner")
-        .overwrite_output()
-        .run_async(pipe_stdin=True)
-    )
+    else:
+        video = (
+            ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / duration, s=res)
+            .output(output_file, framerate=len(latents) / duration, vcodec="libx264", preset="slow", v="warning",)
+            .global_args("-benchmark", "-stats", "-hide_banner")
+            .overwrite_output()
+            .run_async(pipe_stdin=True)
+        )
 
     def make_video(jobs_in):
         for _ in range(len(latents)):
@@ -100,31 +106,15 @@ def render(
         manipulation_batch = []
         if manipulations is not None:
             for manip in manipulations:
-                manipulation_batch.append({"layer": manip["layer"]})
-                _, _, layer_h, layer_w = noise[manip["layer"]].shape
-                if manip["transform"] == "translateX":
-                    manipulation_batch[-1]["transform"] = th.nn.Sequential(
-                        th.nn.ReflectionPad2d((int(layer_w / 2), int(layer_w / 2), 0, 0)),
-                        th.nn.ReflectionPad2d((layer_w, layer_w, 0, 0)),
-                        th.nn.ReflectionPad2d((layer_w, 0, 0, 0)),
-                        kT.Translate(manip["params"][n : n + batch_size].cuda()),
-                        kA.CenterCrop((layer_h, layer_w)),
-                    )
-                elif manip["transform"] == "rotate":
-                    manipulation_batch[-1]["transform"] = th.nn.Sequential(
-                        th.nn.ReflectionPad2d(int(max(layer_h, layer_w) * (1 - math.sqrt(2) / 2))),
-                        kT.Rotate(manip["params"][n : n + batch_size].cuda()),
-                        kA.CenterCrop((layer_h, layer_w)),
-                    )
-                elif manip["transform"] == "zoom":
-                    factor = manip["params"][n : n + batch_size].cuda()
-                    manipulation_batch[-1]["transform"] = th.nn.Sequential(
-                        th.nn.ReflectionPad2d(int(max(layer_h, layer_w)) - 1),
-                        kT.Scale(factor),
-                        kA.CenterCrop((layer_h, layer_w)),
+                if "params" in manip:
+                    manipulation_batch.append(
+                        {
+                            "layer": manip["layer"],
+                            "transform": manip["transform"](manip["params"][n : n + batch_size].cuda()),
+                        }
                     )
                 else:
-                    manipulation_batch[-1]["transform"] = manip["transform"]
+                    manipulation_batch.append({"layer": manip["layer"], "transform": manip["transform"]})
 
         outputs, _ = generator(
             styles=latent_batch,

@@ -351,7 +351,7 @@ class StyledConv(nn.Module):
         # print("styleconv in", inputs.shape, style.shape)
         out = self.conv(inputs, style)
         # print("conv out", out.shape, noise.shape)
-        out = self.noise(out, noise=self.manipulation(noise.cuda(), transform_dict_list))
+        out = self.noise(out, noise=self.manipulation(noise.cuda() if noise is not None else None, transform_dict_list))
         # out = self.noise(out, noise=noise)
         # out = out + self.bias
         # print("noise out", out.shape)

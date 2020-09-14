@@ -56,6 +56,25 @@ def lerp(val, low, high):
     return (1 - val) * low + val * high
 
 
+def get_spline_loops(base_latent_selection, loop_starting_latents, n_frames, num_loops, smoothing, s=True):
+    from scipy import interpolate
+
+    base_latent_selection = np.concatenate([base_latent_selection, base_latent_selection[[0]]])
+
+    x = np.linspace(0, 1, n_frames // max(1, num_loops))
+    base_latents = np.zeros((len(x), *base_latent_selection.shape[1:]))
+    for lay in range(base_latent_selection.shape[1]):
+        for lat in range(base_latent_selection.shape[2]):
+            tck = interpolate.splrep(
+                np.linspace(0, 1, len(base_latent_selection.shape[0])), base_latent_selection[:, lay, lat]
+            )
+            base_latents[:, lay, lat] = interpolate.splev(x, tck)
+
+    base_latents = th.cat([base_latents] * int(n_frames / len(base_latents)), axis=0)
+
+    return base_latents
+
+
 def get_latent_loops(base_latent_selection, loop_starting_latents, n_frames, num_loops, smoothing, s=True):
     base_latents = []
 
@@ -121,14 +140,21 @@ if "main" in __name__:
     else:
         styles = th.randn((int(args.duration), 512), device="cuda")
         styles = generator(styles, map_latents=True)
-    styles = get_latent_loops(styles, 0, args.num_frames, num_loops=1, smoothing=30, s=args.slerp)
+    # styles = get_latent_loops(styles, 0, args.num_frames, num_loops=1, smoothing=1, s=args.slerp)
+    styles = get_spline_loops(styles, 0, args.num_frames, num_loops=1, smoothing=1, s=args.slerp)
 
     latents = th.randn((args.num_frames, 512), device="cuda")
     latents = generator(latents, map_latents=True)
-    latents = gaussian_filter(latents, 5)
+    latents = gaussian_filter(latents, 1)
+    # print(
+    #     th.cat(
+    #         [
+    #             th.linspace(-1, 3, int(args.num_frames / 2)),
+    #             th.linspace(3, -1, args.num_frames - int(args.num_frames / 2)) + 1,
+    #         ]
 
     style_depth = 0
-    latents[:, style_depth:] = 0.8 * styles[:, style_depth:] + 0.2 * latents[:, style_depth:]
+    latents[:, style_depth:] = 1 * styles[:, style_depth:] + 0 * latents[:, style_depth:]
 
     latents = latents.cpu()
     args.num_frames = len(latents)
@@ -155,7 +181,8 @@ if "main" in __name__:
     for i, n in enumerate(noise):
         if n is None:
             continue
-        noise[i] = (2 * gaussian_filter(n, 15)).cpu()
+        noise[i] = (gaussian_filter(n, 24)).cpu()
+        noise[i] /= noise[i].std()
         print(i, noise[i].shape)
     print()
 
@@ -209,30 +236,30 @@ if "main" in __name__:
     # )
     # manipulations += [{"layer": tl, "transform": "translateX", "params": translation}]
 
-    zl = 6
-    print(
-        th.cat(
-            [
-                th.linspace(-1, 3, int(args.num_frames / 2)),
-                th.linspace(3, -1, args.num_frames - int(args.num_frames / 2)) + 1,
-            ]
-        ).shape
-    )
-    zoom = gaussian_filter(
-        th.cat(
-            [
-                th.linspace(0, 3, int(args.num_frames / 2), dtype=th.float32, device="cuda"),
-                th.linspace(3, 0, args.num_frames - int(args.num_frames / 2), dtype=th.float32, device="cuda") + 1,
-            ]
-        )[:, None, None],
-        30,
-    ).squeeze()
-    zoom -= zoom.min()
-    zoom /= zoom.max()
-    # zoom *= 1.5
-    zoom += 0.5
-    print(zoom.min().item(), zoom.max().item(), zoom.shape)
-    manipulations += [{"layer": zl, "transform": "zoom", "params": zoom}]
+    # zl = 6
+    # print(
+    #     th.cat(
+    #         [
+    #             th.linspace(-1, 3, int(args.num_frames / 2)),
+    #             th.linspace(3, -1, args.num_frames - int(args.num_frames / 2)) + 1,
+    #         ]
+    #     ).shape
+    # )
+    # zoom = gaussian_filter(
+    #     th.cat(
+    #         [
+    #             th.linspace(0, 3, int(args.num_frames / 2), dtype=th.float32, device="cuda"),
+    #             th.linspace(3, 0, args.num_frames - int(args.num_frames / 2), dtype=th.float32, device="cuda") + 1,
+    #         ]
+    #     )[:, None, None],
+    #     30,
+    # ).squeeze()
+    # zoom -= zoom.min()
+    # zoom /= zoom.max()
+    # # zoom *= 1.5
+    # zoom += 0.5
+    # print(zoom.min().item(), zoom.max().item(), zoom.shape)
+    # manipulations += [{"layer": zl, "transform": "zoom", "params": zoom}]
 
     # rl = 6
     # rotation = th.nn.Sigmoid()(th.tensor(np.linspace(0.0, 1.0, args.num_frames + 1), device="cuda").float())
@@ -245,6 +272,7 @@ if "main" in __name__:
         generator=generator,
         latents=latents,
         noise=noise,
+        offset=0,
         duration=args.duration,
         batch_size=args.batch,
         truncation=args.truncation,
