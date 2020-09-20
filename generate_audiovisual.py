@@ -9,6 +9,7 @@ import torch.nn.functional as F
 
 import madmom as mm
 import librosa as rosa
+import librosa.display
 import scipy.signal as signal
 
 from functools import partial
@@ -197,11 +198,11 @@ if __name__ == "__main__":
         "intro_num_beats": 64,
         "intro_loop_smoothing": 40,
         "intro_loop_factor": 0.6,
-        "intro_loop_len": 4,
+        "intro_loop_len": 6,
         "drop_num_beats": 32,
         "drop_loop_smoothing": 27,
         "drop_loop_factor": 1,
-        "drop_loop_len": 4,
+        "drop_loop_len": 6,
         "onset_smooth": 1,
         "onset_clip": 90,
         "freq_mod": 10,
@@ -270,6 +271,13 @@ if __name__ == "__main__":
 
         onsets = np.clip(signal.resample(onsets, num_frames), onsets.min(), onsets.max())
 
+        y_harm = rosa.effects.harmonic(y=main_audio, margin=8)
+        chroma_harm = rosa.feature.chroma_cqt(y=y_harm, sr=sr)
+        chroma_filter = np.minimum(
+            chroma_harm, rosa.decompose.nn_filter(chroma_harm, aggregate=np.median, metric="cosine")
+        )
+        chroma_filter /= chroma_filter.sum(0)
+
         pitches, magnitudes = rosa.core.piptrack(y=main_audio, sr=sr, hop_length=512, fmin=40, fmax=4000)
         pitches_mean = pitches.mean(0)
         pitches_mean = np.clip(signal.resample(pitches_mean, num_frames), pitches_mean.min(), pitches_mean.max())
@@ -302,6 +310,7 @@ if __name__ == "__main__":
         np.save(f"workspace/{file_root}_average_pitch.npy", average_pitch.astype(np.float32))
         np.save(f"workspace/{file_root}_high_pitches_mean.npy", high_pitches_mean.astype(np.float32))
         np.save(f"workspace/{file_root}_high_average_pitch.npy", high_average_pitch.astype(np.float32))
+        np.save(f"workspace/{file_root}_chroma.npy", chroma_filter)
         np.save(f"workspace/{file_root}_rms.npy", rms.astype(np.float32))
         np.save(f"workspace/{file_root}_bass_sum.npy", bass_sum.astype(np.float32))
 
@@ -312,6 +321,12 @@ if __name__ == "__main__":
     high_average_pitch = th.from_numpy(np.load(f"workspace/{file_root}_high_average_pitch.npy"))[:num_frames]
     rms = th.from_numpy(np.load(f"workspace/{file_root}_rms.npy"))[:num_frames]
     bass_sum = th.from_numpy(np.load(f"workspace/{file_root}_bass_sum.npy"))[:num_frames]
+    chroma = th.from_numpy(np.load(f"workspace/{file_root}_chroma.npy"))[:, :num_frames]
+
+    def get_chroma_loops(base_latent_selection, n_frames, chroma, loop=True):
+        chromhalf = th.stack([chroma[2 * i : 2 * i + 2].sum(0) for i in range(int(len(chroma) / 2))])
+        base_latents = (chromhalf.T[..., None, None] * base_latent_selection[None, ...]).sum(1)
+        return base_latents
 
     def get_spline_loops(base_latent_selection, n_frames, num_loops, loop=True):
         from scipy import interpolate
@@ -379,13 +394,13 @@ if __name__ == "__main__":
     section_size = len(intro_selection) / num_sections
     intro_latents = th.cat(
         [
-            get_spline_loops(
+            get_chroma_loops(
                 base_latent_selection=wrapping_slice(
                     intro_selection, int(section * section_size), prms["intro_loop_len"]
                 ),
                 # loop_starting_latents=0,
                 n_frames=int(num_frames / num_sections),
-                num_loops=args.bpm / 60.0 * args.duration / prms["intro_num_beats"],
+                chroma=chroma,
                 # smoothing=prms["intro_loop_smoothing"] * smf,
                 loop=False,
             )[: int(num_frames / num_sections)]
@@ -407,13 +422,13 @@ if __name__ == "__main__":
     # )
     drop_latents = th.cat(
         [
-            get_spline_loops(
+            get_chroma_loops(
                 base_latent_selection=wrapping_slice(
                     reversed(drop_selection), int(section * section_size), prms["drop_loop_len"]
                 ),
                 # loop_starting_latents=0,
                 n_frames=int(num_frames / num_sections),
-                num_loops=args.bpm / 60.0 * args.duration / prms["drop_num_beats"],
+                chroma=chroma,
                 # smoothing=prms["drop_loop_smoothing"] * smf,
                 loop=False,
             )[: int(num_frames / num_sections)]
@@ -421,7 +436,6 @@ if __name__ == "__main__":
         ]
     )
     drop_latents = th.cat([drop_latents] + [drop_latents[[-1]]] * (num_frames - len(drop_latents)))
-    print(drop_latents.shape)
 
     for trans in [section * int(num_frames / num_sections) for section in range(num_sections)]:
         if trans == 0:
@@ -483,19 +497,20 @@ if __name__ == "__main__":
     # plot_signals([freqs])
     # reactive_latents = th.from_numpy(intro_selection.numpy()[freqs, :, :])  # torch indexing doesn't work the same :(
     # reactive_latents = gaussian_filter(reactive_latents, prms["freq_latent_smooth"] * smf)
-    reactive_latents = get_spline_loops(
-        base_latent_selection=wrapping_slice(reversed(drop_selection), 0, len(drop_selection)),
-        # loop_starting_latents=0,
-        n_frames=num_frames,
-        num_loops=1,  # args.bpm / 60.0 * args.duration / prms["intro_num_beats"] // 2,
-        # smoothing=prms["intro_loop_smoothing"] * smf,
-    )
-    print(reactive_latents.shape)
 
-    layr = prms["freq_latent_layer"]
-    drop_latents[:, layr:] = (1 - main_weight) * drop_latents[:, layr:] + reactive_latents[:, layr:] * prms[
-        "freq_latent_weight"
-    ] * main_weight
+    # reactive_latents = get_spline_loops(
+    #     base_latent_selection=wrapping_slice(reversed(drop_selection), 0, len(drop_selection)),
+    #     # loop_starting_latents=0,
+    #     n_frames=num_frames,
+    #     num_loops=1,  # args.bpm / 60.0 * args.duration / prms["intro_num_beats"] // 2,
+    #     # smoothing=prms["intro_loop_smoothing"] * smf,
+    # )
+    # print(reactive_latents.shape)
+
+    # layr = prms["freq_latent_layer"]
+    # drop_latents[:, layr:] = (1 - main_weight) * drop_latents[:, layr:] + reactive_latents[:, layr:] * prms[
+    #     "freq_latent_weight"
+    # ] * main_weight
 
     # high_freqs = (high_average_pitch + high_pitches_mean) / prms["high_freq_mod"]
     # high_freqs = gaussian_filter(high_freqs, prms["high_freq_smooth"] * smf, causal=True)
@@ -506,18 +521,19 @@ if __name__ == "__main__":
     # plot_signals([high_freqs])
     # reactive_latents = th.from_numpy(intro_selection.numpy()[high_freqs, :, :])  # torch indexing doesn't work
     # reactive_latents = gaussian_filter(reactive_latents, prms["high_freq_latent_smooth"] * smf)
-    reactive_latents = get_spline_loops(
-        base_latent_selection=wrapping_slice(reversed(intro_selection), 4, len(intro_selection)),
-        # loop_starting_latents=0,
-        n_frames=num_frames,
-        num_loops=1,  # args.bpm / 60.0 * args.duration / prms["intro_num_beats"] // 2,
-        # smoothing=prms["intro_loop_smoothing"] * smf,
-    )
 
-    layr = prms["high_freq_latent_layer"]
-    intro_latents[:, layr:] = (1 - main_weight) * intro_latents[:, layr:] + main_weight * reactive_latents[
-        :, layr:
-    ] * prms["high_freq_latent_weight"]
+    # reactive_latents = get_spline_loops(
+    #     base_latent_selection=wrapping_slice(reversed(intro_selection), 4, len(intro_selection)),
+    #     # loop_starting_latents=0,
+    #     n_frames=num_frames,
+    #     num_loops=1,  # args.bpm / 60.0 * args.duration / prms["intro_num_beats"] // 2,
+    #     # smoothing=prms["intro_loop_smoothing"] * smf,
+    # )
+
+    # layr = prms["high_freq_latent_layer"]
+    # intro_latents[:, layr:] = (1 - main_weight) * intro_latents[:, layr:] + main_weight * reactive_latents[
+    #     :, layr:
+    # ] * prms["high_freq_latent_weight"]
 
     bass_weight = gaussian_filter(bass_sum, prms["bass_smooth"] * smf, causal=True)
     bass_weight = percentile_clip(bass_weight, prms["bass_clip"])

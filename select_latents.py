@@ -241,8 +241,8 @@ parser.add_argument("--truncation", type=int, default=1.5)
 args = parser.parse_args()
 
 name = args.ckpt.split("/")[-1].split(".")[0]
-# GENERATOR = G_style2(size=args.res, style_dim=512, n_mlp=8, checkpoint=args.ckpt, output_size=1024).eval().cuda()
-GENERATOR = G_style(checkpoint=args.ckpt, output_size=1024).eval().cuda()
+GENERATOR = G_style2(size=args.res, style_dim=512, n_mlp=8, checkpoint=args.ckpt, output_size=1024).eval().cuda()
+# GENERATOR = G_style(checkpoint=args.ckpt, output_size=1024).eval().cuda()
 GENERATOR = th.nn.DataParallel(GENERATOR.cuda())
 
 IMAGES_PER_ROW = 4
