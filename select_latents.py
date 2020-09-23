@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image, ImageTk
 import torch as th
 import torch.nn.functional as F
+import torchvision
 from models.stylegan1 import G_style
 from models.stylegan2 import Generator as G_style2
 import tkinter as tk
@@ -243,24 +244,24 @@ args = parser.parse_args()
 name = args.ckpt.split("/")[-1].split(".")[0]
 GENERATOR = G_style2(size=args.res, style_dim=512, n_mlp=8, checkpoint=args.ckpt, output_size=1024).eval().cuda()
 # GENERATOR = G_style(checkpoint=args.ckpt, output_size=1024).eval().cuda()
-GENERATOR = th.nn.DataParallel(GENERATOR.cuda())
+# GENERATOR = th.nn.DataParallel(GENERATOR)
 
 IMAGES_PER_ROW = 4
 IMSIZE = (1920 - 240) // IMAGES_PER_ROW
 
 ALL_LATENTS = []
-DROP_LATENTS = []
-INTRO_LATENTS = []
+DROP_IDXS = []
+INTRO_IDXS = []
 IMAGES = []
 
 
 def generate_images(n):
     imgs = []
-    for _ in range(n // IMAGES_PER_ROW):
-        random_latents = th.randn(IMAGES_PER_ROW, 512).cuda()
+    for _ in range(n // 8):
+        random_latents = th.randn(8, 512).cuda()
         mapped_latents = GENERATOR(random_latents, noise=None, truncation=args.truncation, map_latents=True)
         for latent in mapped_latents:
-            ALL_LATENTS.append(mapped_latents.cpu().numpy())
+            ALL_LATENTS.append(latent[None, ...].cpu().numpy())
         batch, _ = GENERATOR(
             styles=mapped_latents,
             noise=None,
@@ -270,7 +271,7 @@ def generate_images(n):
             input_is_latent=True,
         )
         imgs.append(batch)
-    imgs = th.cat(imgs)
+    imgs = th.cat(imgs)[:n]
     imgs = F.interpolate(imgs, IMSIZE, mode="bilinear", align_corners=False)
     imgs = (imgs.clamp_(-1, 1) + 1) * 127.5
     imgs = imgs.permute(0, 2, 3, 1)
@@ -291,11 +292,46 @@ panel = tk.Frame(root, relief="flat", bg="black")
 panel.pack(side="right", expand=True, fill="both")
 
 
+def render_latents(latents):
+    imgs = []
+    for i in range(latents.shape[0] // 8 + 1):
+        if len(latents[8 * i : 8 * (i + 1)]) < 1:
+            continue
+        batch, _ = GENERATOR(
+            styles=latents[8 * i : 8 * (i + 1)],
+            noise=None,
+            truncation=args.truncation,
+            transform_dict_list=[],
+            randomize_noise=True,
+            input_is_latent=True,
+        )
+        imgs.append(batch)
+        print(8 * i, 8 * (i + 1), len(latents[8 * i : 8 * (i + 1)]), len(imgs), len(batch))
+    imgs = th.cat(imgs)
+    imgs = (imgs.clamp_(-1, 1) + 1) / 2
+    return imgs
+
+
 def save():
-    intro_latents = np.concatenate(ALL_LATENTS)[INTRO_LATENTS]
-    np.save("workspace/intro_latents.npy", intro_latents)
-    drop_latents = np.concatenate(ALL_LATENTS)[DROP_LATENTS]
-    np.save("workspace/drop_latents.npy", drop_latents)
+    intro_latents = np.concatenate(ALL_LATENTS)[INTRO_IDXS]
+    torchvision.utils.save_image(
+        render_latents(th.from_numpy(intro_latents)),
+        f"workspace/{name}_intro_latents.jpg",
+        nrow=int(round(math.sqrt(intro_latents.shape[0]) * 4 / 3)),
+        padding=0,
+        normalize=False,
+    )
+    np.save(f"workspace/{name}_intro_latents.npy", intro_latents)
+
+    drop_latents = np.concatenate(ALL_LATENTS)[DROP_IDXS]
+    torchvision.utils.save_image(
+        render_latents(th.from_numpy(drop_latents)),
+        f"workspace/{name}_drop_latents.jpg",
+        nrow=int(round(math.sqrt(drop_latents.shape[0]) * 4 / 3)),
+        padding=0,
+        normalize=False,
+    )
+    np.save(f"workspace/{name}_drop_latents.npy", drop_latents)
 
 
 tk.Label(panel, text="latents", height=3, bg="black", fg="white").pack(side="top")
@@ -336,10 +372,9 @@ def add_intro(label):
     global intro_im_num
     img_id = int(label.__str__().split(".")[-1])
 
-    INTRO_LATENTS.append(img_id)
+    INTRO_IDXS.append(img_id)
 
     img = ImageTk.PhotoImage(image=IMAGES[img_id].resize((46, 46), Image.ANTIALIAS))
-
     lbl = tk.Label(introgrid.innerframe, image=img, borderwidth=0, highlightthickness=0)
     lbl.image = img  # this line need to prevent gc
     lbl.grid(row=math.floor(intro_im_num / 5), column=intro_im_num % 5)
@@ -350,9 +385,9 @@ def add_intro(label):
 
 
 def remove_intro(label):
-    remove_idx = introgrid.innerframe.grid_slaves().index(label)
+    remove_idx = list(reversed(introgrid.innerframe.grid_slaves())).index(label)
     label.grid_remove()
-    del INTRO_LATENTS[remove_idx]
+    del INTRO_IDXS[remove_idx]
     global intro_im_num
     intro_im_num = 0
     for im in reversed(introgrid.innerframe.grid_slaves()):
@@ -366,10 +401,9 @@ def add_drop(label):
     global drop_im_num
     img_id = int(label.__str__().split(".")[-1])
 
-    DROP_LATENTS.append(img_id)
+    DROP_IDXS.append(img_id)
 
     img = ImageTk.PhotoImage(image=IMAGES[img_id].resize((46, 46), Image.ANTIALIAS))
-
     lbl = tk.Label(dropgrid.innerframe, image=img, borderwidth=0, highlightthickness=0)
     lbl.image = img  # this line need to prevent gc
     lbl.grid(row=math.floor(drop_im_num / 5), column=drop_im_num % 5)
@@ -380,9 +414,9 @@ def add_drop(label):
 
 
 def remove_drop(label):
-    remove_idx = dropgrid.innerframe.grid_slaves().index(label)
+    remove_idx = list(reversed(dropgrid.innerframe.grid_slaves())).index(label)
     label.grid_remove()
-    del DROP_LATENTS[remove_idx]
+    del DROP_IDXS[remove_idx]
     global drop_im_num
     drop_im_num = 0
     for im in reversed(dropgrid.innerframe.grid_slaves()):
@@ -400,7 +434,7 @@ def add_images(n):
         IMAGES.append(im)
         img = ImageTk.PhotoImage(image=im)
 
-        label = tk.Label(imgrid.innerframe, image=img, name=str(im_num), borderwidth=0, highlightthickness=0,)
+        label = tk.Label(imgrid.innerframe, image=img, name=str(im_num), borderwidth=0, highlightthickness=0)
         label.image = img  # this line need to prevent gc
         label.grid(row=math.floor(im_num / IMAGES_PER_ROW), column=im_num % IMAGES_PER_ROW)
         label.bind("<Button-1>", lambda event, l=label: add_intro(l))
@@ -420,11 +454,15 @@ def add_images(n):
         activeforeground="white",
         relief="flat",
         highlightbackground="#333333",
-    ).grid(row=math.floor(im_num / IMAGES_PER_ROW) + 1, column=3, columnspan=1)
+    ).grid(
+        row=math.floor(im_num / IMAGES_PER_ROW) + 1,
+        column=math.floor(IMAGES_PER_ROW / 2 - 1),
+        columnspan=1 if math.floor(IMAGES_PER_ROW / 2 - 1) % 2 == 0 else 2,
+    )
     imgrid.update_viewport()
 
 
-add_images(70)
+add_images(24)
 
 
 root.mainloop()
