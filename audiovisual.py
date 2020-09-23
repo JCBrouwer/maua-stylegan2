@@ -1,16 +1,20 @@
 import os, gc
 import time, uuid, json
 import argparse
-import numpy as np
-import matplotlib.pyplot as plt
 
-import torch as th
-import torch.nn.functional as F
+import numpy as np
+import scipy
+import scipy.signal as signal
+import sklearn.cluster
+
+import matplotlib.pyplot as plt
 
 import madmom as mm
 import librosa as rosa
 import librosa.display
-import scipy.signal as signal
+
+import torch as th
+import torch.nn.functional as F
 
 from functools import partial
 import kornia.augmentation as kA
@@ -21,34 +25,8 @@ import generate
 from models.stylegan1 import G_style
 from models.stylegan2 import Generator
 
-time_taken = time.time()
-th.set_grad_enabled(False)
-plt.rcParams["axes.facecolor"] = "black"
-plt.rcParams["figure.facecolor"] = "black"
-VERBOSE = False
-# VERBOSE = True
 
-parser = argparse.ArgumentParser()
-
-parser.add_argument("--ckpt", type=str)
-parser.add_argument("--G_res", type=int, default=1024)
-parser.add_argument("--size", type=int, default=1920)
-parser.add_argument("--batch", type=int, default=12)
-parser.add_argument("--duration", type=int, default=None)
-parser.add_argument("--const", type=bool, default=False)
-parser.add_argument("--channel_multiplier", type=int, default=2)
-parser.add_argument("--truncation", type=int, default=1.5)
-parser.add_argument("--stylegan1", type=bool, default=False)
-parser.add_argument("--slerp", type=bool, default=True)
-parser.add_argument("--latents", type=str, default=None)
-parser.add_argument("--random_latents", action="store_true")
-parser.add_argument("--color_latents", type=str, default=None)
-parser.add_argument("--color_layer", type=int, default=6)
-
-args = parser.parse_args()
-
-
-def gaussian_filter(x, sigma, causal=False):
+def gaussian_filter(x, sigma, causal=None):
     dim = len(x.shape)
     while len(x.shape) < 3:
         x = x[:, None]
@@ -58,8 +36,8 @@ def gaussian_filter(x, sigma, causal=False):
 
     kernel = th.arange(-radius, radius + 1, dtype=th.float32, device=x.device)
     kernel = th.exp(-0.5 / sigma ** 2 * kernel ** 2)
-    if causal:
-        kernel[:radius] *= 0.1
+    if causal is not None:
+        kernel[radius + 1 :] *= 0.1 if not isinstance(causal, float) else causal
     kernel = kernel / kernel.sum()
     kernel = kernel.view(1, 1, len(kernel)).repeat(channels, 1, 1)
 
@@ -83,9 +61,9 @@ def gaussian_filter(x, sigma, causal=False):
 
 def info(arr):
     if isinstance(arr, list):
-        print([(list(a.shape), f"{a.min():.2f}", f"{a.float().mean():.2f}", f"{a.max():.2f}") for a in arr])
+        print([(list(a.shape), f"{a.min():.2f}", f"{a.mean():.2f}", f"{a.max():.2f}") for a in arr])
     else:
-        print(list(arr.shape), f"{arr.min():.2f}", f"{arr.float().mean():.2f}", f"{arr.max():.2f}")
+        print(list(arr.shape), f"{arr.min():.2f}", f"{arr.mean():.2f}", f"{arr.max():.2f}")
 
 
 def percentile(y, p):
@@ -138,7 +116,7 @@ def plot_signals(signals, vlines=None):
     if not VERBOSE:
         return
     info(signals)
-    plt.figure(figsize=(30, 6 * len(signals)))
+    plt.figure(figsize=(8, 2 * len(signals)))
     for sbplt, y in enumerate(signals):
         plt.subplot(len(signals), 1, sbplt + 1)
         if vlines is not None:
@@ -151,64 +129,33 @@ def plot_signals(signals, vlines=None):
 def plot_spectra(spectra, chroma=False):
     if not VERBOSE:
         return
-    plt.figure(figsize=(30, 8 * len(spectra)))
+    plt.figure(figsize=(8, 3 * len(spectra)))
     for sbplt, spectrum in enumerate(spectra):
         rosa.display.specshow(spectrum, y_axis="chroma" if chroma else None, x_axis="time")
-        plt.show()
+    plt.show()
 
 
-if __name__ == "__main__":
-    # args.ckpt = "/home/hans/modelzoo/lakspe_stylegan1.pt"
-    args.ckpt = "/home/hans/modelzoo/maua-sg2/cyphept-CYPHEPT-2q5b2lk6-33-1024-145000.pt"
-    args.audio_file = f"../../datasets/RKU_LHH_Keys_Loop_Cool_70_Amin.wav"
-    args.bpm = 70
-    args.fps = 30
-    args.offset = 0
-    args.duration = None
-
-    file_root = args.audio_file.split("/")[-1].split(".")[0]
-    metadata_file = f"workspace/{file_root}_metadata.json"
-    intro_file = f"workspace/naamloos_intro_latents.npy"
-    drop_file = f"workspace/naamloos_drop_latents.npy"
-    latent_file = f"workspace/{file_root}_latents.npy"
-    noise_file = f"workspace/{file_root}_noise.npy"
-
-    if args.duration is None:
-        args.duration = rosa.get_duration(filename=args.audio_file)
-
-    if os.path.exists(metadata_file):
-        with open(metadata_file) as json_file:
-            data = json.load(json_file)
-        total_frames = data["total_frames"]
+def get_noise_params(size, generator_resolution, is_stylegan1):
+    log_max_res = int(np.log2(size))
+    log_min_res = 2 + (log_max_res - int(np.log2(generator_resolution)))
+    if is_stylegan1:
+        range_min = log_min_res
+        range_max = log_max_res + 1
+        side_fn = lambda x: x
+        max_noise_scale = 8
     else:
-        audio, sr = rosa.load(args.audio_file)
-        onset = rosa.onset.onset_strength(audio, sr=sr)
-        total_frames = len(onset)
-        with open(metadata_file, "w") as outfile:
-            json.dump({"total_frames": total_frames}, outfile)
+        range_min = 2 * log_min_res + 1
+        range_max = 2 * (log_max_res + 1)
+        side_fn = lambda x: int(x / 2)
+        max_noise_scale = 2 * (9 + 1)
+    return range_min, range_max, side_fn, max_noise_scale
 
-    smf = args.fps / 43.066666
-    num_frames = int(round(args.duration * args.fps))
 
-    print(f"processing audio files...")
-    main_audio, sr = rosa.load(args.audio_file, offset=args.offset, duration=args.duration)
-
-    y_harm = rosa.effects.harmonic(y=main_audio, margin=8)
-    chroma_harm = rosa.feature.chroma_cqt(y=y_harm, sr=sr)
-    chroma = np.minimum(chroma_harm, rosa.decompose.nn_filter(chroma_harm, aggregate=np.median, metric="cosine")).T
-    chroma = signal.resample(chroma, num_frames)
-    chroma = th.from_numpy(chroma / chroma.sum(1)[:, None])
-
-    def get_chroma_loops(base_latent_selection, n_frames, chroma, loop=True):
-        # chromhalf = th.stack([chroma[2 * i : 2 * i + 2].sum(0) for i in range(int(len(chroma) / 2))])
-        base_latents = (chroma[..., None, None] * base_latent_selection[None, ...]).sum(1)
-        return base_latents
-
-    latent_files_exist = os.path.exists(drop_file)
-    if latent_files_exist:
-        latent_selection = th.from_numpy(np.load(drop_file))
-    if args.random_latents or not latent_files_exist:
-        print("generating random latents")
+def get_latent_selection(latent_file):
+    try:
+        latent_selection = th.from_numpy(np.load(latent_file))
+    except:
+        print("generating random latents...")
         generator = Generator(
             args.G_res,
             512,
@@ -223,69 +170,210 @@ if __name__ == "__main__":
         del generator, styles
         gc.collect()
         th.cuda.empty_cache()
+    return latent_selection
 
-    info(chroma)
-    info(latent_selection)
-    latents = get_chroma_loops(
-        base_latent_selection=wrapping_slice(latent_selection, 0, 12), n_frames=num_frames, chroma=chroma
+
+def load_generator(ckpt, is_stylegan1, G_res, size, const, latent_dim, n_mlp, channel_multiplier, dataparallel):
+    if is_stylegan1:
+        generator = G_style(output_size=size, checkpoint=ckpt).cuda()
+    else:
+        generator = Generator(
+            G_res,
+            latent_dim,
+            n_mlp,
+            channel_multiplier=channel_multiplier,
+            constant_input=const,
+            checkpoint=ckpt,
+            output_size=size,
+        ).cuda()
+    if dataparallel:
+        generator = th.nn.DataParallel(generator)
+    return generator
+
+
+if __name__ == "__main__":
+    time_taken = time.time()
+    th.set_grad_enabled(False)
+    plt.rcParams["axes.facecolor"] = "black"
+    plt.rcParams["figure.facecolor"] = "black"
+    VERBOSE = False
+    VERBOSE = True
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--ckpt", type=str)
+    parser.add_argument("--audio_file", type=str)
+    parser.add_argument("--bpm", type=float)
+    parser.add_argument("--offset", type=float, default=0)
+    parser.add_argument("--duration", default=None)
+    parser.add_argument("--latent_file", type=str, default=None)
+    parser.add_argument("--G_res", type=int, default=1024)
+    parser.add_argument("--size", type=int, default=1920)
+    parser.add_argument("--fps", type=int, default=30)
+    parser.add_argument("--batch", type=int, default=12)
+    parser.add_argument("--dataparallel", action="store_true")
+    parser.add_argument("--truncation", type=int, default=1)
+    parser.add_argument("--stylegan1", action="store_true")
+    parser.add_argument("--const", action="store_true")
+    parser.add_argument("--latent_dim", type=int, default=512)
+    parser.add_argument("--n_mlp", type=int, default=8)
+    parser.add_argument("--channel_multiplier", type=int, default=2)
+
+    args = parser.parse_args()
+
+    if args.duration is None:
+        args.duration = rosa.get_duration(filename=args.audio_file)
+    num_frames = int(round(args.duration * args.fps))
+
+    main_audio, sr = rosa.load(args.audio_file, offset=args.offset, duration=args.duration)
+
+    smf = args.fps / 43.066666  # smoothing factor, makes sure visual smoothness is independent of frame rate
+
+    # =========================================================================================
+    # ========================== generate audiovisual latents =================================
+    # =========================================================================================
+
+    latent_selection = get_latent_selection(args.latent_file)
+    np.save("workspace/last-latents.npy", latent_selection.numpy())
+
+    # get drum onsets
+    sig = mm.audio.signal.Signal(args.audio_file, num_channels=1)
+    sig_frames = mm.audio.signal.FramedSignal(sig, frame_size=2048, hop_size=441)
+    stft = mm.audio.stft.ShortTimeFourierTransform(sig_frames, ciruclar_shift=True)
+    spec = mm.audio.spectrogram.Spectrogram(stft, ciruclar_shift=True)
+
+    def get_onsets(spec, fmin, fmax, smooth, clip, power):
+        log_filt_spec = mm.audio.spectrogram.FilteredSpectrogram(spec, num_bands=24, fmin=fmin, fmax=fmax)
+        onset = np.sum(
+            [
+                mm.features.onsets.high_frequency_content(log_filt_spec),
+                mm.features.onsets.spectral_diff(log_filt_spec),
+                mm.features.onsets.spectral_flux(log_filt_spec),
+                mm.features.onsets.superflux(log_filt_spec),
+                mm.features.onsets.complex_flux(log_filt_spec),
+                mm.features.onsets.modified_kullback_leibler(log_filt_spec),
+            ],
+            axis=0,
+        )
+        onset = np.clip(signal.resample(onset, num_frames), onset.min(), onset.max())
+        onset = th.from_numpy(onset).float()
+        onset = gaussian_filter(onset, smooth * smf, causal=True)
+        onset = percentile_clip(onset, clip)
+        onset = onset ** power
+        return onset
+
+    kick_onset = get_onsets(spec, fmin=30, fmax=200, smooth=9, clip=99, power=2)
+    snare_onset = get_onsets(spec, fmin=250, fmax=350, smooth=5, clip=95, power=1)
+    hats_onset = get_onsets(spec, fmin=1000, fmax=18000, smooth=3, clip=90, power=2)
+    # hats_onset -= snare_onset
+    # hats_onset = gaussian_filter(hats_onset, 2 * smf, causal=0.1)
+    # hats_onset = percentile_clip(hats_onset, 90)
+    # plot_signals([kick_onset, snare_onset, hats_onset])
+
+    # def get_chroma(audio, num_frames):
+    #     y_harm = rosa.effects.harmonic(y=audio, margin=16)
+    #     chroma = rosa.feature.chroma_cqt(y=y_harm, sr=sr)
+    #     chroma = np.minimum(chroma, rosa.decompose.nn_filter(chroma, aggregate=np.median, metric="cosine")).T
+    #     chroma = signal.resample(chroma, num_frames)
+    #     chroma = th.from_numpy(chroma / chroma.sum(1)[:, None])
+    #     return chroma
+
+    # def get_chroma_latents(chroma, base_latent_selection):
+    #     base_latents = (chroma[..., None, None] * base_latent_selection[None, ...]).sum(1)
+    #     return base_latents
+
+    # # separate bass and main harmonic frequencies
+    # mid_chroma = get_chroma(signal.sosfilt(signal.butter(24, 220, "hp", fs=sr, output="sos"), main_audio), num_frames)
+    # mid_latents = get_chroma_latents(chroma=mid_chroma, base_latent_selection=wrapping_slice(latent_selection, 0, 12))
+    # bass_chroma = get_chroma(signal.sosfilt(signal.butter(24, 80, "lp", fs=sr, output="sos"), main_audio), num_frames)
+    # latents = get_chroma_latents(chroma=bass_chroma, base_latent_selection=wrapping_slice(latent_selection, 0, 12))
+    # mid_layer = 9
+    # latents[:, mid_layer:] = mid_latents[:, mid_layer:]
+    latents = th.ones((num_frames, 1, 1)) * latent_selection[[1]]
+    latents = (
+        0.75 * snare_onset[:, None, None] * th.ones((num_frames, 1, 1)) * latent_selection[[0]]
+        + (1 - 0.75 * snare_onset[:, None, None]) * latents
     )
-    info(latents)
-    latents = gaussian_filter(latents.float().cuda(), int(round(1 * smf))).cpu()
-    info(latents)
 
-    log_max_res = int(np.log2(args.size))
-    log_min_res = 2 + (log_max_res - int(np.log2(args.G_res)))
+    # plt.figure(figsize=(12, 4))
+    # plt.subplot(2, 1, 1)
+    # librosa.display.specshow(mid_chroma.T.numpy(), y_axis="chroma")
+    # plt.colorbar()
+    # plt.ylabel("Mid")
+    # plt.subplot(2, 1, 2)
+    # librosa.display.specshow(bass_chroma.T.numpy(), y_axis="chroma", x_axis="time")
+    # plt.colorbar()
+    # plt.ylabel("Bass")
+    # plt.tight_layout()
+    # plt.show()
+    # plt.close()
+
+    # smooth the final latents just a bit to prevent any jitter or jerks
+    latents = gaussian_filter(latents.float().cuda(), max(1, int(round(2 * smf))), causal=0.2).cpu()
+    # color_layr = 5
+    # latents[:, color_layr:] = latent_selection[[1], color_layr:]
+
+    # =========================================================================================
+    # ============================== generate audiovisual noise ===============================
+    # =========================================================================================
 
     noise = []
-    if args.stylegan1:
-        range_min = log_min_res
-        range_max = log_max_res + 1
-        side_fn = lambda x: x
-    else:
-        range_min = 2 * log_min_res + 1
-        range_max = 2 * (log_max_res + 1)
-        side_fn = lambda x: int(x / 2)
-
-    max_noise_scale = 2 * (7 + 1)
-    # max_noise_scale = 8
+    range_min, range_max, side_fn, max_noise_scale = get_noise_params(args.size, args.G_res, args.stylegan1)
     for s in range(range_min, min(max_noise_scale, range_max)):
         h = 2 ** side_fn(s)
         w = (2 if args.size == 1920 else 1) * 2 ** side_fn(s)
-        print(num_frames, 1, h, w)
+        # print(num_frames, 1, h, w)
 
         noise.append(
             gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(20 * smf)))).cpu()
         )
-        noise[-1] /= noise[-1].std() * 2
+        if s < int((2 * (9 + 1)) / 3) + 2:
+            # print("kick", s)
+            noise[-1] *= 1 - kick_onset[:, None, None, None]
+            noise[-1] += (
+                kick_onset[:, None, None, None]
+                * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(5 * smf)))).cpu()
+            )
+        else:
+            # print("hats", s)
+            noise[-1] *= 1 - hats_onset[:, None, None, None]
+            noise[-1] += (
+                hats_onset[:, None, None, None]
+                * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(3 * smf)))).cpu()
+            )
+        noise[-1] /= noise[-1].std()
 
         gc.collect()
         th.cuda.empty_cache()
     noise += [None] * (17 - len(noise))
 
-    if args.stylegan1:
-        generator = G_style(output_size=args.size, checkpoint=args.ckpt).cuda()
-    else:
-        args.latent = 512
-        args.n_mlp = 8
-        generator = Generator(
-            args.G_res,
-            args.latent,
-            args.n_mlp,
-            channel_multiplier=args.channel_multiplier,
-            constant_input=args.const,
-            checkpoint=args.ckpt,
-            output_size=args.size,
-        ).cuda()
-    # generator = th.nn.DataParallel(generator)
+    # =========================================================================================
+    # ================== generate audiovisual network bending manipulations ===================
+    # =========================================================================================
 
     manipulations = []
 
-    print(f"rendering {num_frames} frames...")
+    # =========================================================================================
+    # ============== render the given latent + noise + manipulation interpolation =============
+    # =========================================================================================
+
     checkpoint_title = args.ckpt.split("/")[-1].split(".")[0].lower()
     track_title = args.audio_file.split("/")[-1].split(".")[0].lower()
     title = f"/home/hans/neurout/{track_title}_{checkpoint_title}_{uuid.uuid4().hex[:8]}.mp4"
+
+    print(f"rendering {num_frames} frames...")
     render.render(
-        generator=generator,
+        generator=load_generator(
+            ckpt=args.ckpt,
+            is_stylegan1=args.stylegan1,
+            G_res=args.G_res,
+            size=args.size,
+            const=args.const,
+            latent_dim=args.latent_dim,
+            n_mlp=args.n_mlp,
+            channel_multiplier=args.channel_multiplier,
+            dataparallel=args.dataparallel,
+        ),
         latents=latents,
         noise=noise,
         audio_file=args.audio_file,
@@ -300,4 +388,3 @@ if __name__ == "__main__":
 
 
 print(f"Took {(time.time() - time_taken)/60:.2f} minutes")
-

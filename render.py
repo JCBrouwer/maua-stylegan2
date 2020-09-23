@@ -98,9 +98,10 @@ def render(
         noise[ni] = noise_scale.float().pin_memory() if noise_scale is not None else None
 
     for n in range(0, len(latents), batch_size):
-        latent_batch = latents[n : n + batch_size].cuda()
+        latent_batch = latents[n : n + batch_size].cuda(non_blocking=True)
         noise_batch = [
-            (noise_scale[n : n + batch_size].cuda() if noise_scale is not None else None) for noise_scale in noise
+            (noise_scale[n : n + batch_size].cuda(non_blocking=True) if noise_scale is not None else None)
+            for noise_scale in noise
         ]
 
         manipulation_batch = []
@@ -110,7 +111,9 @@ def render(
                     manipulation_batch.append(
                         {
                             "layer": manip["layer"],
-                            "transform": manip["transform"](manip["params"][n : n + batch_size].cuda()),
+                            "transform": manip["transform"](
+                                manip["params"][n : n + batch_size].cuda(non_blocking=True)
+                            ),
                         }
                     )
                 else:
