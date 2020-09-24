@@ -298,7 +298,7 @@ def render_latents(latents):
         if len(latents[8 * i : 8 * (i + 1)]) < 1:
             continue
         batch, _ = GENERATOR(
-            styles=latents[8 * i : 8 * (i + 1)],
+            styles=latents[8 * i : 8 * (i + 1)].cuda(),
             noise=None,
             truncation=args.truncation,
             transform_dict_list=[],
@@ -306,7 +306,6 @@ def render_latents(latents):
             input_is_latent=True,
         )
         imgs.append(batch)
-        print(8 * i, 8 * (i + 1), len(latents[8 * i : 8 * (i + 1)]), len(imgs), len(batch))
     imgs = th.cat(imgs)
     imgs = (imgs.clamp_(-1, 1) + 1) / 2
     return imgs

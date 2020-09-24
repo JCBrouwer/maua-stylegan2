@@ -1,6 +1,6 @@
 import os, gc
 import time, uuid, json
-import argparse
+import argparse, random
 
 import numpy as np
 import scipy
@@ -207,6 +207,7 @@ if __name__ == "__main__":
     parser.add_argument("--offset", type=float, default=0)
     parser.add_argument("--duration", default=None)
     parser.add_argument("--latent_file", type=str, default=None)
+    parser.add_argument("--shuffle_latents", action="store_true")
     parser.add_argument("--G_res", type=int, default=1024)
     parser.add_argument("--size", type=int, default=1920)
     parser.add_argument("--fps", type=int, default=30)
@@ -234,6 +235,9 @@ if __name__ == "__main__":
     # =========================================================================================
 
     latent_selection = get_latent_selection(args.latent_file)
+    if args.shuffle_latents:
+        random_indices = random.sample(range(len(latent_selection)), len(latent_selection))
+        latent_selection = latent_selection[random_indices]
     np.save("workspace/last-latents.npy", latent_selection.numpy())
 
     # get drum onsets
@@ -246,7 +250,6 @@ if __name__ == "__main__":
         log_filt_spec = mm.audio.spectrogram.FilteredSpectrogram(spec, num_bands=24, fmin=fmin, fmax=fmax)
         onset = np.sum(
             [
-                mm.features.onsets.high_frequency_content(log_filt_spec),
                 mm.features.onsets.spectral_diff(log_filt_spec),
                 mm.features.onsets.spectral_flux(log_filt_spec),
                 mm.features.onsets.superflux(log_filt_spec),
@@ -262,56 +265,43 @@ if __name__ == "__main__":
         onset = onset ** power
         return onset
 
-    kick_onset = get_onsets(spec, fmin=30, fmax=200, smooth=9, clip=99, power=2)
-    snare_onset = get_onsets(spec, fmin=250, fmax=350, smooth=5, clip=95, power=1)
-    hats_onset = get_onsets(spec, fmin=1000, fmax=18000, smooth=3, clip=90, power=2)
-    # hats_onset -= snare_onset
-    # hats_onset = gaussian_filter(hats_onset, 2 * smf, causal=0.1)
-    # hats_onset = percentile_clip(hats_onset, 90)
-    # plot_signals([kick_onset, snare_onset, hats_onset])
+    kick_onset = get_onsets(spec, fmin=125, fmax=200, smooth=5, clip=95, power=1)
+    # snare_onset = get_onsets(spec, fmin=250, fmax=350, smooth=5, clip=95, power=1)
+    snare_onset = get_onsets(spec, fmin=1000, fmax=18000, smooth=7, clip=93, power=2)
+    # plot_signals([kick_onset, snare_onset])  # , hats_onset])
 
-    # def get_chroma(audio, num_frames):
-    #     y_harm = rosa.effects.harmonic(y=audio, margin=16)
-    #     chroma = rosa.feature.chroma_cqt(y=y_harm, sr=sr)
-    #     chroma = np.minimum(chroma, rosa.decompose.nn_filter(chroma, aggregate=np.median, metric="cosine")).T
-    #     chroma = signal.resample(chroma, num_frames)
-    #     chroma = th.from_numpy(chroma / chroma.sum(1)[:, None])
-    #     return chroma
+    def get_chroma(audio, num_frames):
+        y_harm = rosa.effects.harmonic(y=audio, margin=16)
+        chroma = rosa.feature.chroma_cqt(y=y_harm, sr=sr)
+        chroma = np.minimum(chroma, rosa.decompose.nn_filter(chroma, aggregate=np.median, metric="cosine")).T
+        chroma = signal.resample(chroma, num_frames)
+        chroma = th.from_numpy(chroma / chroma.sum(1)[:, None])
+        return chroma
 
-    # def get_chroma_latents(chroma, base_latent_selection):
-    #     base_latents = (chroma[..., None, None] * base_latent_selection[None, ...]).sum(1)
-    #     return base_latents
+    def get_chroma_latents(chroma, base_latent_selection):
+        base_latents = (chroma[..., None, None] * base_latent_selection[None, ...]).sum(1)
+        return base_latents
 
-    # # separate bass and main harmonic frequencies
-    # mid_chroma = get_chroma(signal.sosfilt(signal.butter(24, 220, "hp", fs=sr, output="sos"), main_audio), num_frames)
-    # mid_latents = get_chroma_latents(chroma=mid_chroma, base_latent_selection=wrapping_slice(latent_selection, 0, 12))
-    # bass_chroma = get_chroma(signal.sosfilt(signal.butter(24, 80, "lp", fs=sr, output="sos"), main_audio), num_frames)
-    # latents = get_chroma_latents(chroma=bass_chroma, base_latent_selection=wrapping_slice(latent_selection, 0, 12))
-    # mid_layer = 9
-    # latents[:, mid_layer:] = mid_latents[:, mid_layer:]
-    latents = th.ones((num_frames, 1, 1)) * latent_selection[[1]]
-    latents = (
-        0.75 * snare_onset[:, None, None] * th.ones((num_frames, 1, 1)) * latent_selection[[0]]
-        + (1 - 0.75 * snare_onset[:, None, None]) * latents
-    )
+    # separate bass and main harmonic frequencies
+    mid_chroma = get_chroma(signal.sosfilt(signal.butter(24, 220, "hp", fs=sr, output="sos"), main_audio), num_frames)
+    latents = get_chroma_latents(chroma=mid_chroma, base_latent_selection=wrapping_slice(latent_selection, 0, 12))
 
-    # plt.figure(figsize=(12, 4))
-    # plt.subplot(2, 1, 1)
-    # librosa.display.specshow(mid_chroma.T.numpy(), y_axis="chroma")
-    # plt.colorbar()
-    # plt.ylabel("Mid")
-    # plt.subplot(2, 1, 2)
-    # librosa.display.specshow(bass_chroma.T.numpy(), y_axis="chroma", x_axis="time")
-    # plt.colorbar()
-    # plt.ylabel("Bass")
-    # plt.tight_layout()
-    # plt.show()
-    # plt.close()
+    bass_chroma = get_chroma(signal.sosfilt(signal.butter(24, 80, "lp", fs=sr, output="sos"), main_audio), num_frames)
+    bass_latents = get_chroma_latents(chroma=bass_chroma, base_latent_selection=wrapping_slice(latent_selection, 0, 12))
+    crossover = 5
+    latents[:, :crossover] = bass_latents[:, :crossover]
+    # plot_spectra([mid_chroma.T.numpy()])
+    # plot_spectra([bass_chroma.T.numpy()])
+
+    # latents = th.ones((num_frames, 1, 1)) * latent_selection[[1]]
+
+    # latents = (
+    #     0.75 * snare_onset[:, None, None] * th.ones((num_frames, 1, 1)) * latent_selection[[0]]
+    #     + (1 - 0.75 * snare_onset[:, None, None]) * latents
+    # )
 
     # smooth the final latents just a bit to prevent any jitter or jerks
     latents = gaussian_filter(latents.float().cuda(), max(1, int(round(2 * smf))), causal=0.2).cpu()
-    # color_layr = 5
-    # latents[:, color_layr:] = latent_selection[[1], color_layr:]
 
     # =========================================================================================
     # ============================== generate audiovisual noise ===============================
@@ -325,23 +315,28 @@ if __name__ == "__main__":
         # print(num_frames, 1, h, w)
 
         noise.append(
-            gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(20 * smf)))).cpu()
+            4 * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(50 * smf)))).cpu()
         )
-        if s < int((2 * (9 + 1)) / 3) + 2:
-            # print("kick", s)
-            noise[-1] *= 1 - kick_onset[:, None, None, None]
-            noise[-1] += (
-                kick_onset[:, None, None, None]
-                * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(5 * smf)))).cpu()
-            )
-        else:
-            # print("hats", s)
-            noise[-1] *= 1 - hats_onset[:, None, None, None]
-            noise[-1] += (
-                hats_onset[:, None, None, None]
-                * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(3 * smf)))).cpu()
-            )
-        noise[-1] /= noise[-1].std()
+        # if s < int((2 * (9 + 1)) / 3) + 2:
+        # print("kick", s)
+        # noise[-1] *= 1 - snare_onset[:, None, None, None]
+        noise[-1] += (
+            snare_onset[:, None, None, None]
+            * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(5 * smf)))).cpu()
+        )
+        # noise[-1] *= 1 - kick_onset[:, None, None, None]
+        noise[-1] += (
+            kick_onset[:, None, None, None]
+            * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(10 * smf)))).cpu()
+        )
+        # else:
+        # print("hats", s)
+        # noise[-1] *= 1 - hats_onset[:, None, None, None]
+        # noise[-1] += (
+        #     hats_onset[:, None, None, None]
+        #     * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(3 * smf)))).cpu()
+        # )
+        # noise[-1] /= noise[-1].std() * 4
 
         gc.collect()
         th.cuda.empty_cache()
