@@ -266,6 +266,7 @@ class NoiseInjection(nn.Module):
         if noise is None:
             batch, _, height, width = image.shape
             noise = image.new_empty(batch, 1, height, width).normal_()
+        # print(image.shape, self.weight.shape, noise.shape)
         return image + self.weight * noise.to(image.device)
 
 
@@ -351,8 +352,8 @@ class StyledConv(nn.Module):
         # print("styleconv in", inputs.shape, style.shape)
         out = self.conv(inputs, style)
         # print("conv out", out.shape, noise.shape)
-        out = self.noise(out, noise=self.manipulation(noise.cuda() if noise is not None else None, transform_dict_list))
-        # out = self.noise(out, noise=noise)
+        # out = self.noise(out, noise=self.manipulation(noise.cuda() if noise is not None else None, transform_dict_list))
+        out = self.noise(out, noise=noise)
         # out = out + self.bias
         # print("noise out", out.shape)
         out = self.activate(out)
