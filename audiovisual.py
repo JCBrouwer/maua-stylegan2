@@ -303,18 +303,18 @@ if __name__ == "__main__":
     high_onset = percentile_clip(high_onset, 96)
     high_onset = gaussian_filter(high_onset, 2 * smf, causal=0.1)
 
-    # fig, ax = plt.subplots(2, 1, figsize=(8, 6))
-    # ax[0].plot(high_onset.squeeze())
-    # rosa.display.specshow(high_mel[:32], ax=ax[1])
-    # plt.tight_layout()
-    # plt.show()
-    # exit()
+    # # fig, ax = plt.subplots(2, 1, figsize=(8, 6))
+    # # ax[0].plot(high_onset.squeeze())
+    # # rosa.display.specshow(high_mel[:32], ax=ax[1])
+    # # plt.tight_layout()
+    # # plt.show()
+    # # exit()
 
-    # latents = th.ones((num_frames, 1, 1)) * latent_selection[[1]]
+    # # latents = th.ones((num_frames, 1, 1)) * latent_selection[[1]]
 
     latents = (
-        0.75 * high_onset[:, None, None] * th.ones((num_frames, 1, 1)) * latent_selection[[-1]]
-        + (1 - 0.75 * high_onset[:, None, None]) * latents
+        high_onset[:, None, None] * th.ones((num_frames, 1, 1)) * latent_selection[[-1]]
+        + (1 - high_onset[:, None, None]) * latents
     )
 
     latents = (
@@ -322,26 +322,27 @@ if __name__ == "__main__":
         + (1 - 0.5 * snare_onset[:, None, None]) * latents
     )
 
-    moar_latents = get_latent_selection("workspace/cyphept-blue.npy")
+    moar_latents = get_latent_selection("workspace/cyphept-flat.npy")
     if args.shuffle_latents:
         random_indices = random.sample(range(len(moar_latents)), len(moar_latents))
         moar_latents = moar_latents[random_indices]
     intro_latents = get_chroma_latents(chroma=mid_chroma, base_latent_selection=wrapping_slice(moar_latents, 0, 12))
-    intro_latents = gaussian_filter(intro_latents.float().cuda(), max(1, int(round(10 * smf))), causal=0.3).cpu()
+    intro_latents = gaussian_filter(intro_latents.float().cuda(), max(1, int(round(10 * smf))), causal=0.1).cpu()
 
     bass_audio = signal.sosfilt(signal.butter(24 * 4, 50, "lp", fs=sr, output="sos"), main_audio)
     bass_spec = np.abs(rosa.stft(bass_audio))
     bass_sum = bass_spec.sum(0)
     bass_sum = np.clip(signal.resample(bass_sum, num_frames), bass_sum.min(), bass_sum.max())
     bass_sum = percentile_clip(th.from_numpy(bass_sum).float(), 75) ** 2
-    bass_sum = gaussian_filter(bass_sum, 200 * smf, causal=True)
+    bass_sum = gaussian_filter(bass_sum, 100 * smf, causal=True)
 
     rms = rosa.feature.rms(S=np.abs(rosa.stft(y=main_audio, hop_length=512)))[0]
     rms = np.clip(signal.resample(rms, num_frames), rms.min(), rms.max())
     rms = percentile_clip(th.from_numpy(rms).float(), 75) ** 2
-    rms = gaussian_filter(rms, 200 * smf, causal=True)
+    rms = gaussian_filter(rms, 100 * smf, causal=True)
 
     drop_weight = percentile_clip(rms + bass_sum, 55) ** 2
+    drop_weight[:700] = 0.1 * drop_weight[:700]
     drop_weight = gaussian_filter(drop_weight, 20 * smf, causal=0)
     # plot_signals([rms, bass_sum, drop_weight])
     # plot_signals([high_onset, snare_onset, kick_onset * drop_weight, drop_weight])
@@ -349,7 +350,7 @@ if __name__ == "__main__":
     latents = drop_weight[:, None, None] * latents + (1 - drop_weight[:, None, None]) * intro_latents
 
     # smooth the final latents just a bit to prevent any jitter or jerks
-    latents = gaussian_filter(latents.float().cuda(), max(1, int(round(2 * smf))), causal=0.2).cpu()
+    latents = gaussian_filter(latents.float().cuda(), max(1, int(round(4 * smf))), causal=0.1).cpu()
 
     # =========================================================================================
     # ============================== generate audiovisual noise ===============================
@@ -360,36 +361,37 @@ if __name__ == "__main__":
     for s in range(range_min, min(max_noise_scale, range_max)):
         h = 2 ** side_fn(s)
         w = (2 if args.size == 1920 else 1) * 2 ** side_fn(s)
-        print(num_frames, 1, h, w)
 
         noise.append(
-            2 * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(50 * smf)))).cpu()
+            6 * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(100 * smf)))).cpu()
         )
-        # if s < int((2 * (9 + 1)) / 3) + 2:
-        # print("kick", s)
-        # noise[-1] *= 1 - snare_onset[:, None, None, None]
+        # # if s < int((2 * (9 + 1)) / 3) + 2:
+        # # print("kick", s)
+        # # noise[-1] *= 1 - snare_onset[:, None, None, None]
         noise[-1] += (
             high_onset[:, None, None, None]
-            * rms[:, None, None, None]
+            * drop_weight[:, None, None, None]
             * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(10 * smf)))).cpu()
         )
-        # noise[-1] *= 1 - kick_onset[:, None, None, None]
+        # # noise[-1] *= 1 - kick_onset[:, None, None, None]
         noise[-1] += (
-            0.75
+            0.5
             * kick_onset[:, None, None, None]
-            * drop_weight[:, None, None, None]
+            # * drop_weight[:, None, None, None]
             * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(5 * smf)))).cpu()
         )
-        # else:
-        # print("hats", s)
-        # noise[-1] *= 1 - hats_onset[:, None, None, None]
+        # # else:
+        # # print("hats", s)
+        # # noise[-1] *= 1 - hats_onset[:, None, None, None]
         noise[-1] += (
-            0.333
+            0.5
             * snare_onset[:, None, None, None]
             * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(3 * smf)))).cpu()
         )
-        # noise[-1] /= noise[-1].std() * 4
+        noise[-1] /= noise[-1].std()
+        noise[-1] = gaussian_filter(noise[-1].cuda(), 2, causal=0).cpu()
 
+        print(num_frames, 1, h, w, f"std.dev.={noise[-1].std()}")
         gc.collect()
         th.cuda.empty_cache()
     noise += [None] * (17 - len(noise))
@@ -448,7 +450,7 @@ if __name__ == "__main__":
             )
             super(Translate, self).__init__(sequential_fn, batch)
 
-    translation = th.tensor([0.333 * snare_onset.numpy() * tl8_dist, np.zeros(num_frames)]).float().T
+    translation = th.tensor([snare_onset.numpy() * tl8_dist, np.zeros(num_frames)]).float().T
     manipulations += [
         {"layer": tl, "transform": lambda batch, layer=tl: Translate(layer, batch), "params": translation}
     ]
@@ -461,7 +463,8 @@ if __name__ == "__main__":
             super(Zoom, self).__init__(sequential_fn, batch)
 
     zl = 6
-    zoom = 0.0625 * (kick_onset * drop_weight) + 1
+    # zoom = 0.25 * kick_onset + 1
+    zoom = 0.25 * (kick_onset * drop_weight) + 1
     manipulations += [{"layer": zl, "transform": lambda batch, layer=zl: Zoom(layer, batch), "params": zoom}]
 
     # =========================================================================================
