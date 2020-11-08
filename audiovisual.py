@@ -26,6 +26,89 @@ from models.stylegan1 import G_style
 from models.stylegan2 import Generator
 
 
+def create_circular_mask(h, w, center=None, radius=None):
+    if center is None:  # use the middle of the image
+        center = (int(w / 2), int(h / 2))
+    if radius is None:  # use the smallest distance between the center and image walls
+        radius = min(center[0], center[1], w - center[0], h - center[1])
+    Y, X = np.ogrid[:h, :w]
+    dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
+    mask = dist_from_center <= radius
+    return th.from_numpy(mask)
+
+
+def interpolant(t):
+    return t * t * t * (t * (t * 6 - 15) + 10)
+
+
+def perlin_noise(shape, res, tileable=(True, False, False), interpolant=interpolant):
+    """Generate a 3D tensor of perlin noise.
+    Args:
+        shape: The shape of the generated tensor (tuple of three ints).
+            This must be a multiple of res.
+        res: The number of periods of noise to generate along each
+            axis (tuple of three ints). Note shape must be a multiple
+            of res.
+        tileable: If the noise should be tileable along each axis
+            (tuple of three bools). Defaults to (False, False, False).
+        interpolant: The interpolation function, defaults to
+            t*t*t*(t*(t*6 - 15) + 10).
+    Returns:
+        A tensor of shape shape with the generated noise.
+    Raises:
+        ValueError: If shape is not a multiple of res.
+    """
+    delta = (res[0] / shape[0], res[1] / shape[1], res[2] / shape[2])
+    d = (shape[0] // res[0], shape[1] // res[1], shape[2] // res[2])
+    grid = np.mgrid[0 : res[0] : delta[0], 0 : res[1] : delta[1], 0 : res[2] : delta[2]]
+    # print(np.mgrid[0 : res[0] : delta[0]])
+    # print(0, res[0], delta[0])
+    # print(th.linspace(0, res[0], delta[0]))
+    # grid = th.meshgrid(
+    #     th.linspace(0, res[0], delta[0]), th.linspace(0, res[1], delta[1]), th.linspace(0, res[1], delta[1])
+    # ).cuda()
+    grid = grid.transpose(1, 2, 3, 0) % 1
+    grid = th.from_numpy(grid).cuda()
+    # Gradients
+    theta = 2 * np.pi * np.random.rand(res[0] + 1, res[1] + 1, res[2] + 1)
+    phi = 2 * np.pi * np.random.rand(res[0] + 1, res[1] + 1, res[2] + 1)
+    gradients = np.stack((np.sin(phi) * np.cos(theta), np.sin(phi) * np.sin(theta), np.cos(phi)), axis=3)
+    if tileable[0]:
+        gradients[-1, :, :] = gradients[0, :, :]
+    if tileable[1]:
+        gradients[:, -1, :] = gradients[:, 0, :]
+    if tileable[2]:
+        gradients[:, :, -1] = gradients[:, :, 0]
+    gradients = gradients.repeat(d[0], 0).repeat(d[1], 1).repeat(d[2], 2)
+    gradients = th.from_numpy(gradients).cuda()
+    g000 = gradients[: -d[0], : -d[1], : -d[2]]
+    g100 = gradients[d[0] :, : -d[1], : -d[2]]
+    g010 = gradients[: -d[0], d[1] :, : -d[2]]
+    g110 = gradients[d[0] :, d[1] :, : -d[2]]
+    g001 = gradients[: -d[0], : -d[1], d[2] :]
+    g101 = gradients[d[0] :, : -d[1], d[2] :]
+    g011 = gradients[: -d[0], d[1] :, d[2] :]
+    g111 = gradients[d[0] :, d[1] :, d[2] :]
+    # Ramps
+    n000 = th.sum(th.stack((grid[:, :, :, 0], grid[:, :, :, 1], grid[:, :, :, 2]), axis=3) * g000, 3)
+    n100 = th.sum(th.stack((grid[:, :, :, 0] - 1, grid[:, :, :, 1], grid[:, :, :, 2]), axis=3) * g100, 3)
+    n010 = th.sum(th.stack((grid[:, :, :, 0], grid[:, :, :, 1] - 1, grid[:, :, :, 2]), axis=3) * g010, 3)
+    n110 = th.sum(th.stack((grid[:, :, :, 0] - 1, grid[:, :, :, 1] - 1, grid[:, :, :, 2]), axis=3) * g110, 3)
+    n001 = th.sum(th.stack((grid[:, :, :, 0], grid[:, :, :, 1], grid[:, :, :, 2] - 1), axis=3) * g001, 3)
+    n101 = th.sum(th.stack((grid[:, :, :, 0] - 1, grid[:, :, :, 1], grid[:, :, :, 2] - 1), axis=3) * g101, 3)
+    n011 = th.sum(th.stack((grid[:, :, :, 0], grid[:, :, :, 1] - 1, grid[:, :, :, 2] - 1), axis=3) * g011, 3)
+    n111 = th.sum(th.stack((grid[:, :, :, 0] - 1, grid[:, :, :, 1] - 1, grid[:, :, :, 2] - 1), axis=3) * g111, 3)
+    # Interpolation
+    t = interpolant(grid)
+    n00 = n000 * (1 - t[:, :, :, 0]) + t[:, :, :, 0] * n100
+    n10 = n010 * (1 - t[:, :, :, 0]) + t[:, :, :, 0] * n110
+    n01 = n001 * (1 - t[:, :, :, 0]) + t[:, :, :, 0] * n101
+    n11 = n011 * (1 - t[:, :, :, 0]) + t[:, :, :, 0] * n111
+    n0 = (1 - t[:, :, :, 1]) * n00 + t[:, :, :, 1] * n10
+    n1 = (1 - t[:, :, :, 1]) * n01 + t[:, :, :, 1] * n11
+    return (1 - t[:, :, :, 2]) * n0 + t[:, :, :, 2] * n1
+
+
 def gaussian_filter(x, sigma, causal=None):
     dim = len(x.shape)
     while len(x.shape) < 3:
@@ -246,6 +329,14 @@ if __name__ == "__main__":
     stft = mm.audio.stft.ShortTimeFourierTransform(sig_frames, ciruclar_shift=True)
     spec = mm.audio.spectrogram.Spectrogram(stft, ciruclar_shift=True)
 
+    plot_signals([sig])
+    sig, fs = rosa.load(args.audio_file)
+    S = rosa.feature.melspectrogram(y=sig, sr=fs)
+    rosa.display.specshow(rosa.power_to_db(S, ref=np.max))
+    plt.show()
+    plt.close()
+    exit()
+
     def get_onsets(spec, fmin, fmax, smooth, clip, power):
         log_filt_spec = mm.audio.spectrogram.FilteredSpectrogram(spec, num_bands=24, fmin=fmin, fmax=fmax)
         onset = np.sum(
@@ -268,14 +359,14 @@ if __name__ == "__main__":
     kick_onset = get_onsets(spec, fmin=125, fmax=200, smooth=5, clip=99, power=1)
     # snare_onset = get_onsets(spec, fmin=250, fmax=350, smooth=5, clip=95, power=1)
     snare_onset = get_onsets(spec, fmin=1000, fmax=18000, smooth=7, clip=97, power=2)
-    # plot_signals([kick_onset, snare_onset])  # , hats_onset])
+    plot_signals([kick_onset, snare_onset])  # , hats_onset])
 
     def get_chroma(audio, num_frames):
         y_harm = rosa.effects.harmonic(y=audio, margin=16)
         chroma = rosa.feature.chroma_cqt(y=y_harm, sr=sr)
         chroma = np.minimum(chroma, rosa.decompose.nn_filter(chroma, aggregate=np.median, metric="cosine")).T
         chroma = signal.resample(chroma, num_frames)
-        chroma = th.from_numpy(chroma / chroma.sum(1)[:, None])
+        chroma = th.from_numpy(chroma / chroma.sum(1)[:, None]).float()
         return chroma
 
     def get_chroma_latents(chroma, base_latent_selection):
@@ -285,72 +376,93 @@ if __name__ == "__main__":
     # separate bass and main harmonic frequencies
     mid_chroma = get_chroma(
         signal.sosfilt(signal.butter(24, [100, 1000], "bp", fs=sr, output="sos"), main_audio), num_frames
-    )
-    latents = get_chroma_latents(chroma=mid_chroma, base_latent_selection=wrapping_slice(latent_selection, 0, 12))
-
-    bass_chroma = get_chroma(
-        signal.sosfilt(signal.butter(24 * 4, 72, "lp", fs=sr, output="sos"), main_audio), num_frames
-    )
-    bass_latents = get_chroma_latents(chroma=bass_chroma, base_latent_selection=wrapping_slice(latent_selection, 0, 12))
-    crossover = 3
-    latents[:, :crossover] = bass_latents[:, :crossover]
-
-    high_mel = rosa.feature.melspectrogram(rosa.effects.harmonic(y=main_audio, margin=1), sr=sr, fmin=1000)
-    high_onset = rosa.onset.onset_strength(S=high_mel, sr=sr)
-    high_onset = th.from_numpy(signal.resample(high_onset, num_frames))
-    high_onset = gaussian_filter(high_onset, 3 * smf, causal=0.3)
-    # high_onset = high_onset ** 2
-    high_onset = percentile_clip(high_onset, 96)
-    high_onset = gaussian_filter(high_onset, 2 * smf, causal=0.1)
-
-    # # fig, ax = plt.subplots(2, 1, figsize=(8, 6))
-    # # ax[0].plot(high_onset.squeeze())
-    # # rosa.display.specshow(high_mel[:32], ax=ax[1])
+    ).T
+    # chromhalf = th.stack([mid_chroma[2 * i : 2 * i + 2].sum(0) for i in range(int(len(mid_chroma) / 2))])
+    # chromhalf[chromhalf > 0.333] *= 2
+    # chromhalf = gaussian_filter(chromhalf.T, 3, causal=0.1).T
+    # # chromhalf = chromhalf ** 2
+    # chromhalf /= chromhalf.sum(0)
+    # fig, ax = plt.subplots(6, 1, figsize=(16, 9), sharey=True)
+    # for i, ch in enumerate(chromhalf):
+    #     ax[i].plot(ch.squeeze())
+    #     ax[i].set_xlim(0, len(ch))
+    #     ax[i].axis("off")
+    # ax[i].axis("on")
+    # ax[i].spines["top"].set_visible(False)
+    # ax[i].spines["right"].set_visible(False)
+    # ax[i].spines["left"].set_visible(False)
+    # ax[i].axes.get_yaxis().set_visible(False)
+    # ax[i].axes.xaxis.set_ticklabels([])
+    # ax[i].set_xlabel("Time")
+    # fig.text(0.04, 0.5, "Note Presence", va="center", rotation="vertical")
     # # plt.tight_layout()
-    # # plt.show()
-    # # exit()
+    # plt.show()
+    # exit()
+    latents = get_chroma_latents(chroma=chromhalf.T, base_latent_selection=latent_selection[:6])
 
-    # # latents = th.ones((num_frames, 1, 1)) * latent_selection[[1]]
+    # bass_chroma = get_chroma(
+    #     signal.sosfilt(signal.butter(24 * 4, 72, "lp", fs=sr, output="sos"), main_audio), num_frames
+    # )
+    # bass_latents = get_chroma_latents(chroma=bass_chroma, base_latent_selection=wrapping_slice(latent_selection, 0, 12))
+    # crossover = 3
+    # latents[:, :crossover] = bass_latents[:, :crossover]
 
-    latents = (
-        high_onset[:, None, None] * th.ones((num_frames, 1, 1)) * latent_selection[[-1]]
-        + (1 - high_onset[:, None, None]) * latents
-    )
+    # high_mel = rosa.feature.melspectrogram(rosa.effects.harmonic(y=main_audio, margin=1), sr=sr, fmin=1000)
+    # high_onset = rosa.onset.onset_strength(S=high_mel, sr=sr)
+    # high_onset = th.from_numpy(signal.resample(high_onset, num_frames))
+    # high_onset = gaussian_filter(high_onset, 3 * smf, causal=0.3)
+    # # high_onset = high_onset ** 2
+    # high_onset = percentile_clip(high_onset, 96)
+    # high_onset = gaussian_filter(high_onset, 2 * smf, causal=0.1)
 
-    latents = (
-        0.5 * snare_onset[:, None, None] * th.ones((num_frames, 1, 1)) * latent_selection[[-4]]
-        + (1 - 0.5 * snare_onset[:, None, None]) * latents
-    )
+    # # # fig, ax = plt.subplots(2, 1, figsize=(8, 6))
+    # # # ax[0].plot(high_onset.squeeze())
+    # # # rosa.display.specshow(high_mel[:32], ax=ax[1])
+    # # # plt.tight_layout()
+    # # # plt.show()
+    # # # exit()
 
-    moar_latents = get_latent_selection("workspace/cyphept-flat.npy")
-    if args.shuffle_latents:
-        random_indices = random.sample(range(len(moar_latents)), len(moar_latents))
-        moar_latents = moar_latents[random_indices]
-    intro_latents = get_chroma_latents(chroma=mid_chroma, base_latent_selection=wrapping_slice(moar_latents, 0, 12))
-    intro_latents = gaussian_filter(intro_latents.float().cuda(), max(1, int(round(10 * smf))), causal=0.1).cpu()
+    # # # latents = th.ones((num_frames, 1, 1)) * latent_selection[[1]]
 
-    bass_audio = signal.sosfilt(signal.butter(24 * 4, 50, "lp", fs=sr, output="sos"), main_audio)
-    bass_spec = np.abs(rosa.stft(bass_audio))
-    bass_sum = bass_spec.sum(0)
-    bass_sum = np.clip(signal.resample(bass_sum, num_frames), bass_sum.min(), bass_sum.max())
-    bass_sum = percentile_clip(th.from_numpy(bass_sum).float(), 75) ** 2
-    bass_sum = gaussian_filter(bass_sum, 100 * smf, causal=True)
+    # latents = (
+    #     high_onset[:, None, None] * th.ones((num_frames, 1, 1)) * latent_selection[[-1]]
+    #     + (1 - high_onset[:, None, None]) * latents
+    # )
 
-    rms = rosa.feature.rms(S=np.abs(rosa.stft(y=main_audio, hop_length=512)))[0]
-    rms = np.clip(signal.resample(rms, num_frames), rms.min(), rms.max())
-    rms = percentile_clip(th.from_numpy(rms).float(), 75) ** 2
-    rms = gaussian_filter(rms, 100 * smf, causal=True)
+    # latents = (
+    #     0.5 * snare_onset[:, None, None] * th.ones((num_frames, 1, 1)) * latent_selection[[-4]]
+    #     + (1 - 0.5 * snare_onset[:, None, None]) * latents
+    # )
 
-    drop_weight = percentile_clip(rms + bass_sum, 55) ** 2
-    drop_weight[:700] = 0.1 * drop_weight[:700]
-    drop_weight = gaussian_filter(drop_weight, 20 * smf, causal=0)
-    # plot_signals([rms, bass_sum, drop_weight])
-    # plot_signals([high_onset, snare_onset, kick_onset * drop_weight, drop_weight])
+    # moar_latents = get_latent_selection("workspace/cyphept-flat.npy")
+    # if args.shuffle_latents:
+    #     random_indices = random.sample(range(len(moar_latents)), len(moar_latents))
+    #     moar_latents = moar_latents[random_indices]
+    # intro_latents = get_chroma_latents(chroma=mid_chroma, base_latent_selection=wrapping_slice(moar_latents, 0, 12))
+    # intro_latents = gaussian_filter(intro_latents.float().cuda(), max(1, int(round(10 * smf))), causal=0.1).cpu()
 
-    latents = drop_weight[:, None, None] * latents + (1 - drop_weight[:, None, None]) * intro_latents
+    # bass_audio = signal.sosfilt(signal.butter(24 * 4, 50, "lp", fs=sr, output="sos"), main_audio)
+    # bass_spec = np.abs(rosa.stft(bass_audio))
+    # bass_sum = bass_spec.sum(0)
+    # bass_sum = np.clip(signal.resample(bass_sum, num_frames), bass_sum.min(), bass_sum.max())
+    # bass_sum = percentile_clip(th.from_numpy(bass_sum).float(), 75) ** 2
+    # bass_sum = gaussian_filter(bass_sum, 100 * smf, causal=True)
 
-    # smooth the final latents just a bit to prevent any jitter or jerks
-    latents = gaussian_filter(latents.float().cuda(), max(1, int(round(4 * smf))), causal=0.1).cpu()
+    # rms = rosa.feature.rms(S=np.abs(rosa.stft(y=main_audio, hop_length=512)))[0]
+    # rms = np.clip(signal.resample(rms, num_frames), rms.min(), rms.max())
+    # rms = percentile_clip(th.from_numpy(rms).float(), 75) ** 2
+    # rms = gaussian_filter(rms, 100 * smf, causal=True)
+
+    # drop_weight = percentile_clip(rms + bass_sum, 55) ** 2
+    # drop_weight[:700] = 0.1 * drop_weight[:700]
+    # drop_weight = gaussian_filter(drop_weight, 20 * smf, causal=0)
+    # # plot_signals([rms, bass_sum, drop_weight])
+    # # plot_signals([high_onset, snare_onset, kick_onset * drop_weight, drop_weight])
+
+    # latents = drop_weight[:, None, None] * latents + (1 - drop_weight[:, None, None]) * intro_latents
+
+    # # smooth the final latents just a bit to prevent any jitter or jerks
+    # latents = gaussian_filter(latents.float().cuda(), max(1, int(round(4 * smf))), causal=0.1).cpu()
 
     # =========================================================================================
     # ============================== generate audiovisual noise ===============================
@@ -362,34 +474,45 @@ if __name__ == "__main__":
         h = 2 ** side_fn(s)
         w = (2 if args.size == 1920 else 1) * 2 ** side_fn(s)
 
-        noise.append(
-            6 * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(100 * smf)))).cpu()
-        )
-        # # if s < int((2 * (9 + 1)) / 3) + 2:
-        # # print("kick", s)
-        # # noise[-1] *= 1 - snare_onset[:, None, None, None]
-        noise[-1] += (
-            high_onset[:, None, None, None]
-            * drop_weight[:, None, None, None]
-            * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(10 * smf)))).cpu()
-        )
-        # # noise[-1] *= 1 - kick_onset[:, None, None, None]
-        noise[-1] += (
-            0.5
-            * kick_onset[:, None, None, None]
-            # * drop_weight[:, None, None, None]
-            * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(5 * smf)))).cpu()
-        )
-        # # else:
-        # # print("hats", s)
-        # # noise[-1] *= 1 - hats_onset[:, None, None, None]
-        noise[-1] += (
-            0.5
-            * snare_onset[:, None, None, None]
-            * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(3 * smf)))).cpu()
-        )
-        noise[-1] /= noise[-1].std()
-        noise[-1] = gaussian_filter(noise[-1].cuda(), 2, causal=0).cpu()
+        # noise.append(
+        #     6 * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(100 * smf)))).cpu()
+        # )
+        # # # if s < int((2 * (9 + 1)) / 3) + 2:
+        # # # print("kick", s)
+        # # # noise[-1] *= 1 - snare_onset[:, None, None, None]
+        # # noise[-1] += (
+        # #     high_onset[:, None, None, None]
+        # #     * drop_weight[:, None, None, None]
+        # #     * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(10 * smf)))).cpu()
+        # # )
+        # # # # noise[-1] *= 1 - kick_onset[:, None, None, None]
+        # # noise[-1] += (
+        # #     0.5
+        # #     * kick_onset[:, None, None, None]
+        # #     # * drop_weight[:, None, None, None]
+        # #     * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(5 * smf)))).cpu()
+        # # )
+        # # # else:
+        # # # print("hats", s)
+        # # # noise[-1] *= 1 - hats_onset[:, None, None, None]
+        # # noise[-1] += (
+        # #     0.5
+        # #     * snare_onset[:, None, None, None]
+        # #     * gaussian_filter(th.randn((num_frames, 1, h, w), device="cuda"), max(1, int(round(3 * smf)))).cpu()
+        # # )
+        # noise[-1] /= noise[-1].std()
+        # noise[-1] = gaussian_filter(noise[-1].cuda(), 2, causal=0).cpu()
+
+        mask = create_circular_mask(h, w, radius=w / 2.5)[None, ...].float()
+        mask = th.stack([mask] * n.shape[0], axis=0)
+        noise[i] = mask * th.randn((1, 1, h, w))  # gaussian_filter(n, 24).cpu()
+        noise[i] /= noise[i].std()
+
+        if i > 2 and i < 13:
+            moving_noise = perlin_noise((n.shape[0], n.shape[-2], n.shape[-1]), (10, 8, 8))[:, None, ...]
+            moving_noise += gaussian_filter(n, 8) / 2.5
+            moving_noise /= moving_noise.std() / 1.5
+            noise[i] += (1 - mask) * moving_noise.cpu()
 
         print(num_frames, 1, h, w, f"std.dev.={noise[-1].std()}")
         gc.collect()
@@ -422,12 +545,12 @@ if __name__ == "__main__":
             return x
 
     manipulations = [
-        {
-            "layer": 0,
-            "transform": th.nn.Sequential(
-                th.nn.ReplicationPad2d((2, 2, 0, 0)), addNoise(0.05 * th.randn(size=(1, 1, 4, 8), device="cuda")),
-            ),
-        }
+        # {
+        #     "layer": 0,
+        #     "transform": th.nn.Sequential(
+        #         th.nn.ReplicationPad2d((2, 2, 0, 0)), addNoise(0.05 * th.randn(size=(1, 1, 4, 8), device="cuda")),
+        #     ),
+        # }
     ]
 
     tl = 6
@@ -450,10 +573,10 @@ if __name__ == "__main__":
             )
             super(Translate, self).__init__(sequential_fn, batch)
 
-    translation = th.tensor([snare_onset.numpy() * tl8_dist, np.zeros(num_frames)]).float().T
-    manipulations += [
-        {"layer": tl, "transform": lambda batch, layer=tl: Translate(layer, batch), "params": translation}
-    ]
+    # translation = th.tensor([snare_onset.numpy() * tl8_dist, np.zeros(num_frames)]).float().T
+    # manipulations += [
+    #     {"layer": tl, "transform": lambda batch, layer=tl: Translate(layer, batch), "params": translation}
+    # ]
 
     class Zoom(Manipulation):
         def __init__(self, layer, batch):
@@ -464,8 +587,8 @@ if __name__ == "__main__":
 
     zl = 6
     # zoom = 0.25 * kick_onset + 1
-    zoom = 0.25 * (kick_onset * drop_weight) + 1
-    manipulations += [{"layer": zl, "transform": lambda batch, layer=zl: Zoom(layer, batch), "params": zoom}]
+    # zoom = 0.25 * (kick_onset * drop_weight) + 1
+    # manipulations += [{"layer": zl, "transform": lambda batch, layer=zl: Zoom(layer, batch), "params": zoom}]
 
     # =========================================================================================
     # ============== render the given latent + noise + manipulation interpolation =============
