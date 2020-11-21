@@ -92,10 +92,44 @@ def render(
     renderer = Thread(target=make_video, args=(render_queue,))
     renderer.daemon = True
 
-    latents = latents.float().pin_memory()
+    latents = latents.float().contiguous().pin_memory()
+
+    rewrite_env = (
+        th.cat(
+            [
+                th.zeros((int(len(latents) / 12))),
+                th.linspace(0, 1, int(len(latents) / 12)) ** 1.75,
+                th.linspace(1, 0, int(len(latents) / 12)) ** 3,
+                th.linspace(0, 0.3, int(len(latents) / 24)),
+                th.linspace(0.3, 1, int(len(latents) / 48)),
+                th.linspace(1, 0, int(len(latents) / 48)),
+                th.zeros((int(3 * len(latents) / 24))),
+                th.linspace(0, 1, int(len(latents) / 48)),
+                th.linspace(1, 0, int(len(latents) / 48)),
+                th.zeros((int(len(latents) / 12))),
+                1 - th.linspace(1, 0, int(len(latents) / 12)) ** 2,
+                th.linspace(1, 0, int(len(latents) / 3)),
+            ],
+            axis=0,
+        )
+        .float()
+        .contiguous()
+        .pin_memory()
+    )
+    rewrite_env = th.cat([rewrite_env, th.zeros((len(latents) - len(rewrite_env)))]) ** 1.5
+
+    orig_weights = [getattr(generator.convs, f"{i}").conv.weight.clone() for i in range(len(generator.convs)) if i <= 7]
+    [print(ogw.shape) for ogw in orig_weights]
+    _, filin, filout, kh, kw = orig_weights[0].shape
+
+    from audiovisual import gaussian_filter
+
+    rewrite_noise = gaussian_filter(th.randn((len(latents), filin * filout, kh, kw)) - 1, 3)
+    print(rewrite_noise.min(), rewrite_noise.mean(), rewrite_noise.max())
+    rewrite_noise = rewrite_noise.reshape((len(latents), filin, filout, kh, kw)).float().contiguous().pin_memory()
 
     for ni, noise_scale in enumerate(noise):
-        noise[ni] = noise_scale.float().pin_memory() if noise_scale is not None else None
+        noise[ni] = noise_scale.float().contiguous().pin_memory() if noise_scale is not None else None
 
     for n in range(0, len(latents), batch_size):
         latent_batch = latents[n : n + batch_size].cuda(non_blocking=True)
@@ -118,6 +152,15 @@ def render(
                     )
                 else:
                     manipulation_batch.append({"layer": manip["layer"], "transform": manip["transform"]})
+
+        for i in range(len(generator.convs)):
+            if i <= 7:
+                rewrite_env_batch = rewrite_env[n : n + batch_size, None, None, None, None].cuda(non_blocking=True)
+                rewrite_noise_batch = rewrite_noise[n : n + batch_size].cuda(non_blocking=True)
+                rewritten_weight = (1 - rewrite_env_batch) * orig_weights[i] + 2 * rewrite_env_batch * orig_weights[
+                    i
+                ] * rewrite_noise_batch
+                setattr(getattr(generator.convs, f"{i}").conv, "weight", th.nn.Parameter(rewritten_weight))
 
         outputs, _ = generator(
             styles=latent_batch,

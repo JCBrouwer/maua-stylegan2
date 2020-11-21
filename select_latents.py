@@ -238,11 +238,18 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--ckpt", type=str)
 parser.add_argument("--res", type=int, default=1024)
 parser.add_argument("--truncation", type=int, default=1.5)
+parser.add_argument("--no_const", action="store_false")
 
 args = parser.parse_args()
 
 name = args.ckpt.split("/")[-1].split(".")[0]
-GENERATOR = G_style2(size=args.res, style_dim=512, n_mlp=8, checkpoint=args.ckpt, output_size=1024).eval().cuda()
+GENERATOR = (
+    G_style2(
+        size=args.res, style_dim=512, n_mlp=8, checkpoint=args.ckpt, output_size=1024, constant_input=args.no_const
+    )
+    .eval()
+    .cuda()
+)
 # GENERATOR = G_style(checkpoint=args.ckpt, output_size=1024).eval().cuda()
 # GENERATOR = th.nn.DataParallel(GENERATOR)
 

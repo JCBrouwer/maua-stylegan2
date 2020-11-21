@@ -138,11 +138,11 @@ def get_spline_loops(base_latent_selection, loop_starting_latents, n_frames, num
     for lay in range(base_latent_selection.shape[1]):
         for lat in range(base_latent_selection.shape[2]):
             tck = interpolate.splrep(
-                np.linspace(0, 1, base_latent_selection.shape[0]), base_latent_selection[:, lay, lat]
+                np.linspace(0, 1, base_latent_selection.shape[0], dtype=np.float32), base_latent_selection[:, lay, lat],
             )
             base_latents[:, lay, lat] = interpolate.splev(x, tck)
 
-    base_latents = th.cat([th.from_numpy(base_latents)] * int(n_frames / len(base_latents)), axis=0)
+    base_latents = th.cat([th.from_numpy(base_latents)] * int(n_frames / len(base_latents)), axis=0).float()
 
     return base_latents
 
@@ -176,11 +176,11 @@ if "main" in __name__:
     parser.add_argument("--G_res", type=int, default=1024)
     parser.add_argument("--out_size", type=int, default=1024)
     parser.add_argument("--batch", type=int, default=12)
-    parser.add_argument("--num_frames", type=int, default=10 * 30)
-    parser.add_argument("--duration", type=int, default=10)
+    parser.add_argument("--num_frames", type=int, default=24 * 30)
+    parser.add_argument("--duration", type=int, default=24)
     parser.add_argument("--const", type=bool, default=False)
     parser.add_argument("--channel_multiplier", type=int, default=2)
-    parser.add_argument("--truncation", type=int, default=1)
+    parser.add_argument("--truncation", type=int, default=0.7)
     parser.add_argument("--stylegan1", type=bool, default=False)
     parser.add_argument("--slerp", type=bool, default=True)
     parser.add_argument("--latents", type=str, default=None)
@@ -210,26 +210,56 @@ if "main" in __name__:
     if args.latents is not None:
         styles = th.from_numpy(np.load(args.latents))
     else:
-        styles = th.randn((int(args.duration / 3), 512), device="cuda")
+        # styles1 = th.randn((int(args.duration / 3), 512), device="cuda")
+        # styles1 = generator(styles1, map_latents=True)
+        # styles2 = th.randn((int(args.duration / 3), 512), device="cuda")
+        # styles2 = generator(styles2, map_latents=True)
+        # styles3 = th.randn((int(args.duration / 3), 512), device="cuda")
+        # styles3 = generator(styles3, map_latents=True)
+
+        styles = th.randn((args.duration, 512), device="cuda")
         styles = generator(styles, map_latents=True)
-    # styles = get_latent_loops(styles, 0, args.num_frames, num_loops=1, smoothing=1, s=args.slerp)
-    styles = get_spline_loops(styles.cpu(), 0, args.num_frames, num_loops=1, smoothing=1, s=args.slerp).cuda()
 
-    latents = th.randn((args.num_frames, 512), device="cuda")
-    latents = generator(latents, map_latents=True)
-    latents = gaussian_filter(latents, 1)
+    latents = th.cat([styles[[0]]] * args.num_frames, axis=0)
+
+    # moving_low = get_spline_loops(
+    #     styles1.cpu(), 0, int(args.num_frames / 3), num_loops=1, smoothing=1, s=args.slerp
+    # ).cuda()[:, :5]
+    # moving_mid = get_spline_loops(
+    #     styles2.cpu(), 0, int(args.num_frames / 3), num_loops=1, smoothing=1, s=args.slerp
+    # ).cuda()[:, 5:10]
+    # moving_hi = get_spline_loops(
+    #     styles3.cpu(), 0, int(args.num_frames / 3), num_loops=1, smoothing=1, s=args.slerp
+    # ).cuda()[:, 10:]
+    # static_low = th.cat([moving_low[[0]]] * int(args.num_frames / 3), axis=0)
+    # static_mid = th.cat([moving_mid[[0]]] * int(args.num_frames / 3), axis=0)
+    # static_hi = th.cat([moving_hi[[0]]] * int(args.num_frames / 3), axis=0)
+
     # print(
-    #     th.cat(
-    #         [
-    #             th.linspace(-1, 3, int(args.num_frames / 2)),
-    #             th.linspace(3, -1, args.num_frames - int(args.num_frames / 2)) + 1,
-    #         ]
+    #     th.cat([moving_low, static_mid, static_hi], axis=1).shape,
+    #     th.cat([static_low[:60], static_mid[:60], static_hi[:60]], axis=1).shape,
+    #     th.cat([static_low, moving_mid, static_hi], axis=1).shape,
+    #     th.cat([static_low[:60], static_mid[:60], static_hi[:60]], axis=1).shape,
+    #     th.cat([static_low, static_mid, moving_hi], axis=1).shape,
+    # )
 
-    style_depth = 0
-    latents[:, style_depth:] = 1 * styles[:, style_depth:] + 0 * latents[:, style_depth:]
+    # print(th.cat([static_low[[0]], static_mid[[0]], static_hi[[0]]], axis=1).cpu().numpy().shape)
+    # np.save("latents_example.npy", th.cat([static_low[[0]], static_mid[[0]], static_hi[[0]]], axis=1).cpu().numpy())
+
+    # latents = th.cat(
+    #     [
+    #         th.cat([moving_low, static_mid, static_hi], axis=1),
+    #         th.cat([static_low[:60], static_mid[:60], static_hi[:60]], axis=1),
+    #         th.cat([static_low, moving_mid, static_hi], axis=1),
+    #         th.cat([static_low[:60], static_mid[:60], static_hi[:60]], axis=1),
+    #         th.cat([static_low, static_mid, moving_hi], axis=1),
+    #     ],
+    #     axis=0,
+    # ).float()
+
+    # latents = gaussian_filter(latents, 7)
 
     latents = latents.cpu()
-    args.num_frames = len(latents)
 
     print("latent shape: ")
     print(latents.shape, "\n")
@@ -242,12 +272,12 @@ if "main" in __name__:
         for s in range(log_min_res, log_max_res + 1):
             h = 2 ** s
             w = (2 if args.out_size == 1920 else 1) * 2 ** s
-            noise.append(th.randn((args.num_frames, 1, h, w), device="cuda"))
+            noise.append(th.randn((1, 1, h, w), device="cuda"))
     else:
         for s in range(2 * log_min_res + 1, 2 * (log_max_res + 1), 1):
             h = 2 ** int(s / 2)
             w = (2 if args.out_size == 1920 else 1) * 2 ** int(s / 2)
-            noise.append(th.randn((args.num_frames, 1, h, w), device="cuda"))
+            noise.append(th.randn((1, 1, h, w), device="cuda"))
 
     def create_circular_mask(h, w, center=None, radius=None):
         if center is None:  # use the middle of the image
@@ -263,58 +293,112 @@ if "main" in __name__:
     for i, n in enumerate(noise):
         if n is None:
             continue
+        if i > 14:
+            noise[i] = None
+            continue
 
         # mask = create_circular_mask(n.shape[-2], n.shape[-1], radius=n.shape[-1] / 2.5)[None, ...].float()
-        mask = th.stack(
-            [
-                th.cat(
-                    [
-                        th.zeros((int(n.shape[-2] * 1 / 2))),
-                        th.linspace(0, 1, int(n.shape[-2] * 1 / 4)),
-                        th.ones((int(n.shape[-2] * 1 / 4))),
-                    ],
-                    axis=0,
-                )
-            ]
-            * n.shape[-1]
-        ).T[None, ...]
-        mask = th.stack([mask] * n.shape[0], axis=0)
-        noise[i] = mask * n[[0]].cpu()  # gaussian_filter(n, 24).cpu()
-        noise[i] /= noise[i].std()
+        # mask = th.stack(
+        #     [
+        #         th.cat(
+        #             [
+        #                 th.zeros((int(n.shape[-2] * 1 / 2))),
+        #                 th.linspace(0, 1, int(n.shape[-2] * 1 / 4)),
+        #                 th.ones((int(n.shape[-2] * 1 / 4))),
+        #             ],
+        #             axis=0,
+        #         )
+        #     ]
+        #     * n.shape[-1]
+        # ).T[None, ...]
+        # mask = th.stack([mask] * n.shape[0], axis=0)
+        # noise[i] = mask * n[[0]].cpu()  # gaussian_filter(n, 24).cpu()
 
-        if i > 2 and i < 13:
-            # xs = 8 * np.pi * th.linspace(0, 1, n.shape[-1])
-            # ys = th.linspace(0, 2 * np.pi, n.shape[-2])
-            # ts = 8 * np.pi * th.linspace(0, 1, n.shape[0])
-            # horiz = xs[None, None, None, :] + ys[None, None, :, None] + ts[:, None, None, None]
-            # vert = (
-            #     xs[None, None, None, :] / (4 * np.pi)
-            #     + 4 * np.pi * ys[None, None, :, None]
-            #     + 2 * ts[:, None, None, None]
-            # )
-            # moving_noise = th.sin(horiz.cuda() * vert.cuda() + n / 4)
-            # moving_noise = gaussian_filter(moving_noise, 6).cpu()
-            # moving_noise /= moving_noise.std() / 2
-            moving_noise = perlin_noise((n.shape[0], n.shape[-2], n.shape[-1]), (10, 8, 8))[:, None, ...]
-            moving_noise += gaussian_filter(n, 8) / 2.5
-            moving_noise /= moving_noise.std() / 1.5
-            noise[i] += (1 - mask) * moving_noise.cpu()
+        if i < 4:
+            moving = 2 * gaussian_filter(th.randn((200, 1, n.shape[-2], n.shape[-1]), device="cuda"), 3)
+            # moving /= moving.std()
+            static = th.cat([n] * (len(latents) - len(moving)))
+            print(moving.shape, static.shape)
+            # static /= static.std()
+            noise[i] = th.cat([moving, static], axis=0)
+        elif 4 <= i < 8:
+            static1 = th.cat([n] * (260))
+            # static1 /= static1.std()
+            moving = 4 * gaussian_filter(th.randn((200, 1, n.shape[-2], n.shape[-1]), device="cuda"), 3)
+            # moving /= moving.std()
+            static2 = th.cat([n] * (len(latents) - 460))
+            print(static1.shape, moving.shape, static2.shape)
+            # static2 /= static2.std()
+            noise[i] = th.cat([static1, moving, static2], axis=0)
+        elif i >= 8:
+            moving = 8 * gaussian_filter(th.randn((200, 1, n.shape[-2], n.shape[-1]), device="cuda"), 3)
+            # moving /= moving.std()
+            static = th.cat([n] * (len(latents) - len(moving)))
+            print(static.shape, moving.shape)
+            # static /= static.std()
+            noise[i] = th.cat([static, moving], axis=0)
+        noise[i] = gaussian_filter(noise[i].cuda(), 7).cpu()
+
+        # noise[i] = th.cat([n[[0]]] * len(latents), axis=0).cpu()  # gaussian_filter(n, 24).cpu()
+        # noise[i] /= noise[i].std()
+
+        # if i > 2 and i < 13:
+        #     # xs = 8 * np.pi * th.linspace(0, 1, n.shape[-1])
+        #     # ys = th.linspace(0, 2 * np.pi, n.shape[-2])
+        #     # ts = 8 * np.pi * th.linspace(0, 1, n.shape[0])
+        #     # horiz = xs[None, None, None, :] + ys[None, None, :, None] + ts[:, None, None, None]
+        #     # vert = (
+        #     #     xs[None, None, None, :] / (4 * np.pi)
+        #     #     + 4 * np.pi * ys[None, None, :, None]
+        #     #     + 2 * ts[:, None, None, None]
+        #     # )
+        #     # moving_noise = th.sin(horiz.cuda() * vert.cuda() + n / 4)
+        #     # moving_noise = gaussian_filter(moving_noise, 6).cpu()
+        #     # moving_noise /= moving_noise.std() / 2
+        #     moving_noise = perlin_noise((n.shape[0], n.shape[-2], n.shape[-1]), (10, 8, 8))[:, None, ...]
+        #     moving_noise += gaussian_filter(n, 8) / 2.5
+        #     moving_noise /= moving_noise.std() / 1.5
+        #     noise[i] += (1 - mask) * moving_noise.cpu()
 
         print(i, noise[i].shape, noise[i].std())
     print()
 
     import ffmpeg
 
+    output_name = f"/home/hans/neurout/{args.ckpt.split('/')[-1].split('.')[0]}_{uuid.uuid4().hex[:8]}"
+
     video = (
         ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / args.duration, s="256x256")
-        .output(
-            "/home/hans/neurout/noise.mp4", framerate=len(latents) / args.duration, vcodec="libx264", preset="slow",
-        )
+        .output(f"{output_name}_noise.mp4", framerate=len(latents) / args.duration, vcodec="libx264", preset="slow",)
         .global_args("-benchmark", "-stats", "-hide_banner")
         .overwrite_output()
         .run_async(pipe_stdin=True)
     )
-    output = noise[-5].permute(0, 2, 3, 1).numpy()
+    print(
+        noise[3][:200].shape,
+        noise[3][-45:-15].shape,
+        noise[7][15:45].shape,
+        noise[7][260:460].shape,
+        noise[7][15:45].shape,
+        noise[12][15:45].shape,
+        noise[12][520:].shape,
+    )
+    # output = noise[-5].permute(0, 2, 3, 1).numpy()
+    output = th.cat(
+        [
+            F.interpolate(noise[3][:200], (256, 256)),
+            F.interpolate(th.cat([noise[3][[200]]] * 30, axis=0), (256, 256)),
+            F.interpolate(th.cat([noise[7][[260]]] * 30, axis=0), (256, 256)),
+            F.interpolate(noise[7][260:460], (256, 256)),
+            F.interpolate(th.cat([noise[7][[460]]] * 30, axis=0), (256, 256)),
+            F.interpolate(th.cat([noise[12][[520]]] * 30, axis=0), (256, 256)),
+            F.interpolate(noise[12][520:], (256, 256)),
+        ],
+        axis=0,
+    )
+    print(output.shape)
+    output = output.permute(0, 2, 3, 1).numpy()
+    print(output.shape)
     output = output / output.max()
     output = output - output.min()
     output = output * 255
@@ -324,6 +408,41 @@ if "main" in __name__:
         video.stdin.write(frame.tobytes())
     video.stdin.close()
     video.wait()
+    # video.close()
+
+    # video = (
+    #     ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / args.duration, s="23x23")
+    #     .output(f"{output_name}_latents.mp4", framerate=len(latents) / args.duration, vcodec="libx264", preset="slow",)
+    #     .global_args("-benchmark", "-stats", "-hide_banner")
+    #     .overwrite_output()
+    #     .run_async(pipe_stdin=True)
+    # )
+    # output = th.cat(
+    #     [
+    #         latents[: int(args.num_frames / 3), 0],  #                                lo
+    #         latents[-45:-15, 0],  #                                                      pause lo
+    #         latents[15:45, 7],  #                                                       pause mid
+    #         latents[60 + int(args.num_frames / 3) : 60 + int(2 * args.num_frames / 3), 7],  #   mid
+    #         latents[15:45, 7],  #                                                       pause mid
+    #         latents[15:45, 14],  #                                                      pause hit
+    #         latents[120 + int(2 * args.num_frames / 3) :, 14],  #                           hi
+    #     ],
+    #     axis=0,
+    # )
+    # print(output.shape)
+    # output = th.cat([output, th.zeros((len(latents), 17))], axis=1)
+    # print(output.shape)
+    # output = output.reshape((len(latents), 23, 23, 1)).numpy()
+    # print(output.shape)
+    # output = output / output.max()
+    # output = output - output.min()
+    # output = output * 255
+    # output = output.astype(np.uint8)
+    # output = np.concatenate([output] * 3, axis=3)
+    # for frame in output:
+    #     video.stdin.write(frame.tobytes())
+    # video.stdin.close()
+    # video.wait()
 
     # noise = []
     # if args.stylegan1:
@@ -417,5 +536,5 @@ if "main" in __name__:
         truncation=args.truncation,
         manipulations=manipulations,
         out_size=args.out_size,
-        output_file=f"/home/hans/neurout/{args.ckpt.split('/')[-1].split('.')[0]}-{uuid.uuid4().hex[:8]}.mp4",
+        output_file=f"{output_name}.mp4",
     )
