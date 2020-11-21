@@ -214,19 +214,14 @@ class ModulatedConv2d(nn.Module):
     def forward(self, inputs, style):
         batch, in_channel, height, width = inputs.shape
 
-        # print("modconv in", inputs.shape, style.shape)
         style = self.modulation(style).view(batch, 1, in_channel, 1, 1)
-        # print("modstyle", style.shape)
         weight = self.scale * self.weight * style
-        # print("w", weight.shape)
 
         if self.demodulate:
             demod = th.rsqrt(weight.pow(2).sum([2, 3, 4]) + 1e-8)
             weight = weight * demod.view(batch, self.out_channel, 1, 1, 1)
-            # print("w", weight.shape)
 
         weight = weight.view(batch * self.out_channel, in_channel, self.kernel_size, self.kernel_size)
-        # print("w", weight.shape)
 
         if self.upsample:
             inputs = inputs.view(1, batch * in_channel, height, width)
@@ -249,7 +244,6 @@ class ModulatedConv2d(nn.Module):
 
         else:
             inputs = inputs.view(1, batch * in_channel, height, width)
-            # print("conv in", inputs.shape, inputs.dtype, inputs.device)
             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
             _, _, height, width = out.shape
             out = out.view(batch, self.out_channel, height, width)
@@ -266,7 +260,6 @@ class NoiseInjection(nn.Module):
         if noise is None:
             batch, _, height, width = image.shape
             noise = image.new_empty(batch, 1, height, width).normal_()
-        # print(image.shape, self.weight.shape, noise.shape)
         return image + self.weight * noise.to(image.device)
 
 
@@ -306,14 +299,8 @@ class ManipulationLayer(th.nn.Module):
     def forward(self, input, tranforms_dict_list):
         out = input
         for transform_dict in tranforms_dict_list:
-            # if transform_dict["layer"] == -1:
-            #     self.save_activations(input, transform_dict["index"])
             if transform_dict["layer"] == self.layer:
-                # print(f"applying {transform_dict['transform']} on layer {self.layer}")
-                # print(out.shape)
                 out = transform_dict["transform"].to(out.device)(out)
-                # print(out.shape)
-                # print()
         return out
 
 
@@ -342,24 +329,14 @@ class StyledConv(nn.Module):
         )
 
         self.noise = NoiseInjection()
-        # self.bias = nn.Parameter(th.zeros(1, out_channel, 1, 1))
-        # self.activate = ScaledLeakyReLU(0.2)
         self.activate = FusedLeakyReLU(out_channel)
         self.manipulation = ManipulationLayer(layerID)
 
     def forward(self, inputs, style, noise=None, transform_dict_list=[]):
-        # print()
-        # print("styleconv in", inputs.shape, style.shape)
         out = self.conv(inputs, style)
-        # print("conv out", out.shape, noise.shape)
-        # out = self.noise(out, noise=self.manipulation(noise.cuda() if noise is not None else None, transform_dict_list))
         out = self.noise(out, noise=noise)
-        # out = out + self.bias
-        # print("noise out", out.shape)
         out = self.activate(out)
         out = self.manipulation(out, transform_dict_list)
-        # print("manip out", out.shape)
-        # print()
         return out
 
 
