@@ -119,6 +119,12 @@ if __name__ == "__main__":
     smf = args.fps / 43.066666  # smoothing factor, makes sure visual smoothness is independent of frame rate
 
     # generate audiovisual latents
+    try:
+        get_latents = __import__(args.audioreactive_file).get_latents
+    except:
+        print("No 'get_latents()' function found in --audioreactive_file, using default...")
+        get_latents = __import__("audioreactive_example").get_latents
+
     latent_selection = get_latent_selection(args.latent_file)
     if args.shuffle_latents:
         random_indices = random.sample(range(len(latent_selection)), len(latent_selection))
@@ -132,6 +138,12 @@ if __name__ == "__main__":
     print()
 
     # generate audiovisual noise
+    try:
+        get_noise = __import__(args.audioreactive_file).get_noise
+    except:
+        print("No 'get_noise()' function found in --audioreactive_file, using default...")
+        get_noise = __import__("audioreactive_example").get_noise
+
     print("noise:")
     noise = []
     log_min_res, range_min, range_max, exponent = get_noise_range(args.size, args.G_res, args.stylegan1)
@@ -146,15 +158,26 @@ if __name__ == "__main__":
     print()
 
     # generate audiovisual network bending manipulations
+    try:
+        get_bends = __import__(args.audioreactive_file).get_bends
+    except:
+        print("No 'get_bends()' function found in --audioreactive_file, using default...")
+        get_bends = __import__("audioreactive_example").get_bends
     bends = get_manipulations(main_audio)
 
     # generate audiovisual model rewriting manipulations
+    try:
+        get_rewrites = __import__(args.audioreactive_file).get_rewrites
+    except:
+        print("No 'get_rewrites()' function found in --audioreactive_file, using default...")
+        get_rewrites = __import__("audioreactive_example").get_rewrites
+
     rewrites = get_rewrites(main_audio)
 
     # render the given (latent, noise, bends, rewrites, truncation) interpolation
     checkpoint_title = args.ckpt.split("/")[-1].split(".")[0].lower()
     track_title = args.audio_file.split("/")[-1].split(".")[0].lower()
-    title = f"{output_dir}}/{track_title}_{checkpoint_title}_{uuid.uuid4().hex[:8]}.mp4"
+    title = f"{output_dir}/{track_title}_{checkpoint_title}_{uuid.uuid4().hex[:8]}.mp4"
 
     print(f"rendering {num_frames} frames...")
     render.render(
