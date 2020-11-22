@@ -435,7 +435,7 @@ def laplacian_segmentation(y, sr, k=5, plot=False):
 
 class NetworkBend(th.nn.Module):
     def __init__(self, sequential_fn, batch):
-        super(Manipulation, self).__init__()
+        super(NetworkBend, self).__init__()
         self.sequential = sequential_fn(batch)
 
     def forward(self, x):

@@ -48,9 +48,13 @@ def get_noise(audio, sr, num_frames, num_scales, height, width, scale):
     return noise.cpu()
 
 
-def get_bends(audio):
+def get_bends(audio, num_frames):
     return []
 
 
-def get_rewrites(audio):
+def get_rewrites(audio, num_frames):
     return {}
+
+
+def get_truncation(audio, num_frames):
+    return 1.0
