@@ -20,7 +20,7 @@ def render(
     out_size,
     output_file,
     audio_file=None,
-    truncation=1,
+    truncation=1.0,
     bends=[],
     rewrites={},
     randomize_noise=False,
@@ -57,7 +57,7 @@ def render(
                 ac=2,
                 v="warning",
             )
-            .global_args("-hide_banner")
+            .global_args("-benchmark", "-stats", "-hide_banner")
             .overwrite_output()
             .run_async(pipe_stdin=True)
         )
@@ -65,13 +65,14 @@ def render(
         video = (
             ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / duration, s=output_size)
             .output(output_file, framerate=len(latents) / duration, vcodec="libx264", preset="slow", v="warning",)
-            .global_args("-hide_banner")
+            .global_args("-benchmark", "-stats", "-hide_banner")
             .overwrite_output()
             .run_async(pipe_stdin=True)
         )
 
     # writes numpy frames to ffmpeg stdin as raw rgb24 bytes
     def make_video(jobs_in):
+        w, h = [int(dim) for dim in output_size.split("x")]
         for _ in range(len(latents)):
             img = jobs_in.get(timeout=10)
             if img.shape[1] == 2048:
@@ -79,9 +80,9 @@ def render(
                 im = PIL.Image.fromarray(img)
                 img = np.array(im.resize((1920, 1080), PIL.Image.BILINEAR))
             assert (
-                img.shape[1] == int(output_size.split("x")[1]) and img.shape[2] == int(output_size.split("x")[0]),
-                "generator's output image size does not match specified output size",
-            )
+                img.shape[1] == w and img.shape[0] == h
+            ), f"""generator's output image size does not match specified output size: \n
+                got: {img.shape[1]}x{img.shape[0]}\t\tshould be {output_size}"""
             video.stdin.write(img.tobytes())
             jobs_in.task_done()
         video.stdin.close()
@@ -133,7 +134,11 @@ def render(
 
         for param, rewrite in rewrites.items():
             rewritten_weight = rewrite(original_weights[param], n,).cuda(non_blocking=True)
-            setattr(generator, param, th.nn.Parameter(rewritten_weight))
+            param_attrs = param.split(".")
+            mod = generator
+            for attr in param_attrs[:-1]:
+                mod = getattr(mod, attr)
+            setattr(mod, param_attrs[-1], th.nn.Parameter(rewritten_weight))
 
         truncation_batch = truncation[n : n + batch_size] if not isinstance(truncation, float) else truncation
 

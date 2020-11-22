@@ -1,6 +1,7 @@
 import os, gc
 import time, uuid, json, math
 import argparse, random
+import cachetools, warnings
 
 import numpy as np
 import scipy
@@ -18,7 +19,6 @@ import librosa.display
 import torch as th
 import torch.nn.functional as F
 
-from functools import partial
 import kornia.augmentation as kA
 import kornia.geometry.transform as kT
 
@@ -28,7 +28,37 @@ from models.stylegan1 import G_style
 from models.stylegan2 import Generator
 
 
-def create_circular_mask(h, w, center=None, radius=None):
+CACHE = cachetools.LRUCache(maxsize=128)
+
+
+def subsample_hash(a):
+    rng = np.random.RandomState(42)
+    inds = rng.randint(low=0, high=a.size, size=int(a.size / 64))
+    b = a.flat[inds]
+    b.flags.writeable = False
+    return hash(b.data.tobytes())
+
+
+def lru_cache(func):
+    """
+    numpy friendly caching
+    https://github.com/alekk/lru_cache_numpy/blob/master/numpy_caching.py
+    """
+
+    def hashing_first_numpy_arg(*args, **kwargs):
+        """ sum up the hash of all the arguments """
+        hash_total = 0
+        for x in [*args, *kwargs.values()]:
+            if isinstance(x, np.ndarray):
+                hash_total += subsample_hash(x)
+            else:
+                hash_total += hash(x)
+        return hash_total
+
+    return cachetools.cached(CACHE, hashing_first_numpy_arg)(func)
+
+
+def create_circular_mask(h, w, center=None, radius=None, soft=0):
     if center is None:  # use the middle of the image
         center = (int(w / 2), int(h / 2))
     if radius is None:  # use the smallest distance between the center and image walls
@@ -36,14 +66,18 @@ def create_circular_mask(h, w, center=None, radius=None):
     Y, X = np.ogrid[:h, :w]
     dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
     mask = dist_from_center <= radius
+    if soft > 0:
+        import scipy.ndimage.filters as ndi
+
+        mask = ndi.gaussian_filter(mask, sigma=int(round(soft)))
     return th.from_numpy(mask)
 
 
-def interpolant(t):
+def perlinterpolant(t):
     return t * t * t * (t * (t * 6 - 15) + 10)
 
 
-def perlin_noise(shape, res, tileable=(True, False, False), interpolant=interpolant):
+def perlin_noise(shape, res, tileable=(True, False, False), interpolant=perlinterpolant):
     """Generate a 3D tensor of perlin noise.
     Args:
         shape: The shape of the generated tensor (tuple of three ints).
@@ -204,40 +238,66 @@ def plot_signals(signals, vlines=None):
 
 
 def plot_spectra(spectra, chroma=False):
-    fig, ax = plt.subplots(len(spectra), 1, figsize=(8, 3 * len(spectra)))
-    for sbplt, spectrum in enumerate(spectra):
-        rosa.display.specshow(spectrum, y_axis="chroma" if chroma else None, x_axis="time", ax=ax[sbplt])
+    fig, axes = plt.subplots(len(spectra), 1, figsize=(8, 3 * len(spectra)))
+    for ax, spectrum in zip(axes if len(spectra) > 1 else [axes], spectra):
+        rosa.display.specshow(spectrum, y_axis="chroma" if chroma else None, x_axis="time", ax=ax)
     plt.tight_layout()
     plt.show()
 
 
-def get_onsets(spec, fmin, fmax, smooth, clip, power):
-    log_filt_spec = mm.audio.spectrogram.FilteredSpectrogram(spec, num_bands=24, fmin=fmin, fmax=fmax)
-    onset = np.sum(
-        [
-            mm.features.onsets.spectral_diff(log_filt_spec),
-            mm.features.onsets.spectral_flux(log_filt_spec),
-            mm.features.onsets.superflux(log_filt_spec),
-            mm.features.onsets.complex_flux(log_filt_spec),
-            mm.features.onsets.modified_kullback_leibler(log_filt_spec),
-        ],
-        axis=0,
+def plot_audio(audio, sr):
+    rosa.display.specshow(
+        rosa.power_to_db(rosa.feature.melspectrogram(y=audio, sr=sr), ref=np.max), y_axis="mel", x_axis="time"
     )
+    plt.colorbar(format="%+2.f dB")
+    plt.tight_layout()
+    plt.show()
+
+
+@lru_cache
+def get_onsets(audio, sr, num_frames, fmin=20, fmax=16000, smooth=1, clip=100, power=1):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        y_perc = rosa.effects.percussive(y=audio)
+        sig = mm.audio.signal.Signal(y_perc, num_channels=1, sample_rate=sr)
+        sig_frames = mm.audio.signal.FramedSignal(sig, frame_size=2048, hop_size=441)
+        stft = mm.audio.stft.ShortTimeFourierTransform(sig_frames, ciruclar_shift=True)
+        spec = mm.audio.spectrogram.Spectrogram(stft, ciruclar_shift=True)
+        filt_spec = mm.audio.spectrogram.FilteredSpectrogram(spec, num_bands=24, fmin=fmin, fmax=fmax)
+        onset = np.sum(
+            [
+                mm.features.onsets.spectral_diff(filt_spec),
+                mm.features.onsets.spectral_flux(filt_spec),
+                mm.features.onsets.superflux(filt_spec),
+                mm.features.onsets.complex_flux(filt_spec),
+                mm.features.onsets.modified_kullback_leibler(filt_spec),
+            ],
+            axis=0,
+        )
     onset = np.clip(signal.resample(onset, num_frames), onset.min(), onset.max())
     onset = th.from_numpy(onset).float()
-    onset = gaussian_filter(onset, smooth * smf, causal=True)
+    onset = gaussian_filter(onset, smooth, causal=0.2)
     onset = percentile_clip(onset, clip)
     onset = onset ** power
     return onset
 
 
-def get_chroma(audio, num_frames):
-    y_harm = rosa.effects.harmonic(y=audio, margin=16)
+@lru_cache
+def get_chroma(audio, sr, num_frames, margin=16):
+    y_harm = rosa.effects.harmonic(y=audio, margin=margin)
     chroma = rosa.feature.chroma_cqt(y=y_harm, sr=sr)
     chroma = np.minimum(chroma, rosa.decompose.nn_filter(chroma, aggregate=np.median, metric="cosine")).T
     chroma = signal.resample(chroma, num_frames)
     chroma = th.from_numpy(chroma / chroma.sum(1)[:, None]).float()
     return chroma
+
+
+def compress(audio, threshold, ratio, invert=False):
+    if invert:
+        audio[audio < threshold] *= ratio
+    else:
+        audio[audio > threshold] *= ratio
+    return normalize(audio)
 
 
 def get_chroma_latents(chroma, base_latent_selection):
@@ -282,6 +342,7 @@ def get_gaussian_loops(base_latent_selection, loop_starting_latents, n_frames, n
     return base_latents
 
 
+@lru_cache
 def laplacian_segmentation(y, sr, k=5, plot=False):
     """
     Based on https://librosa.org/doc/latest/auto_examples/plot_segmentation.html#sphx-glr-auto-examples-plot-segmentation-py%22
@@ -381,9 +442,9 @@ class NetworkBend(th.nn.Module):
         return self.sequential(x)
 
 
-class addNoise(th.nn.Module):
+class AddNoise(th.nn.Module):
     def __init__(self, noise):
-        super(addNoise, self).__init__()
+        super(AddNoise, self).__init__()
         self.noise = noise
 
     def forward(self, x):
