@@ -2,7 +2,7 @@ import torch as th
 
 import audioreactive as ar
 
-OVERRIDE = dict(audio_file="audioreactive/wavefunk - temper.flac", size=1024)
+OVERRIDE = dict(audio_file="audioreactive/Wavefunk - Temper.mp3", size=1024)
 
 
 def get_latents(audio, sr, num_frames, selection):
