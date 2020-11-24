@@ -23,7 +23,7 @@ def get_latents(audio, sr, num_frames, selection):
 
 
 def get_noise(audio, sr, num_frames, num_scales, height, width, scale):
-    if height > 256:
+    if width > 256:
         return None
 
     lo_onsets = ar.get_onsets(audio, sr, num_frames, fmax=150, smooth=5, clip=97, power=2)
@@ -32,29 +32,14 @@ def get_noise(audio, sr, num_frames, num_scales, height, width, scale):
     lo_onsets = lo_onsets[:, None, None, None].cuda()
     hi_onsets = hi_onsets[:, None, None, None].cuda()
 
-    mask = ar.create_circular_mask(height, width, radius=int(width / 2), soft=2)[None, None, ...].float().cuda()
-
     noise_noisy = ar.gaussian_filter(th.randn((num_frames, 1, height, width), device="cuda"), 5)
-
     noise = ar.gaussian_filter(th.randn((num_frames, 1, height, width), device="cuda"), 128)
 
-    if height < 128:
-        noise = 2 * mask * lo_onsets * noise_noisy + (1 - mask) * (1 - lo_onsets) * noise
-    if height > 32:
-        noise = 0.75 * (1 - mask) * hi_onsets * noise_noisy + mask * (1 - 0.75 * hi_onsets) * noise
+    if width < 128:
+        noise = lo_onsets * noise_noisy + (1 - lo_onsets) * noise
+    if width > 32:
+        noise = hi_onsets * noise_noisy + (1 - hi_onsets) * noise
 
-    noise /= noise.std() * 2
+    noise /= noise.std() * 2.5
 
     return noise.cpu()
-
-
-def get_bends(audio, num_frames):
-    return []
-
-
-def get_rewrites(audio, num_frames):
-    return {}
-
-
-def get_truncation(audio, num_frames):
-    return 1.0

@@ -161,3 +161,23 @@ def render(
 
     splitter.join()
     renderer.join()
+
+
+def write_video(arr, output_file, fps):
+    print(f"writing {arr.shape[0]} frames...")
+
+    output_size = "x".join(reversed([str(s) for s in arr.shape[1:-1]]))
+
+    ffmpeg_proc = (
+        ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=fps, s=output_size)
+        .output(output_file, framerate=fps, vcodec="libx264", preset="slow", v="warning")
+        .global_args("-benchmark", "-stats", "-hide_banner")
+        .overwrite_output()
+        .run_async(pipe_stdin=True)
+    )
+
+    for frame in arr:
+        ffmpeg_proc.stdin.write(frame.astype(np.uint8).tobytes())
+
+    ffmpeg_proc.stdin.close()
+    ffmpeg_proc.wait()

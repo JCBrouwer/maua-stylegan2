@@ -37,19 +37,19 @@ def get_noise_range(size, generator_resolution, is_stylegan1):
     return range_min, range_max, side_fn
 
 
-def load_or_generate_latents(latent_file):
+def load_or_generate_latents(latent_file, G_res, size, noconst, latent_dim, n_mlp, channel_multiplier):
     try:
         latent_selection = th.from_numpy(np.load(latent_file))
     except:
         print("generating random latents...")
         generator = Generator(
-            args.G_res,
-            512,
-            8,
-            channel_multiplier=args.channel_multiplier,
-            constant_input=args.const,
-            checkpoint=args.ckpt,
-            output_size=args.size,
+            G_res,
+            latent_dim,
+            n_mlp,
+            channel_multiplier=channel_multiplier,
+            constant_input=not noconst,
+            checkpoint=ckpt,
+            output_size=size,
         ).cuda()
         styles = th.randn((12, 512), device="cuda")
         latent_selection = generator(styles, map_latents=True).cpu()
@@ -59,7 +59,7 @@ def load_or_generate_latents(latent_file):
     return latent_selection
 
 
-def load_generator(ckpt, is_stylegan1, G_res, size, const, latent_dim, n_mlp, channel_multiplier, dataparallel):
+def load_generator(ckpt, is_stylegan1, G_res, size, noconst, latent_dim, n_mlp, channel_multiplier, dataparallel):
     if is_stylegan1:
         generator = G_style(output_size=size, checkpoint=ckpt).cuda()
     else:
@@ -68,7 +68,7 @@ def load_generator(ckpt, is_stylegan1, G_res, size, const, latent_dim, n_mlp, ch
             latent_dim,
             n_mlp,
             channel_multiplier=channel_multiplier,
-            constant_input=const,
+            constant_input=not noconst,
             checkpoint=ckpt,
             output_size=size,
         ).cuda()
@@ -78,31 +78,31 @@ def load_generator(ckpt, is_stylegan1, G_res, size, const, latent_dim, n_mlp, ch
 
 
 def generate(
-    get_latents,
-    get_noise,
-    get_bends,
-    get_rewrites,
-    get_truncation,
     ckpt,
     audio_file,
-    output_dir,
-    audioreactive_file,
-    offset,
-    duration,
-    latent_file,
-    shuffle_latents,
-    G_res,
-    size,
-    fps,
-    batch,
-    dataparallel,
-    truncation,
-    stylegan1,
-    const,
-    latent_dim,
-    n_mlp,
-    channel_multiplier,
-    randomize_noise,
+    get_latents=None,
+    get_noise=None,
+    get_bends=None,
+    get_rewrites=None,
+    get_truncation=None,
+    output_dir="./output",
+    audioreactive_file="audioreactive/default.py",
+    offset=0,
+    duration=None,
+    latent_file=None,
+    shuffle_latents=False,
+    G_res=1024,
+    size=1024,
+    fps=30,
+    batch=8,
+    dataparallel=False,
+    truncation=1.0,
+    stylegan1=False,
+    noconst=True,
+    latent_dim=512,
+    n_mlp=8,
+    channel_multiplier=2,
+    randomize_noise=False,
 ):
     time_taken = time.time()
     th.set_grad_enabled(False)
@@ -117,8 +117,12 @@ def generate(
     # =========================== generate audiovisual latents ===========================
     # ====================================================================================
     print("generating latents...")
+    if get_latents is None:
+        from audioreactive.default import get_latents
 
-    latent_selection = load_or_generate_latents(latent_file)
+    latent_selection = load_or_generate_latents(
+        latent_file, G_res, size, noconst, latent_dim, n_mlp, channel_multiplier
+    )
     if shuffle_latents:
         random_indices = random.sample(range(len(latent_selection)), len(latent_selection))
         latent_selection = latent_selection[random_indices]
@@ -132,6 +136,8 @@ def generate(
     # ============================ generate audiovisual noise ============================
     # ====================================================================================
     print("generating noise...")
+    if get_noise is None:
+        from audioreactive.default import get_noise
 
     noise = []
     range_min, range_max, exponent = get_noise_range(size, G_res, stylegan1)
@@ -158,19 +164,25 @@ def generate(
     # ====================================================================================
     # ================ generate audiovisual network bending manipulations ================
     # ====================================================================================
-    print("generating network bends...")
-    bends = get_bends(audio=main_audio, num_frames=num_frames, duration=duration, fps=fps)
+    if get_bends is not None:
+        print("generating network bends...")
+        bends = get_bends(audio=main_audio, num_frames=num_frames, duration=duration, fps=fps)
+    else:
+        bends = []
 
     # ====================================================================================
     # ================ generate audiovisual model rewriting manipulations ================
     # ====================================================================================
-    print("generating model rewrites...")
-    rewrites = get_rewrites(audio=main_audio, num_frames=num_frames)
+    if get_rewrites is not None:
+        print("generating model rewrites...")
+        rewrites = get_rewrites(audio=main_audio, num_frames=num_frames)
+    else:
+        rewrites = {}
 
     # ====================================================================================
     # ========================== generate audiovisual truncation =========================
     # ====================================================================================
-    if truncation == "reactive":
+    if get_truncation is not None:
         print("generating truncation...")
         truncation = get_truncation(audio=main_audio)
     else:
@@ -179,30 +191,31 @@ def generate(
     # ====================================================================================
     # ==== render the given (latent, noise, bends, rewrites, truncation) interpolation ===
     # ====================================================================================
-    print(f"\npreprocessing took {time.time() - time_taken:.2f}s\n")
-    time_taken = time.time()
-
-    checkpoint_title = ckpt.split("/")[-1].split(".")[0].lower()
-    track_title = audio_file.split("/")[-1].split(".")[0].lower()
-    title = f"{output_dir}/{track_title}_{checkpoint_title}_{uuid.uuid4().hex[:8]}.mp4"
-
     ar.CACHE.clear()
     gc.collect()
     th.cuda.empty_cache()
 
+    generator = load_generator(
+        ckpt=ckpt,
+        is_stylegan1=stylegan1,
+        G_res=G_res,
+        size=size,
+        noconst=noconst,
+        latent_dim=latent_dim,
+        n_mlp=n_mlp,
+        channel_multiplier=channel_multiplier,
+        dataparallel=dataparallel,
+    )
+
+    print(f"\npreprocessing took {time.time() - time_taken:.2f}s\n")
+    time_taken = time.time()
+
     print(f"rendering {num_frames} frames...")
+    checkpoint_title = ckpt.split("/")[-1].split(".")[0].lower()
+    track_title = audio_file.split("/")[-1].split(".")[0].lower()
+    title = f"{output_dir}/{track_title}_{checkpoint_title}_{uuid.uuid4().hex[:8]}.mp4"
     render.render(
-        generator=load_generator(
-            ckpt=ckpt,
-            is_stylegan1=stylegan1,
-            G_res=G_res,
-            size=size,
-            const=const,
-            latent_dim=latent_dim,
-            n_mlp=n_mlp,
-            channel_multiplier=channel_multiplier,
-            dataparallel=dataparallel,
-        ),
+        generator=generator,
         latents=latents,
         noise=noise,
         audio_file=audio_file,
@@ -231,13 +244,13 @@ if __name__ == "__main__":
     parser.add_argument("--latent_file", type=str, default=None)
     parser.add_argument("--shuffle_latents", action="store_true")
     parser.add_argument("--G_res", type=int, default=1024)
-    parser.add_argument("--size", type=int, default=1920)
+    parser.add_argument("--size", type=int, default=1024)
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--batch", type=int, default=8)
     parser.add_argument("--dataparallel", action="store_true")
-    parser.add_argument("--truncation", default=1.0)
+    parser.add_argument("--truncation", type=float, default=1.0)
     parser.add_argument("--stylegan1", action="store_true")
-    parser.add_argument("--const", action="store_true")
+    parser.add_argument("--noconst", action="store_true")
     parser.add_argument("--latent_dim", type=int, default=512)
     parser.add_argument("--n_mlp", type=int, default=8)
     parser.add_argument("--channel_multiplier", type=int, default=2)
@@ -246,18 +259,24 @@ if __name__ == "__main__":
 
     modnames = args.audioreactive_file.replace(".py", "").replace("/", ".").split(".")
 
-    func_names = ["get_latents", "get_noise", "get_bends", "get_rewrites"]
-    if args.truncation == "reactive":
-        func_names += "get_truncation"
-    else:
-        funcs = {"get_truncation": None}
+    func_names = ["get_latents", "get_noise", "get_bends", "get_rewrites", "get_truncation"]
+    funcs = {}
     for func in func_names:
         try:
             file = __import__(".".join(modnames[:-1]), fromlist=[modnames[-1]]).__dict__[modnames[-1]]
             funcs[func] = getattr(file, func)
         except:
             print(f"No '{func}' function found in --audioreactive_file, using default...")
-            file = __import__("audioreactive", fromlist=["default"]).__dict__["default"]
-            funcs[func] = getattr(file, func)
+            funcs[func] = None
 
-    generate(**funcs, **vars(args))
+    arg_dict = vars(args)
+    try:
+        file = __import__(".".join(modnames[:-1]), fromlist=["OVERRIDE"]).__dict__["OVERRIDE"]
+        for arg, val in getattr(file, "OVERRIDE").items():
+            arg_dict[arg] = val
+    except:
+        pass  # no overrides, just continue
+    ckpt = arg_dict.pop("ckpt", None)
+    audio_file = arg_dict.pop("audio_file", None)
+    generate(ckpt=ckpt, audio_file=audio_file, **funcs, **arg_dict)
+

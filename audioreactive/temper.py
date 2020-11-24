@@ -2,6 +2,8 @@ import torch as th
 
 import audioreactive as ar
 
+OVERRIDE = dict(audio_file="audioreactive/wavefunk - temper.flac", size=1024)
+
 
 def get_latents(audio, sr, num_frames, selection):
     chroma = ar.get_chroma(audio, sr, num_frames)
@@ -14,7 +16,7 @@ def get_latents(audio, sr, num_frames, selection):
     lo_onsets = lo_onsets[:, None, None]
     hi_onsets = hi_onsets[:, None, None]
 
-    latents = hi_onsets * selection[[-4]] + (1 - hi_onsets) * latents
+    latents = hi_onsets * selection[[-4]] + (1 - hi_onsets) * latentsdataparallel=True
     latents = lo_onsets * selection[[-7]] + (1 - lo_onsets) * latents
 
     latents = ar.gaussian_filter(latents, 2, causal=0.2)
@@ -23,7 +25,7 @@ def get_latents(audio, sr, num_frames, selection):
 
 
 def get_noise(audio, sr, num_frames, num_scales, height, width, scale):
-    if height > 256:
+    if width > 256:
         return None
 
     lo_onsets = ar.get_onsets(audio, sr, num_frames, fmax=150, smooth=5, clip=97, power=2)
@@ -38,19 +40,11 @@ def get_noise(audio, sr, num_frames, num_scales, height, width, scale):
 
     noise = ar.gaussian_filter(th.randn((num_frames, 1, height, width), device="cuda"), 128)
 
-    if height < 128:
+    if width < 128:
         noise = 2 * mask * lo_onsets * noise_noisy + (1 - mask) * (1 - lo_onsets) * noise
-    if height > 32:
+    if width > 32:
         noise = 0.75 * (1 - mask) * hi_onsets * noise_noisy + mask * (1 - 0.75 * hi_onsets) * noise
 
     noise /= noise.std() * 2
 
     return noise.cpu()
-
-
-def get_bends(audio, num_frames):
-    return []
-
-
-def get_rewrites(audio, num_frames):
-    return {}
