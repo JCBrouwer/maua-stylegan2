@@ -81,6 +81,7 @@ def generate(
     n_mlp=8,
     channel_multiplier=2,
     randomize_noise=False,
+    args={},
 ):
     time_taken = time.time()
     th.set_grad_enabled(False)
@@ -88,8 +89,12 @@ def generate(
     if duration is None:
         duration = rosa.get_duration(filename=audio_file)
     n_frames = int(round(duration * fps))
+    args.duration = duration
+    args.n_frames = n_frames
 
     audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
+    args.audio = audio
+    args.sr = sr
 
     # ====================================================================================
     # =========================== generate audiovisual latents ===========================
@@ -101,13 +106,15 @@ def generate(
     if latent_file is not None:
         latent_selection = ar.load_latents(latent_file)
     else:
-        latent_selection = ar.generate_latents(ckpt, G_res, out_size, noconst, latent_dim, n_mlp, channel_multiplier)
+        latent_selection = ar.generate_latents(
+            12, ckpt, G_res, out_size, noconst, latent_dim, n_mlp, channel_multiplier
+        )
     if shuffle_latents:
         random_indices = random.sample(range(len(latent_selection)), len(latent_selection))
         latent_selection = latent_selection[random_indices]
     np.save("workspace/last-latents.npy", latent_selection.numpy())
 
-    latents = get_latents(audio=audio, sr=sr, n_frames=n_frames, selection=latent_selection).cpu()
+    latents = get_latents(selection=latent_selection, args=args).cpu()
 
     print(f"{list(latents.shape)} amplitude={latents.std()}\n")
 
@@ -124,17 +131,7 @@ def generate(
         h = 2 ** exponent(scale)
         w = (2 if out_size == 1920 else 1) * 2 ** exponent(scale)
 
-        noise.append(
-            get_noise(
-                audio=audio,
-                sr=sr,
-                n_frames=n_frames,
-                height=h,
-                width=w,
-                scale=scale - range_min,
-                num_scales=range_max - range_min,
-            )
-        )
+        noise.append(get_noise(height=h, width=w, scale=scale - range_min, num_scales=range_max - range_min, args=args))
 
         if noise[-1] is not None:
             print(list(noise[-1].shape), f"amplitude={noise[-1].std()}")
@@ -145,7 +142,7 @@ def generate(
     # ====================================================================================
     if get_bends is not None:
         print("generating network bends...")
-        bends = get_bends(audio=audio, n_frames=n_frames, duration=duration, fps=fps)
+        bends = get_bends(args=args)
     else:
         bends = []
 
@@ -154,7 +151,7 @@ def generate(
     # ====================================================================================
     if get_rewrites is not None:
         print("generating model rewrites...")
-        rewrites = get_rewrites(audio=audio, n_frames=n_frames)
+        rewrites = get_rewrites(args=args)
     else:
         rewrites = {}
 
@@ -163,7 +160,7 @@ def generate(
     # ====================================================================================
     if get_truncation is not None:
         print("generating truncation...")
-        truncation = get_truncation(audio=audio)
+        truncation = get_truncation(args=args)
     else:
         truncation = float(truncation)
 
@@ -250,12 +247,15 @@ if __name__ == "__main__":
 
     arg_dict = vars(args)
     try:
-        file = __import__(".".join(modnames[:-1]), fromlist=["OVERRIDE"]).__dict__["OVERRIDE"]
+        file = __import__(".".join(modnames[:-1]), fromlist=[modnames[-1]]).__dict__[modnames[-1]]
         for arg, val in getattr(file, "OVERRIDE").items():
             arg_dict[arg] = val
+            setattr(args, arg, val)
     except:
         pass  # no overrides, just continue
+
     ckpt = arg_dict.pop("ckpt", None)
     audio_file = arg_dict.pop("audio_file", None)
-    generate(ckpt=ckpt, audio_file=audio_file, **funcs, **arg_dict)
+    ar.SMF = args.fps / 43.066666
+    generate(ckpt=ckpt, audio_file=audio_file, **funcs, **arg_dict, args=args)
 

@@ -1,3 +1,4 @@
+import math
 from functools import partial
 
 import numpy as np
@@ -8,114 +9,99 @@ import kornia.geometry.transform as kT
 
 import audioreactive as ar
 
-OVERRIDE = dict(audio_file="audioreactive/examples/Wavefunk - Tau Ceti Alpha.mp3", out_size=1920, dataparallel=False)
+OVERRIDE = dict(
+    audio_file="audioreactive/examples/Wavefunk - Dwelling in the Kelp.mp3", out_size=1920, dataparallel=False
+)
 
-duration = rosa.get_duration(filename=OVERRIDE["audio_file"])
-drop_start = int(5591 * (45 / duration))
-drop_end = int(5591 * (135 / duration))
+bpm = 130
 
 
-def get_latents(audio, sr, n_frames, selection):
-    chroma = ar.get_chroma(audio, sr, n_frames)
-    chroma_latents = ar.get_chroma_latents(chroma, selection[:12])
-    latents = ar.gaussian_filter(chroma_latents, 5)
+def get_latents(selection, args):
+    low_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmax=100, smooth=5, clip=95, power=1).clone()
+    low_onsets = ar.compress(low_onsets, 0.3, 4)
+    low_onsets = ar.percentile_clip(low_onsets, 90)
+    low_onsets = ar.gaussian_filter(low_onsets, 1.5, causal=True)
+    low_onsets = ar.normalize(low_onsets)
+    low_onsets = low_onsets[:, None, None]
 
-    low_onsets = ar.get_onsets(audio, sr, n_frames, fmax=150, smooth=5, clip=97, power=2)
-    high_onsets = ar.get_onsets(audio, sr, n_frames, fmin=500, smooth=5, clip=99, power=2)
-    lo_onsets = low_onsets[:, None, None]
-    hi_onsets = high_onsets[:, None, None]
+    high_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmin=500, smooth=5, clip=95, power=1).clone()
+    high_onsets = ar.compress(high_onsets, 0.6, 3)
+    high_onsets = ar.percentile_clip(high_onsets, 90)
+    high_onsets = ar.gaussian_filter(high_onsets, 1.5, causal=True)
+    high_onsets = ar.normalize(high_onsets)
+    high_onsets = high_onsets[:, None, None]
 
-    latents = hi_onsets * selection[[-4]] + (1 - hi_onsets) * latents
-    latents = lo_onsets * selection[[-7]] + (1 - lo_onsets) * latents
+    ar.plot_signals([low_onsets[:2500], high_onsets[:2500]])
 
-    latents = ar.gaussian_filter(latents, 5, causal=0)
+    timestamps, labels = ar.laplacian_segmentation(args.audio, args.sr, k=7)
 
-    color_layer = 9
-    color_latent_selection = th.from_numpy(np.load("workspace/cyphept-multicolor-latents.npy"))
+    drop_selection = th.from_numpy(np.load("workspace/cyphept_kelp_drop_latents.npy"))
 
-    color_latents = [latents[:drop_start, color_layer:]]
+    rms = ar.rms(args.audio, args.sr, args.n_frames, fmin=20, fmax=200, smooth=180, clip=55, power=4)
+    rms = rms[:, None, None]
 
-    drop_length = drop_end - drop_start
-    section_length = int(drop_length / 4)
-    for i, section_start in enumerate(range(0, drop_length, section_length)):
-        if i > 3:
-            break
-        color_latents.append(th.cat([color_latent_selection[[i], color_layer:]] * section_length))
+    color_layer = 12
 
-    if drop_length - 4 * section_length != 0:
-        color_latents.append(th.cat([color_latent_selection[[i], color_layer:]] * (drop_length - 4 * section_length)))
-    color_latents.append(latents[drop_end:, color_layer:])
-    color_latents = th.cat(color_latents, axis=0)
+    latents = []
+    for (start, stop), l in zip(zip(timestamps, timestamps[1:]), labels):
+        start_frame = int(round(start / args.duration * args.n_frames))
+        stop_frame = int(round(stop / args.duration * args.n_frames))
+        section_frames = stop_frame - start_frame
+        section_bars = (stop - start) * (bpm / 60) / 4
 
-    color_latents = ar.gaussian_filter(color_latents, 5)
+        latent_selection_slice = ar.wrapping_slice(selection, l, 4)
+        latent_section = ar.get_spline_loops(latent_selection_slice, section_frames, section_bars / 4)
+        latent_section[:, color_layer:] = th.cat([selection[[l], color_layer:]] * section_frames)
 
-    latents[:, color_layer:] = color_latents
+        drop_selection_slice = ar.wrapping_slice(drop_selection, l, 4)
+        drop_section = ar.get_spline_loops(drop_selection_slice, section_frames, section_bars / 2)
+        drop_section[:, color_layer:] = th.cat([drop_selection[[l], color_layer:]] * section_frames)
 
+        latents.append((1 - rms[start_frame:stop_frame]) * latent_section + rms[start_frame:stop_frame] * drop_section)
+    latents = th.cat(latents).float()
+    latents = ar.gaussian_filter(latents, 5)
+
+    latents = high_onsets * selection[[1]] + (1 - high_onsets) * latents
+    latents = low_onsets * selection[[2]] + (1 - low_onsets) * latents
+
+    latents = ar.gaussian_filter(latents, 1, causal=0.2)
     return latents
 
 
-def get_noise(audio, sr, n_frames, num_scales, height, width, scale):
+def get_noise(height, width, scale, num_scales, args):
     if width > 256:
         return None
 
-    low_onsets = 1.25 * ar.get_onsets(audio, sr, n_frames, fmax=150, smooth=5, clip=97, power=2)
-    high_onsets = 1.25 * ar.get_onsets(audio, sr, n_frames, fmin=500, smooth=5, clip=99, power=2)
-    lo_onsets = low_onsets[:, None, None, None].cuda()
-    hi_onsets = high_onsets[:, None, None, None].cuda()
+    low_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmax=100, smooth=5, clip=95, power=1).clone()
+    low_onsets = ar.compress(low_onsets, 0.3, 4)
+    low_onsets = ar.percentile_clip(low_onsets, 90)
+    low_onsets = ar.gaussian_filter(low_onsets, 1.5, causal=True)
+    low_onsets = ar.normalize(low_onsets)
+    low_onsets = low_onsets[:, None, None, None].cuda()
 
-    noise_noisy = ar.gaussian_filter(th.randn((n_frames, 1, height, width), device="cuda"), 5)
+    high_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmin=500, smooth=5, clip=95, power=1).clone()
+    high_onsets = ar.compress(high_onsets, 0.6, 3)
+    high_onsets = ar.percentile_clip(high_onsets, 90)
+    high_onsets = ar.gaussian_filter(high_onsets, 1.5, causal=True)
+    high_onsets = ar.normalize(high_onsets)
+    high_onsets = high_onsets[:, None, None, None].cuda()
 
-    noise = ar.gaussian_filter(th.randn((n_frames, 1, height, width), device="cuda"), 128)
+    noise_noisy = ar.gaussian_filter(th.randn((args.n_frames, 1, height, width), device="cuda"), 5)
+
+    noise = ar.gaussian_filter(th.randn((args.n_frames, 1, height, width), device="cuda"), 128)
     if width > 8:
-        noise = lo_onsets * noise_noisy + (1 - lo_onsets) * noise
-        noise = hi_onsets * noise_noisy + (1 - hi_onsets) * noise
+        noise = low_onsets * noise_noisy + (1 - low_onsets) * noise
+        noise = high_onsets * noise_noisy + (1 - high_onsets) * noise
 
     noise /= noise.std() * 2.5
 
     return noise.cpu()
 
 
-def get_bends(audio, n_frames, duration, fps):
+def get_bends(args):
     transform = th.nn.Sequential(
         th.nn.ReplicationPad2d((2, 2, 0, 0)), ar.AddNoise(0.025 * th.randn(size=(1, 1, 4, 8), device="cuda")),
     )
     bends = [{"layer": 0, "transform": transform}]
-
-    tl = 4
-    width = 2 * 2 ** tl
-    smooth_noise = 0.2 * th.randn(size=(1, 1, 2 ** int(tl), 5 * width), device="cuda")
-
-    class Translate(ar.NetworkBend):
-        def __init__(self, layer, batch):
-            layer_h = 2 ** int(layer)
-            layer_w = 2 * 2 ** int(layer)
-            sequential_fn = lambda b: th.nn.Sequential(
-                th.nn.ReflectionPad2d((int(layer_w / 2), int(layer_w / 2), 0, 0)),
-                th.nn.ReflectionPad2d((layer_w, layer_w, 0, 0)),
-                th.nn.ReflectionPad2d((layer_w, 0, 0, 0)),
-                ar.AddNoise(smooth_noise),
-                kT.Translate(b),
-                kA.CenterCrop((layer_h, layer_w)),
-            )
-            super(Translate, self).__init__(sequential_fn, batch)
-
-    scroll_loop_length = int(6 * fps)
-    scroll_loop_num = int((drop_end - drop_start) / scroll_loop_length)
-    scroll_trunc = (drop_end - drop_start) - scroll_loop_num * scroll_loop_length
-
-    intro_tl8 = np.zeros(drop_start)
-    loops_tl8 = np.concatenate([np.linspace(0, width, scroll_loop_length)] * scroll_loop_num)
-    last_loop_tl8 = np.linspace(0, width, scroll_loop_length)[:scroll_trunc]
-    outro_tl8 = np.ones(n_frames - drop_end) * np.linspace(0, width, scroll_loop_length)[scroll_trunc + 1]
-    x_tl8 = np.concatenate([intro_tl8, loops_tl8, last_loop_tl8, outro_tl8])
-    y_tl8 = np.zeros(n_frames)
-    translation = (th.tensor([x_tl8, y_tl8]).float().T)[:n_frames]
-
-    translation.T[0, drop_start - fps : drop_start + fps] = ar.gaussian_filter(
-        translation.T[0, drop_start - 5 * fps : drop_start + 5 * fps], 5
-    )[4 * fps : -4 * fps]
-
-    transform = lambda batch: partial(Translate, tl)(batch)
-    bends += [{"layer": tl, "transform": transform, "modulation": translation}]
 
     return bends

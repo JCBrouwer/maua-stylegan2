@@ -5,13 +5,13 @@ import audioreactive as ar
 OVERRIDE = dict(audio_file="audioreactive/examples/Wavefunk - Temper.mp3", out_size=1024)
 
 
-def get_latents(audio, sr, n_frames, selection):
-    chroma = ar.get_chroma(audio, sr, n_frames)
+def get_latents(selection, args):
+    chroma = ar.chroma(args.audio, args.sr, args.n_frames)
     chroma_latents = ar.get_chroma_latents(chroma, selection)
     latents = ar.gaussian_filter(chroma_latents, 4)
 
-    lo_onsets = ar.get_onsets(audio, sr, n_frames, fmax=150, smooth=5, clip=97, power=2)
-    hi_onsets = ar.get_onsets(audio, sr, n_frames, fmin=500, smooth=5, clip=99, power=2)
+    lo_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmax=150, smooth=5, clip=97, power=2)
+    hi_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmin=500, smooth=5, clip=99, power=2)
 
     lo_onsets = lo_onsets[:, None, None]
     hi_onsets = hi_onsets[:, None, None]
@@ -24,21 +24,21 @@ def get_latents(audio, sr, n_frames, selection):
     return latents
 
 
-def get_noise(audio, sr, n_frames, num_scales, height, width, scale):
+def get_noise(height, width, scale, num_scales, args):
     if width > 256:
         return None
 
-    lo_onsets = ar.get_onsets(audio, sr, n_frames, fmax=150, smooth=5, clip=97, power=2)
-    hi_onsets = ar.get_onsets(audio, sr, n_frames, fmin=500, smooth=5, clip=99, power=2)
+    lo_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmax=150, smooth=5, clip=97, power=2)
+    hi_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmin=500, smooth=5, clip=99, power=2)
 
     lo_onsets = lo_onsets[:, None, None, None].cuda()
     hi_onsets = hi_onsets[:, None, None, None].cuda()
 
     mask = ar.create_circular_mask(height, width, radius=int(width / 2), soft=2)[None, None, ...].float().cuda()
 
-    noise_noisy = ar.gaussian_filter(th.randn((n_frames, 1, height, width), device="cuda"), 5)
+    noise_noisy = ar.gaussian_filter(th.randn((args.n_frames, 1, height, width), device="cuda"), 5)
 
-    noise = ar.gaussian_filter(th.randn((n_frames, 1, height, width), device="cuda"), 128)
+    noise = ar.gaussian_filter(th.randn((args.n_frames, 1, height, width), device="cuda"), 128)
 
     if width < 128:
         noise = 2 * mask * lo_onsets * noise_noisy + (1 - mask) * (1 - lo_onsets) * noise
