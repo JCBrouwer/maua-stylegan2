@@ -1,2 +1,2 @@
 from .lib import *
-from . import *
+from .examples import *

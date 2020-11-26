@@ -23,8 +23,8 @@ from models.stylegan2 import Generator
 import audioreactive as ar
 
 
-def get_noise_range(size, generator_resolution, is_stylegan1):
-    log_max_res = int(np.log2(size))
+def get_noise_range(out_size, generator_resolution, is_stylegan1):
+    log_max_res = int(np.log2(out_size))
     log_min_res = 2 + (log_max_res - int(np.log2(generator_resolution)))
     if is_stylegan1:
         range_min = log_min_res
@@ -37,31 +37,9 @@ def get_noise_range(size, generator_resolution, is_stylegan1):
     return range_min, range_max, side_fn
 
 
-def load_or_generate_latents(latent_file, G_res, size, noconst, latent_dim, n_mlp, channel_multiplier):
-    try:
-        latent_selection = th.from_numpy(np.load(latent_file))
-    except:
-        print("generating random latents...")
-        generator = Generator(
-            G_res,
-            latent_dim,
-            n_mlp,
-            channel_multiplier=channel_multiplier,
-            constant_input=not noconst,
-            checkpoint=ckpt,
-            output_size=size,
-        ).cuda()
-        styles = th.randn((12, 512), device="cuda")
-        latent_selection = generator(styles, map_latents=True).cpu()
-        del generator, styles
-        gc.collect()
-        th.cuda.empty_cache()
-    return latent_selection
-
-
-def load_generator(ckpt, is_stylegan1, G_res, size, noconst, latent_dim, n_mlp, channel_multiplier, dataparallel):
+def load_generator(ckpt, is_stylegan1, G_res, out_size, noconst, latent_dim, n_mlp, channel_multiplier, dataparallel):
     if is_stylegan1:
-        generator = G_style(output_size=size, checkpoint=ckpt).cuda()
+        generator = G_style(output_size=out_size, checkpoint=ckpt).cuda()
     else:
         generator = Generator(
             G_res,
@@ -70,7 +48,7 @@ def load_generator(ckpt, is_stylegan1, G_res, size, noconst, latent_dim, n_mlp, 
             channel_multiplier=channel_multiplier,
             constant_input=not noconst,
             checkpoint=ckpt,
-            output_size=size,
+            output_size=out_size,
         ).cuda()
     if dataparallel:
         generator = th.nn.DataParallel(generator)
@@ -86,13 +64,13 @@ def generate(
     get_rewrites=None,
     get_truncation=None,
     output_dir="./output",
-    audioreactive_file="audioreactive/default.py",
+    audioreactive_file="audioreactive/examples/default.py",
     offset=0,
     duration=None,
     latent_file=None,
     shuffle_latents=False,
     G_res=1024,
-    size=1024,
+    out_size=1024,
     fps=30,
     batch=8,
     dataparallel=False,
@@ -109,9 +87,9 @@ def generate(
 
     if duration is None:
         duration = rosa.get_duration(filename=audio_file)
-    num_frames = int(round(duration * fps))
+    n_frames = int(round(duration * fps))
 
-    main_audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
+    audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
 
     # ====================================================================================
     # =========================== generate audiovisual latents ===========================
@@ -120,15 +98,16 @@ def generate(
     if get_latents is None:
         from audioreactive.default import get_latents
 
-    latent_selection = load_or_generate_latents(
-        latent_file, G_res, size, noconst, latent_dim, n_mlp, channel_multiplier
-    )
+    if latent_file is not None:
+        latent_selection = ar.load_latents(latent_file)
+    else:
+        latent_selection = ar.generate_latents(ckpt, G_res, out_size, noconst, latent_dim, n_mlp, channel_multiplier)
     if shuffle_latents:
         random_indices = random.sample(range(len(latent_selection)), len(latent_selection))
         latent_selection = latent_selection[random_indices]
     np.save("workspace/last-latents.npy", latent_selection.numpy())
 
-    latents = get_latents(audio=main_audio, sr=sr, num_frames=num_frames, selection=latent_selection).cpu()
+    latents = get_latents(audio=audio, sr=sr, n_frames=n_frames, selection=latent_selection).cpu()
 
     print(f"{list(latents.shape)} amplitude={latents.std()}\n")
 
@@ -140,20 +119,20 @@ def generate(
         from audioreactive.default import get_noise
 
     noise = []
-    range_min, range_max, exponent = get_noise_range(size, G_res, stylegan1)
+    range_min, range_max, exponent = get_noise_range(out_size, G_res, stylegan1)
     for scale in range(range_min, range_max):
         h = 2 ** exponent(scale)
-        w = (2 if size == 1920 else 1) * 2 ** exponent(scale)
+        w = (2 if out_size == 1920 else 1) * 2 ** exponent(scale)
 
         noise.append(
             get_noise(
-                audio=main_audio,
+                audio=audio,
                 sr=sr,
-                num_frames=num_frames,
-                num_scales=range_max - range_min,
+                n_frames=n_frames,
                 height=h,
                 width=w,
                 scale=scale - range_min,
+                num_scales=range_max - range_min,
             )
         )
 
@@ -166,7 +145,7 @@ def generate(
     # ====================================================================================
     if get_bends is not None:
         print("generating network bends...")
-        bends = get_bends(audio=main_audio, num_frames=num_frames, duration=duration, fps=fps)
+        bends = get_bends(audio=audio, n_frames=n_frames, duration=duration, fps=fps)
     else:
         bends = []
 
@@ -175,7 +154,7 @@ def generate(
     # ====================================================================================
     if get_rewrites is not None:
         print("generating model rewrites...")
-        rewrites = get_rewrites(audio=main_audio, num_frames=num_frames)
+        rewrites = get_rewrites(audio=audio, n_frames=n_frames)
     else:
         rewrites = {}
 
@@ -184,7 +163,7 @@ def generate(
     # ====================================================================================
     if get_truncation is not None:
         print("generating truncation...")
-        truncation = get_truncation(audio=main_audio)
+        truncation = get_truncation(audio=audio)
     else:
         truncation = float(truncation)
 
@@ -199,7 +178,7 @@ def generate(
         ckpt=ckpt,
         is_stylegan1=stylegan1,
         G_res=G_res,
-        size=size,
+        out_size=out_size,
         noconst=noconst,
         latent_dim=latent_dim,
         n_mlp=n_mlp,
@@ -210,7 +189,7 @@ def generate(
     print(f"\npreprocessing took {time.time() - time_taken:.2f}s\n")
     time_taken = time.time()
 
-    print(f"rendering {num_frames} frames...")
+    print(f"rendering {n_frames} frames...")
     checkpoint_title = ckpt.split("/")[-1].split(".")[0].lower()
     track_title = audio_file.split("/")[-1].split(".")[0].lower()
     title = f"{output_dir}/{track_title}_{checkpoint_title}_{uuid.uuid4().hex[:8]}.mp4"
@@ -225,7 +204,7 @@ def generate(
         truncation=truncation,
         bends=bends,
         rewrites=rewrites,
-        out_size=size,
+        out_size=out_size,
         output_file=title,
         randomize_noise=randomize_noise,
     )
@@ -238,13 +217,13 @@ if __name__ == "__main__":
     parser.add_argument("--ckpt", type=str)
     parser.add_argument("--audio_file", type=str)
     parser.add_argument("--output_dir", type=str, default="./output")
-    parser.add_argument("--audioreactive_file", type=str, default="audioreactive/default.py")
+    parser.add_argument("--audioreactive_file", type=str, default="audioreactive/examples/default.py")
     parser.add_argument("--offset", type=float, default=0)
     parser.add_argument("--duration", default=None)
     parser.add_argument("--latent_file", type=str, default=None)
     parser.add_argument("--shuffle_latents", action="store_true")
     parser.add_argument("--G_res", type=int, default=1024)
-    parser.add_argument("--size", type=int, default=1024)
+    parser.add_argument("--out_size", type=int, default=1024)
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--batch", type=int, default=8)
     parser.add_argument("--dataparallel", action="store_true")

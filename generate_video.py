@@ -176,7 +176,7 @@ if "main" in __name__:
     parser.add_argument("--G_res", type=int, default=1024)
     parser.add_argument("--out_size", type=int, default=1024)
     parser.add_argument("--batch", type=int, default=12)
-    parser.add_argument("--num_frames", type=int, default=24 * 30)
+    parser.add_argument("--n_frames", type=int, default=24 * 30)
     parser.add_argument("--duration", type=int, default=24)
     parser.add_argument("--const", type=bool, default=False)
     parser.add_argument("--channel_multiplier", type=int, default=2)
@@ -220,20 +220,20 @@ if "main" in __name__:
         styles = th.randn((args.duration, 512), device="cuda")
         styles = generator(styles, map_latents=True)
 
-    latents = th.cat([styles[[0]]] * args.num_frames, axis=0)
+    latents = th.cat([styles[[0]]] * args.n_frames, axis=0)
 
     # moving_low = get_spline_loops(
-    #     styles1.cpu(), 0, int(args.num_frames / 3), num_loops=1, smoothing=1, s=args.slerp
+    #     styles1.cpu(), 0, int(args.n_frames / 3), num_loops=1, smoothing=1, s=args.slerp
     # ).cuda()[:, :5]
     # moving_mid = get_spline_loops(
-    #     styles2.cpu(), 0, int(args.num_frames / 3), num_loops=1, smoothing=1, s=args.slerp
+    #     styles2.cpu(), 0, int(args.n_frames / 3), num_loops=1, smoothing=1, s=args.slerp
     # ).cuda()[:, 5:10]
     # moving_hi = get_spline_loops(
-    #     styles3.cpu(), 0, int(args.num_frames / 3), num_loops=1, smoothing=1, s=args.slerp
+    #     styles3.cpu(), 0, int(args.n_frames / 3), num_loops=1, smoothing=1, s=args.slerp
     # ).cuda()[:, 10:]
-    # static_low = th.cat([moving_low[[0]]] * int(args.num_frames / 3), axis=0)
-    # static_mid = th.cat([moving_mid[[0]]] * int(args.num_frames / 3), axis=0)
-    # static_hi = th.cat([moving_hi[[0]]] * int(args.num_frames / 3), axis=0)
+    # static_low = th.cat([moving_low[[0]]] * int(args.n_frames / 3), axis=0)
+    # static_mid = th.cat([moving_mid[[0]]] * int(args.n_frames / 3), axis=0)
+    # static_hi = th.cat([moving_hi[[0]]] * int(args.n_frames / 3), axis=0)
 
     # print(
     #     th.cat([moving_low, static_mid, static_hi], axis=1).shape,
@@ -419,13 +419,13 @@ if "main" in __name__:
     # )
     # output = th.cat(
     #     [
-    #         latents[: int(args.num_frames / 3), 0],  #                                lo
+    #         latents[: int(args.n_frames / 3), 0],  #                                lo
     #         latents[-45:-15, 0],  #                                                      pause lo
     #         latents[15:45, 7],  #                                                       pause mid
-    #         latents[60 + int(args.num_frames / 3) : 60 + int(2 * args.num_frames / 3), 7],  #   mid
+    #         latents[60 + int(args.n_frames / 3) : 60 + int(2 * args.n_frames / 3), 7],  #   mid
     #         latents[15:45, 7],  #                                                       pause mid
     #         latents[15:45, 14],  #                                                      pause hit
-    #         latents[120 + int(2 * args.num_frames / 3) :, 14],  #                           hi
+    #         latents[120 + int(2 * args.n_frames / 3) :, 14],  #                           hi
     #     ],
     #     axis=0,
     # )
@@ -449,12 +449,12 @@ if "main" in __name__:
     #     for s in range(log_min_res, log_max_res + 1):
     #         h = 2 ** s
     #         w = (2 if args.out_size == 1920 else 1) * 2 ** s
-    #         noise.append(np.random.normal(size=(args.num_frames, 1, h, w)))
+    #         noise.append(np.random.normal(size=(args.n_frames, 1, h, w)))
     # else:
     #     for s in range(2 * log_min_res + 1, 2 * (log_max_res + 1), 1):
     #         h = 2 ** int(s / 2)
     #         w = (2 if args.out_size == 1920 else 1) * 2 ** int(s / 2)
-    #         noise.append(np.random.normal(size=(args.num_frames, 1, h, w)))
+    #         noise.append(np.random.normal(size=(args.n_frames, 1, h, w)))
 
     # print("noise shapes: ")
     # for i, n in enumerate(noise):
@@ -482,7 +482,7 @@ if "main" in __name__:
             {
                 "layer": 0,
                 "transform": th.nn.Sequential(
-                    *reflects, addNoise(2 * th.randn(size=(1, 1, 2 ** log_min_res, 2 ** log_min_res), device="cuda"))
+                    *reflects, addNoise(2 * th.randn(size=(1, 1, 2 ** log_min_res, 2 ** log_min_res), device="cuda")),
                 ),
             }
         ]
@@ -490,7 +490,7 @@ if "main" in __name__:
     # tl = 4
     # width = lambda s: (2 if args.out_size == 1920 else 1) * 2 ** int(s)
     # translation = (
-    #     th.tensor([np.linspace(0, width(tl), args.num_frames + 1), np.zeros((args.num_frames + 1,))]).float().T[:-1]
+    #     th.tensor([np.linspace(0, width(tl), args.n_frames + 1), np.zeros((args.n_frames + 1,))]).float().T[:-1]
     # )
     # manipulations += [{"layer": tl, "transform": "translateX", "params": translation}]
 
@@ -498,16 +498,16 @@ if "main" in __name__:
     # print(
     #     th.cat(
     #         [
-    #             th.linspace(-1, 3, int(args.num_frames / 2)),
-    #             th.linspace(3, -1, args.num_frames - int(args.num_frames / 2)) + 1,
+    #             th.linspace(-1, 3, int(args.n_frames / 2)),
+    #             th.linspace(3, -1, args.n_frames - int(args.n_frames / 2)) + 1,
     #         ]
     #     ).shape
     # )
     # zoom = gaussian_filter(
     #     th.cat(
     #         [
-    #             th.linspace(0, 3, int(args.num_frames / 2), dtype=th.float32, device="cuda"),
-    #             th.linspace(3, 0, args.num_frames - int(args.num_frames / 2), dtype=th.float32, device="cuda") + 1,
+    #             th.linspace(0, 3, int(args.n_frames / 2), dtype=th.float32, device="cuda"),
+    #             th.linspace(3, 0, args.n_frames - int(args.n_frames / 2), dtype=th.float32, device="cuda") + 1,
     #         ]
     #     )[:, None, None],
     #     30,
@@ -520,7 +520,7 @@ if "main" in __name__:
     # manipulations += [{"layer": zl, "transform": "zoom", "params": zoom}]
 
     # rl = 6
-    # rotation = th.nn.Sigmoid()(th.tensor(np.linspace(0.0, 1.0, args.num_frames + 1), device="cuda").float())
+    # rotation = th.nn.Sigmoid()(th.tensor(np.linspace(0.0, 1.0, args.n_frames + 1), device="cuda").float())
     # rotation -= rotation.min()
     # rotation /= rotation.max()
     # rotation = rotation[:-1]

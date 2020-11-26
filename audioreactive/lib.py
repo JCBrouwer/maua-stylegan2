@@ -39,6 +39,28 @@ def subsample_hash(a):
     return hash(b.data.tobytes())
 
 
+def generate_latents(ckpt, G_res, out_size, noconst=False, latent_dim=512, n_mlp=8, channel_multiplier=2):
+    generator = Generator(
+        G_res,
+        latent_dim,
+        n_mlp,
+        channel_multiplier=channel_multiplier,
+        constant_input=not noconst,
+        checkpoint=ckpt,
+        output_size=out_size,
+    ).cuda()
+    zs = th.randn((12, 512), device="cuda")
+    latent_selection = generator(zs, map_latents=True).cpu()
+    del generator, zs
+    gc.collect()
+    th.cuda.empty_cache()
+    return latent_selection
+
+
+def load_latents(latent_file):
+    return th.from_numpy(np.load(latent_file))
+
+
 def lru_cache(func):
     """
     numpy friendly caching
@@ -255,7 +277,7 @@ def plot_audio(audio, sr):
 
 
 @lru_cache
-def get_onsets(audio, sr, num_frames, fmin=20, fmax=16000, smooth=1, clip=100, power=1):
+def get_onsets(audio, sr, n_frames, fmin=20, fmax=16000, smooth=1, clip=100, power=1):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         y_perc = rosa.effects.percussive(y=audio)
@@ -274,7 +296,7 @@ def get_onsets(audio, sr, num_frames, fmin=20, fmax=16000, smooth=1, clip=100, p
             ],
             axis=0,
         )
-    onset = np.clip(signal.resample(onset, num_frames), onset.min(), onset.max())
+    onset = np.clip(signal.resample(onset, n_frames), onset.min(), onset.max())
     onset = th.from_numpy(onset).float()
     onset = gaussian_filter(onset, smooth, causal=0.2)
     onset = percentile_clip(onset, clip)
@@ -283,11 +305,11 @@ def get_onsets(audio, sr, num_frames, fmin=20, fmax=16000, smooth=1, clip=100, p
 
 
 @lru_cache
-def get_chroma(audio, sr, num_frames, margin=16):
+def get_chroma(audio, sr, n_frames, margin=16):
     y_harm = rosa.effects.harmonic(y=audio, margin=margin)
     chroma = rosa.feature.chroma_cqt(y=y_harm, sr=sr)
     chroma = np.minimum(chroma, rosa.decompose.nn_filter(chroma, aggregate=np.median, metric="cosine")).T
-    chroma = signal.resample(chroma, num_frames)
+    chroma = signal.resample(chroma, n_frames)
     chroma = th.from_numpy(chroma / chroma.sum(1)[:, None]).float()
     return chroma
 
@@ -319,7 +341,7 @@ def get_spline_loops(base_latent_selection, n_frames, num_loops, loop=True):
             base_latents[:, lay, lat] = interpolate.splev(x, tck)
 
     base_latents = th.cat([th.from_numpy(base_latents)] * int(n_frames / len(base_latents)), axis=0)
-    base_latents = th.cat([base_latents, base_latents[0 : num_frames - len(base_latents)]])
+    base_latents = th.cat([base_latents, base_latents[0 : n_frames - len(base_latents)]])
     return base_latents
 
 
@@ -338,7 +360,7 @@ def get_gaussian_loops(base_latent_selection, loop_starting_latents, n_frames, n
     base_latents = gaussian_filter(base_latents, smoothing * smf)
     base_latents = th.cat([base_latents] * int(n_frames / len(base_latents)), axis=0)
     base_latents = th.cat([base_latents[:, None, :]] * 18, axis=1)
-    base_latents = th.cat([base_latents, base_latents[0 : num_frames - len(base_latents)],])
+    base_latents = th.cat([base_latents, base_latents[0 : n_frames - len(base_latents)],])
     return base_latents
 
 

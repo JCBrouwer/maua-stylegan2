@@ -331,7 +331,6 @@ if __name__ == "__main__":
             base_latent_selection = np.concatenate([base_latent_selection, base_latent_selection[[0]]])
 
         x = np.linspace(0, 1, int(n_frames // max(1, num_loops)))
-        # print(int(n_frames // max(1, num_loops)), num_loops, int(n_frames // max(1, num_loops) * num_loops))
         base_latents = np.zeros((len(x), *base_latent_selection.shape[1:]))
         for lay in range(base_latent_selection.shape[1]):
             for lat in range(base_latent_selection.shape[2]):
@@ -342,7 +341,6 @@ if __name__ == "__main__":
 
         base_latents = th.cat([th.from_numpy(base_latents)] * int(n_frames / len(base_latents)), axis=0)
         base_latents = th.cat([base_latents, base_latents[0 : num_frames - len(base_latents)],])
-        # print(base_latents.shape)
         return base_latents
 
     def get_latent_loops(base_latent_selection, loop_starting_latents, n_frames, num_loops, smoothing):
