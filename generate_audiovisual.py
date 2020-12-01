@@ -1,27 +1,30 @@
-import os, gc
-import time, uuid, json, math
-import argparse, random
+import argparse
+import gc
+import json
+import math
+import os
+import random
+import time
+import traceback
+import uuid
+import warnings
 
+import librosa as rosa
+import librosa.display
+import madmom as mm
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy
 import scipy.signal as signal
 import sklearn.cluster
-
-import matplotlib.pyplot as plt
-
-import madmom as mm
-import librosa as rosa
-import librosa.display
-
 import torch as th
 import torch.nn.functional as F
 
-import render
+import audioreactive as ar
 import generate
+import render
 from models.stylegan1 import G_style
 from models.stylegan2 import Generator
-import audioreactive as ar
-import traceback
 
 
 def get_noise_range(out_size, generator_resolution, is_stylegan1):
@@ -96,7 +99,9 @@ def generate(
     args.duration = duration
     args.n_frames = n_frames
 
-    audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="PySoundFile failed. Trying audioread instead.")
+        audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
     args.audio = audio
     args.sr = sr
 
@@ -253,7 +258,10 @@ if __name__ == "__main__":
             print(f"No '{func}' function found in --audioreactive_file, using default...")
             funcs[func] = None
         except:
-            traceback.print_exc()
+            if funcs.get(func, "error") == "error":
+                print("Error while loading --audioreactive_file...")
+                traceback.print_exc()
+                exit(1)
 
     # override with args from the OVERRIDE dict in the specified file
     arg_dict = vars(args)
@@ -262,10 +270,8 @@ if __name__ == "__main__":
         for arg, val in getattr(file, "OVERRIDE").items():
             arg_dict[arg] = val
             setattr(args, arg, val)
-    except AttributeError as error:
-        pass  # no overrides, just continue
     except:
-        traceback.print_exc()
+        pass  # no overrides, just continue
 
     # ensures smoothing is independent of frame rate
     ar.SMF = args.fps / 43.066666  # 43.0666 is the default frame rate of librosa audio features

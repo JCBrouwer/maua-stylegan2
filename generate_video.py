@@ -1,19 +1,18 @@
+import argparse
 import gc
 import math
-import uuid
 import numbers
-import argparse
+import uuid
 
 import numpy as np
 import scipy.ndimage as ndi
-
 import torch as th
-import torch.nn.functional as F
 import torch.multiprocessing as mp
+import torch.nn.functional as F
 
-from render import render
-from models.stylegan2 import Generator
 from models.stylegan1 import G_style
+from models.stylegan2 import Generator
+from render import render
 
 
 def gaussian_filter(x, sigma):

@@ -1,13 +1,12 @@
 # from https://github.com/lernapparat/lernapparat/blob/master/style_gan/pyth_style_gan.ipynb
 
 import gc
+from collections import OrderedDict
 
+import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-
-from collections import OrderedDict
-import numpy as np
 
 
 class MyLinear(nn.Module):

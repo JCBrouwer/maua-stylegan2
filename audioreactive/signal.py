@@ -1,65 +1,37 @@
-import os, gc
-import time, uuid, json, math
-import argparse, random
-import cachetools, warnings
+import argparse
+import gc
+import json
+import math
+import os
+import random
+import time
+import uuid
+import warnings
 
-import numpy as np
-import scipy
-from scipy import interpolate
-import scipy.signal as signal
-import sklearn.cluster
-
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
-import madmom as mm
-import librosa as rosa
-import librosa.display
-
-import torch as th
-import torch.nn.functional as F
-
+import cachetools
 import kornia.augmentation as kA
 import kornia.geometry.transform as kT
+import librosa as rosa
+import librosa.display
+import madmom as mm
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy
+import scipy.signal as signal
+import sklearn.cluster
+import torch as th
+import torch.nn.functional as F
+from scipy import interpolate
 
-import render
 import generate
+import render
 from models.stylegan1 import G_style
 from models.stylegan2 import Generator
 
 from .util import *
 
 SMF = 30 / 43.066666  # ensures smoothing is independent of frame rate
-# CACHE = cachetools.LRUCache(maxsize=128)
-# USE_CACHE = False
-
-
-# def subsample_hash(a):
-#     rng = np.random.RandomState(42)
-#     inds = rng.randint(low=0, high=a.size, size=int(a.size / 64))
-#     b = a.flat[inds]
-#     b.flags.writeable = False
-#     return hash(b.data.tobytes())
-
-
-# def lru_cache(func):
-#     """
-#     numpy friendly caching
-#     https://github.com/alekk/lru_cache_numpy/blob/master/numpy_caching.py
-#     """
-
-#     def hashing_first_numpy_arg(*args, **kwargs):
-#         """ sum up the hash of all the arguments """
-#         hash_total = 0
-#         for x in [*args, *kwargs.values()]:
-#             if isinstance(x, np.ndarray):
-#                 hash_total += subsample_hash(x)
-#             else:
-#                 hash_total += hash(x)
-#         print("caching")
-#         return hash_total
-
-#     return cachetools.cached(CACHE, hashing_first_numpy_arg)(func)
 
 
 # ====================================================================================
@@ -67,29 +39,26 @@ SMF = 30 / 43.066666  # ensures smoothing is independent of frame rate
 # ====================================================================================
 
 
-# @lru_cache
 def onsets(audio, sr, n_frames, margin=8, fmin=20, fmax=8000, smooth=1, clip=100, power=1, type="mm"):
     y_perc = rosa.effects.percussive(y=audio, margin=margin)
     if type == "rosa":
         onset = rosa.onset.onset_strength(y=y_perc, sr=sr, fmin=fmin, fmax=fmax)
     elif type == "mm":
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            sig = mm.audio.signal.Signal(y_perc, num_channels=1, sample_rate=sr)
-            sig_frames = mm.audio.signal.FramedSignal(sig, frame_size=2048, hop_size=441)
-            stft = mm.audio.stft.ShortTimeFourierTransform(sig_frames, ciruclar_shift=True)
-            spec = mm.audio.spectrogram.Spectrogram(stft, ciruclar_shift=True)
-            filt_spec = mm.audio.spectrogram.FilteredSpectrogram(spec, num_bands=24, fmin=fmin, fmax=fmax)
-            onset = np.sum(
-                [
-                    mm.features.onsets.spectral_diff(filt_spec),
-                    mm.features.onsets.spectral_flux(filt_spec),
-                    mm.features.onsets.superflux(filt_spec),
-                    mm.features.onsets.complex_flux(filt_spec),
-                    mm.features.onsets.modified_kullback_leibler(filt_spec),
-                ],
-                axis=0,
-            )
+        sig = mm.audio.signal.Signal(y_perc, num_channels=1, sample_rate=sr)
+        sig_frames = mm.audio.signal.FramedSignal(sig, frame_size=2048, hop_size=441)
+        stft = mm.audio.stft.ShortTimeFourierTransform(sig_frames, circular_shift=True)
+        spec = mm.audio.spectrogram.Spectrogram(stft, circular_shift=True)
+        filt_spec = mm.audio.spectrogram.FilteredSpectrogram(spec, num_bands=24, fmin=fmin, fmax=fmax)
+        onset = np.sum(
+            [
+                mm.features.onsets.spectral_diff(filt_spec),
+                mm.features.onsets.spectral_flux(filt_spec),
+                mm.features.onsets.superflux(filt_spec),
+                mm.features.onsets.complex_flux(filt_spec),
+                mm.features.onsets.modified_kullback_leibler(filt_spec),
+            ],
+            axis=0,
+        )
     onset = np.clip(signal.resample(onset, n_frames), onset.min(), onset.max())
     onset = th.from_numpy(onset).float()
     onset = gaussian_filter(onset, smooth, causal=True)
@@ -98,7 +67,6 @@ def onsets(audio, sr, n_frames, margin=8, fmin=20, fmax=8000, smooth=1, clip=100
     return onset
 
 
-# @lru_cache
 def rms(y, sr, n_frames, fmin=20, fmax=8000, smooth=180, clip=50, power=6):
     y_filt = signal.sosfilt(signal.butter(12, [fmin, fmax], "bp", fs=sr, output="sos"), y)
     rms = rosa.feature.rms(S=np.abs(rosa.stft(y=y_filt, hop_length=512)))[0]
@@ -110,7 +78,6 @@ def rms(y, sr, n_frames, fmin=20, fmax=8000, smooth=180, clip=50, power=6):
     return rms
 
 
-# @lru_cache
 def raw_chroma(audio, sr, type="cens", nearest_neighbor=True):
     if type == "cens":
         ch = rosa.feature.chroma_cens(y=audio, sr=sr)
@@ -134,7 +101,6 @@ def raw_chroma(audio, sr, type="cens", nearest_neighbor=True):
     return ch
 
 
-# @lru_cache
 def chroma(audio, sr, n_frames, margin=16, type="cens", top_k=12):
     y_harm = rosa.effects.harmonic(y=audio, margin=margin)
     chroma = raw_chroma(y_harm, sr, type=type).T
@@ -145,7 +111,6 @@ def chroma(audio, sr, n_frames, margin=16, type="cens", top_k=12):
     return chroma
 
 
-# @lru_cache
 def laplacian_segmentation(y, sr, k=5, plot=False):
     """
     Based on https://librosa.org/doc/latest/auto_examples/plot_segmentation.html#sphx-glr-auto-examples-plot-segmentation-py%22

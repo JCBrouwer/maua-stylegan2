@@ -16,11 +16,10 @@ def get_latents(selection, args):
     chroma_latents = ar.get_chroma_latents(chroma, selection)
     latents = ar.gaussian_filter(chroma_latents, 4)
 
-
     lo_onsets = args.lo_onsets[:, None, None]
     hi_onsets = args.hi_onsets[:, None, None]
 
-    latents = hi_onsets * selection[[-4]] + (1 - hi_onsets) * latentsdataparallel=True
+    latents = hi_onsets * selection[[-4]] + (1 - hi_onsets) * latents
     latents = lo_onsets * selection[[-7]] + (1 - lo_onsets) * latents
 
     latents = ar.gaussian_filter(latents, 2, causal=0.2)

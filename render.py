@@ -1,10 +1,11 @@
-import uuid
 import queue
-import ffmpeg
-import PIL.Image
-import numpy as np
-import torch as th
+import uuid
 from threading import Thread
+
+import ffmpeg
+import numpy as np
+import PIL.Image
+import torch as th
 
 th.set_grad_enabled(False)
 th.backends.cudnn.benchmark = True

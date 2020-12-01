@@ -1,9 +1,12 @@
-import os, sys
-import torch as th
+import os
+import sys
 from copy import copy
+
+import torch as th
 import torch.nn.functional as F
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
 from op import FusedLeakyReLU
 
 

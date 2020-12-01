@@ -1,39 +1,32 @@
 import argparse
+import gc
 import math
+import os
 import random
-import os, gc, sys
+import sys
 import time
 
 import numpy as np
 import torch as th
+import torch.distributed as dist
+import wandb
+from contrastive_learner import ContrastiveLearner, RandomApply
+from kornia import augmentation as augs
+from scipy.ndimage import gaussian_filter
 from torch import nn
 from torch.nn import functional as F
 from torch.utils import data
-import torch.distributed as dist
 from torchvision import transforms, utils
 from tqdm import tqdm
-from scipy.ndimage import gaussian_filter
 
-import wandb
 import validation
-
-from models.stylegan2 import Generator, Discriminator
+from augment import augment
 from dataset import MultiResolutionDataset
-from distributed import (
-    get_rank,
-    synchronize,
-    reduce_loss_dict,
-    reduce_sum,
-    get_world_size,
-)
+from distributed import get_rank, get_world_size, reduce_loss_dict, reduce_sum, synchronize
+from lookahead_minimax import LookaheadMinimax
+from models.stylegan2 import Discriminator, Generator
 
 sys.path.insert(0, "../lookahead_minimax")
-from lookahead_minimax import LookaheadMinimax
-
-from contrastive_learner import ContrastiveLearner, RandomApply
-from kornia import augmentation as augs
-
-from augment import augment
 
 
 def data_sampler(dataset, shuffle, distributed):
@@ -321,6 +314,16 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
             pbar.set_description(description)
 
             if i % args.checkpoint_every == 0:
+                check_name = "-".join(
+                    [
+                        args.name,
+                        args.runname,
+                        wandb.run.dir.split("/")[-1].split("-")[-1],
+                        int(fid),
+                        args.size,
+                        str(i).zfill(6),
+                    ]
+                )
                 th.save(
                     {
                         "g": g_module.state_dict(),
@@ -330,7 +333,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                         "g_optim": g_optim.state_dict(),
                         "d_optim": d_optim.state_dict(),
                     },
-                    f"/home/hans/modelzoo/maua-sg2/{args.name}-{args.runname}-{wandb.run.dir.split('/')[-1].split('-')[-1]}-{int(fid)}-{args.size}-{str(i).zfill(6)}.pt",
+                    f"/home/hans/modelzoo/maua-sg2/{check_name}.pt",
                 )
 
 
