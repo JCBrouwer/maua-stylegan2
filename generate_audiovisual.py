@@ -102,7 +102,7 @@ def generate(
     # ====================================================================================
     # =========================== generate audiovisual latents ===========================
     # ====================================================================================
-    print("generating latents...")
+    print("\ngenerating latents...")
     if get_latents is None:
         from audioreactive.default import get_latents
 
@@ -215,8 +215,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt", type=str)
     parser.add_argument("--audio_file", type=str)
-    parser.add_argument("--output_dir", type=str, default="./output")
     parser.add_argument("--audioreactive_file", type=str, default="audioreactive/examples/default.py")
+    parser.add_argument("--output_dir", type=str, default="./output")
     parser.add_argument("--offset", type=float, default=0)
     parser.add_argument("--duration", default=None)
     parser.add_argument("--latent_file", type=str, default=None)
