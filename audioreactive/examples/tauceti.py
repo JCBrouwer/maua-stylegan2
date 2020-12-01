@@ -10,15 +10,19 @@ import audioreactive as ar
 OVERRIDE = dict(audio_file="audioreactive/examples/Wavefunk - Tau Ceti Alpha.mp3", out_size=1920, dataparallel=False)
 
 
+def initialize(args):
+    args.low_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmax=150, smooth=5, clip=97, power=2)
+    args.high_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmin=500, smooth=5, clip=99, power=2)
+    return args
+
+
 def get_latents(selection, args):
     chroma = ar.chroma(args.audio, args.sr, args.n_frames)
-    chroma_latents = ar.get_chroma_latents(chroma, selection[:12])
+    chroma_latents = ar.get_chroma_latents(chroma, selection[:12])  # shape [n_frames, 18, 512]
     latents = ar.gaussian_filter(chroma_latents, 5)
 
-    low_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmax=150, smooth=5, clip=97, power=2)
-    high_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmin=500, smooth=5, clip=99, power=2)
-    lo_onsets = low_onsets[:, None, None]
-    hi_onsets = high_onsets[:, None, None]
+    lo_onsets = args.low_onsets[:, None, None]  # expand to same shape as latents [n_frames, 1, 1]
+    hi_onsets = args.high_onsets[:, None, None]
 
     latents = hi_onsets * selection[[-4]] + (1 - hi_onsets) * latents
     latents = lo_onsets * selection[[-7]] + (1 - lo_onsets) * latents
@@ -56,10 +60,8 @@ def get_noise(height, width, scale, num_scales, args):
     if width > 256:
         return None
 
-    low_onsets = 1.25 * ar.onsets(args.audio, args.sr, args.n_frames, fmax=150, smooth=5, clip=97, power=2)
-    high_onsets = 1.25 * ar.onsets(args.audio, args.sr, args.n_frames, fmin=500, smooth=5, clip=99, power=2)
-    lo_onsets = low_onsets[:, None, None, None].cuda()
-    hi_onsets = high_onsets[:, None, None, None].cuda()
+    lo_onsets = 1.25 * args.low_onsets[:, None, None, None].cuda()
+    hi_onsets = 1.25 * args.high_onsets[:, None, None, None].cuda()
 
     noise_noisy = ar.gaussian_filter(th.randn((args.n_frames, 1, height, width), device="cuda"), 5)
 
@@ -99,24 +101,7 @@ def get_bends(args):
     )[4 * args.fps : -4 * args.fps]
 
     tl = 4
-    width = 2 * 2 ** tl
-    smooth_noise = 0.2 * th.randn(size=(1, 1, 2 ** int(tl), 5 * width), device="cuda")
-
-    class Translate(ar.NetworkBend):
-        def __init__(self, layer, batch):
-            layer_h = 2 ** int(layer)
-            layer_w = 2 * 2 ** int(layer)
-            sequential_fn = lambda b: th.nn.Sequential(
-                th.nn.ReflectionPad2d((int(layer_w / 2), int(layer_w / 2), 0, 0)),
-                th.nn.ReflectionPad2d((layer_w, layer_w, 0, 0)),
-                th.nn.ReflectionPad2d((layer_w, 0, 0, 0)),
-                ar.AddNoise(smooth_noise),
-                kT.Translate(b),
-                kA.CenterCrop((layer_h, layer_w)),
-            )
-            super(Translate, self).__init__(sequential_fn, batch)
-
-    transform = lambda batch: partial(Translate, tl)(batch)
+    transform = lambda batch: partial(ar.Translate, h=2 ** tl, w=2 * 2 ** tl)(batch)
     bends += [{"layer": tl, "transform": transform, "modulation": translation}]
 
     return bends

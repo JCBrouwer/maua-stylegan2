@@ -45,10 +45,10 @@ def slerp(val, low, high):
     return np.sin((1.0 - val) * omega) / so * low + np.sin(val * omega) / so * high
 
 
-def get_gaussian_loops(base_latent_selection, loop_starting_latents, n_frames, num_loops, smoothing):
+def get_gaussian_loops(base_latent_selection, loop_starting_latents, n_frames, n_loops, smoothing):
     base_latents = []
     for n in range(len(base_latent_selection)):
-        for val in np.linspace(0.0, 1.0, int(n_frames // max(1, num_loops) // len(base_latent_selection))):
+        for val in np.linspace(0.0, 1.0, int(n_frames // max(1, n_loops) // len(base_latent_selection))):
             base_latents.append(
                 slerp(
                     val,
@@ -65,11 +65,11 @@ def get_gaussian_loops(base_latent_selection, loop_starting_latents, n_frames, n
     return base_latents
 
 
-def get_spline_loops(base_latent_selection, n_frames, num_loops, loop=True):
+def get_spline_loops(base_latent_selection, n_frames, n_loops, loop=True):
     if loop:
         base_latent_selection = np.concatenate([base_latent_selection, base_latent_selection[[0]]])
 
-    x = np.linspace(0, 1, int(n_frames // max(1, num_loops)))
+    x = np.linspace(0, 1, int(n_frames // max(1, n_loops)))
     base_latents = np.zeros((len(x), *base_latent_selection.shape[1:]))
     for lay in range(base_latent_selection.shape[1]):
         for lat in range(base_latent_selection.shape[2]):
@@ -196,4 +196,6 @@ def perlin_noise(shape, res, tileable=(True, False, False), interpolant=perlinte
     n11 = n011 * (1 - t[:, :, :, 0]) + t[:, :, :, 0] * n111
     n0 = (1 - t[:, :, :, 1]) * n00 + t[:, :, :, 1] * n10
     n1 = (1 - t[:, :, :, 1]) * n01 + t[:, :, :, 1] * n11
-    return (1 - t[:, :, :, 2]) * n0 + t[:, :, :, 2] * n1
+    perlin = (1 - t[:, :, :, 2]) * n0 + t[:, :, :, 2] * n1
+    return perlin * 2 - 1  # stretch from -1 to 1
+

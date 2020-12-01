@@ -62,7 +62,7 @@ class Translate(NetworkBend):
             th.nn.ReflectionPad2d((int(w / 2), int(w / 2), 0, 0)),
             th.nn.ReflectionPad2d((w, w, 0, 0)),
             th.nn.ReflectionPad2d((w, 0, 0, 0)),
-            AddNoise(th.randn((1, 1, h, w), device="cuda")),
+            AddNoise(th.randn((1, 1, h, 5 * w), device="cuda")),
             kT.Translate(b),
             kA.CenterCrop((h, w)),
         )

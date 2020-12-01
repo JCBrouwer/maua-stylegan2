@@ -21,9 +21,11 @@ import generate
 from models.stylegan1 import G_style
 from models.stylegan2 import Generator
 import audioreactive as ar
+import traceback
 
 
 def get_noise_range(out_size, generator_resolution, is_stylegan1):
+    """Gets the correct number of noise resolutions for a given resolution of StyleGAN 1 or 2"""
     log_max_res = int(np.log2(out_size))
     log_min_res = 2 + (log_max_res - int(np.log2(generator_resolution)))
     if is_stylegan1:
@@ -38,6 +40,7 @@ def get_noise_range(out_size, generator_resolution, is_stylegan1):
 
 
 def load_generator(ckpt, is_stylegan1, G_res, out_size, noconst, latent_dim, n_mlp, channel_multiplier, dataparallel):
+    """Loads a StyleGAN 1 or 2 generator"""
     if is_stylegan1:
         generator = G_style(output_size=out_size, checkpoint=ckpt).cuda()
     else:
@@ -58,6 +61,7 @@ def load_generator(ckpt, is_stylegan1, G_res, out_size, noconst, latent_dim, n_m
 def generate(
     ckpt,
     audio_file,
+    initialize=None,
     get_latents=None,
     get_noise=None,
     get_bends=None,
@@ -95,6 +99,9 @@ def generate(
     audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
     args.audio = audio
     args.sr = sr
+
+    if initialize is not None:
+        args = initialize(args)
 
     # ====================================================================================
     # =========================== generate audiovisual latents ===========================
@@ -167,7 +174,6 @@ def generate(
     # ====================================================================================
     # ==== render the given (latent, noise, bends, rewrites, truncation) interpolation ===
     # ====================================================================================
-    ar.CACHE.clear()
     gc.collect()
     th.cuda.empty_cache()
 
@@ -231,40 +237,42 @@ if __name__ == "__main__":
     parser.add_argument("--n_mlp", type=int, default=8)
     parser.add_argument("--channel_multiplier", type=int, default=2)
     parser.add_argument("--randomize_noise", action="store_true")
-    parser.add_argument("--cache", action="store_true")
     args = parser.parse_args()
 
+    # transform file path to python module string
     modnames = args.audioreactive_file.replace(".py", "").replace("/", ".").split(".")
 
-    func_names = ["get_latents", "get_noise", "get_bends", "get_rewrites", "get_truncation"]
+    # try to load each of the standard functions from the specified file
+    func_names = ["initialize", "get_latents", "get_noise", "get_bends", "get_rewrites", "get_truncation"]
     funcs = {}
     for func in func_names:
         try:
             file = __import__(".".join(modnames[:-1]), fromlist=[modnames[-1]]).__dict__[modnames[-1]]
             funcs[func] = getattr(file, func)
-        except:
+        except AttributeError as error:
             print(f"No '{func}' function found in --audioreactive_file, using default...")
             funcs[func] = None
+        except:
+            traceback.print_exc()
 
+    # override with args from the OVERRIDE dict in the specified file
     arg_dict = vars(args)
     try:
         file = __import__(".".join(modnames[:-1]), fromlist=[modnames[-1]]).__dict__[modnames[-1]]
         for arg, val in getattr(file, "OVERRIDE").items():
             arg_dict[arg] = val
             setattr(args, arg, val)
-    except:
+    except AttributeError as error:
         pass  # no overrides, just continue
+    except:
+        traceback.print_exc()
 
-    ar.SMF = args.fps / 43.066666
-    if not arg_dict.pop("cache", False):
-
-        def no_cache(f):
-            print("no cache")
-            return f
-
-        ar.lru_cache = no_cache
+    # ensures smoothing is independent of frame rate
+    ar.SMF = args.fps / 43.066666  # 43.0666 is the default frame rate of librosa audio features
 
     ckpt = arg_dict.pop("ckpt", None)
     audio_file = arg_dict.pop("audio_file", None)
-    generate(ckpt=ckpt, audio_file=audio_file, **funcs, **arg_dict, args=args)
 
+    # splat kwargs to function call
+    # (generate() has all kwarg defaults specified again to make it amenable to ipynb usage)
+    generate(ckpt=ckpt, audio_file=audio_file, **funcs, **arg_dict, args=args)
