@@ -21,12 +21,12 @@ The files of interest and their purpose are:
 
 The rest of the code is experimental, probably broken, and unsupported.
 
-The required dependencies can be installed with conda:
+## Installation
 
 ```
-conda create --name maua python=3.7
-conda activate maua
-conda install -f env.yml
+git clone https://github.com/JCBrouwer/maua-stylegan2
+cd maua-stylegan2
+conda env create -f env.yml
 ```
 
 ## Generating audio-reactive interpolations
