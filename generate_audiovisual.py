@@ -231,6 +231,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_mlp", type=int, default=8)
     parser.add_argument("--channel_multiplier", type=int, default=2)
     parser.add_argument("--randomize_noise", action="store_true")
+    parser.add_argument("--cache", action="store_true")
     args = parser.parse_args()
 
     modnames = args.audioreactive_file.replace(".py", "").replace("/", ".").split(".")
@@ -254,8 +255,16 @@ if __name__ == "__main__":
     except:
         pass  # no overrides, just continue
 
+    ar.SMF = args.fps / 43.066666
+    if not arg_dict.pop("cache", False):
+
+        def no_cache(f):
+            print("no cache")
+            return f
+
+        ar.lru_cache = no_cache
+
     ckpt = arg_dict.pop("ckpt", None)
     audio_file = arg_dict.pop("audio_file", None)
-    ar.SMF = args.fps / 43.066666
     generate(ckpt=ckpt, audio_file=audio_file, **funcs, **arg_dict, args=args)
 

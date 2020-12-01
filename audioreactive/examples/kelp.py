@@ -9,29 +9,21 @@ import kornia.geometry.transform as kT
 
 import audioreactive as ar
 
-OVERRIDE = dict(
-    audio_file="audioreactive/examples/Wavefunk - Dwelling in the Kelp.mp3", out_size=1920, dataparallel=False
-)
+OVERRIDE = dict(audio_file="audioreactive/examples/Wavefunk - Dwelling in the Kelp.mp3", out_size=1920, duration=120)
 
 bpm = 130
 
 
 def get_latents(selection, args):
-    low_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmax=100, smooth=5, clip=95, power=1).clone()
-    low_onsets = ar.compress(low_onsets, 0.3, 4)
-    low_onsets = ar.percentile_clip(low_onsets, 90)
-    low_onsets = ar.gaussian_filter(low_onsets, 1.5, causal=True)
-    low_onsets = ar.normalize(low_onsets)
+    low_onsets = ar.onsets(
+        args.audio, args.sr, args.n_frames, fmax=100, smooth=7, clip=95, power=8, type="rosa"
+    ).clone()
     low_onsets = low_onsets[:, None, None]
 
-    high_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmin=500, smooth=5, clip=95, power=1).clone()
-    high_onsets = ar.compress(high_onsets, 0.6, 3)
-    high_onsets = ar.percentile_clip(high_onsets, 90)
-    high_onsets = ar.gaussian_filter(high_onsets, 1.5, causal=True)
-    high_onsets = ar.normalize(high_onsets)
+    high_onsets = ar.onsets(
+        args.audio, args.sr, args.n_frames, fmin=200, smooth=7, clip=95, power=8, type="rosa"
+    ).clone()
     high_onsets = high_onsets[:, None, None]
-
-    ar.plot_signals([low_onsets[:2500], high_onsets[:2500]])
 
     timestamps, labels = ar.laplacian_segmentation(args.audio, args.sr, k=7)
 
@@ -40,7 +32,7 @@ def get_latents(selection, args):
     rms = ar.rms(args.audio, args.sr, args.n_frames, fmin=20, fmax=200, smooth=180, clip=55, power=4)
     rms = rms[:, None, None]
 
-    color_layer = 12
+    color_layer = 9
 
     latents = []
     for (start, stop), l in zip(zip(timestamps, timestamps[1:]), labels):
@@ -58,6 +50,9 @@ def get_latents(selection, args):
         drop_section[:, color_layer:] = th.cat([drop_selection[[l], color_layer:]] * section_frames)
 
         latents.append((1 - rms[start_frame:stop_frame]) * latent_section + rms[start_frame:stop_frame] * drop_section)
+    len_latents = sum([len(l) for l in latents])
+    if len_latents != args.n_frames:
+        latents.append(th.cat([latents[-1][[-1]]] * (args.n_frames - len_latents)))
     latents = th.cat(latents).float()
     latents = ar.gaussian_filter(latents, 5)
 
@@ -71,19 +66,14 @@ def get_latents(selection, args):
 def get_noise(height, width, scale, num_scales, args):
     if width > 256:
         return None
-
-    low_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmax=100, smooth=5, clip=95, power=1).clone()
-    low_onsets = ar.compress(low_onsets, 0.3, 4)
-    low_onsets = ar.percentile_clip(low_onsets, 90)
-    low_onsets = ar.gaussian_filter(low_onsets, 1.5, causal=True)
-    low_onsets = ar.normalize(low_onsets)
+    low_onsets = ar.onsets(
+        args.audio, args.sr, args.n_frames, fmax=100, smooth=7, clip=95, power=8, type="rosa"
+    ).clone()
     low_onsets = low_onsets[:, None, None, None].cuda()
 
-    high_onsets = ar.onsets(args.audio, args.sr, args.n_frames, fmin=500, smooth=5, clip=95, power=1).clone()
-    high_onsets = ar.compress(high_onsets, 0.6, 3)
-    high_onsets = ar.percentile_clip(high_onsets, 90)
-    high_onsets = ar.gaussian_filter(high_onsets, 1.5, causal=True)
-    high_onsets = ar.normalize(high_onsets)
+    high_onsets = ar.onsets(
+        args.audio, args.sr, args.n_frames, fmin=200, smooth=7, clip=95, power=8, type="rosa"
+    ).clone()
     high_onsets = high_onsets[:, None, None, None].cuda()
 
     noise_noisy = ar.gaussian_filter(th.randn((args.n_frames, 1, height, width), device="cuda"), 5)
