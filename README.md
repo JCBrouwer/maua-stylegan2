@@ -6,7 +6,7 @@ It contains the code for [Audio-reactive Latent Interpolations with StyleGAN](ht
 
 The original base is [Rosinality's excellent implementation](https://github.com/rosinality/stylegan2-pytorch), but I've gathered code from multiple different repositories and hacked/grafted it all together. License information for the code should all be in the LICENSE folder, but if you find anything missing or incorrect please let me know and I'll fix it immediately. Tread carefully when trying to distribute any code from this repo, it's meant for research and demonstration.
 
-The rest of the code is experimental, probably broken, and unsupported. The (mostly) working files and their purpose are:
+The files of interest and their purpose are:
 
 | File/Folder | Description
 | :--- | :----------
@@ -18,6 +18,8 @@ The rest of the code is experimental, probably broken, and unsupported. The (mos
 | workspace/ | place to store intermediate results, latents, or inputs, etc.
 | output/ | default generated output folder
 | train.py | code for training models
+
+The rest of the code is experimental, probably broken, and unsupported.
 
 ## Generating audio-reactive interpolations
 
