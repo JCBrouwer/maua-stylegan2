@@ -21,6 +21,14 @@ The files of interest and their purpose are:
 
 The rest of the code is experimental, probably broken, and unsupported.
 
+The required dependencies can be installed with conda:
+
+```
+conda create --name maua python=3.7
+conda activate maua
+conda install -f env.yml
+```
+
 ## Generating audio-reactive interpolations
 
 Audio-reactive interpolations are specified by a set of functions which generate latents, noise, network bends, model rewrites, and truncation.
