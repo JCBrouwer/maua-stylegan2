@@ -4,7 +4,6 @@ import multiprocessing
 from functools import partial
 
 from PIL import Image
-from PIL import ImageFile
 
 import lmdb
 from tqdm import tqdm

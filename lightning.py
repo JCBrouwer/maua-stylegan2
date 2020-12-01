@@ -5,7 +5,6 @@ import wandb
 import random
 import argparse
 import validation
-import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F

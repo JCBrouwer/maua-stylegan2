@@ -1,11 +1,7 @@
 import argparse
-import gc
-import math
-import numbers
 import uuid
 
 import numpy as np
-import scipy.ndimage as ndi
 import torch as th
 import torch.multiprocessing as mp
 import torch.nn.functional as F
@@ -127,7 +123,7 @@ def perlin_noise(shape, res, tileable=(True, False, False), interpolant=interpol
     return (1 - t[:, :, :, 2]) * n0 + t[:, :, :, 2] * n1
 
 
-def get_spline_loops(base_latent_selection, loop_starting_latents, n_frames, num_loops, smoothing, s=True):
+def spline_loops(base_latent_selection, loop_starting_latents, n_frames, num_loops, smoothing, s=True):
     from scipy import interpolate
 
     base_latent_selection = np.concatenate([base_latent_selection, base_latent_selection[[0]]])
@@ -221,13 +217,13 @@ if "main" in __name__:
 
     latents = th.cat([styles[[0]]] * args.n_frames, axis=0)
 
-    # moving_low = get_spline_loops(
+    # moving_low = spline_loops(
     #     styles1.cpu(), 0, int(args.n_frames / 3), num_loops=1, smoothing=1, s=args.slerp
     # ).cuda()[:, :5]
-    # moving_mid = get_spline_loops(
+    # moving_mid = spline_loops(
     #     styles2.cpu(), 0, int(args.n_frames / 3), num_loops=1, smoothing=1, s=args.slerp
     # ).cuda()[:, 5:10]
-    # moving_hi = get_spline_loops(
+    # moving_hi = spline_loops(
     #     styles3.cpu(), 0, int(args.n_frames / 3), num_loops=1, smoothing=1, s=args.slerp
     # ).cuda()[:, 10:]
     # static_low = th.cat([moving_low[[0]]] * int(args.n_frames / 3), axis=0)

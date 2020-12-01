@@ -6,10 +6,8 @@ from PIL import Image, ImageTk
 import torch as th
 import torch.nn.functional as F
 import torchvision
-from models.stylegan1 import G_style
 from models.stylegan2 import Generator as G_style2
 import tkinter as tk
-from random import randint
 
 # --- classes ---
 try:

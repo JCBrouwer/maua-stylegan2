@@ -1,8 +1,5 @@
 import argparse
 import gc
-import json
-import math
-import os
 import random
 import time
 import traceback
@@ -11,14 +8,8 @@ import warnings
 
 import librosa as rosa
 import librosa.display
-import madmom as mm
-import matplotlib.pyplot as plt
 import numpy as np
-import scipy
-import scipy.signal as signal
-import sklearn.cluster
 import torch as th
-import torch.nn.functional as F
 
 import audioreactive as ar
 import generate
@@ -274,7 +265,7 @@ if __name__ == "__main__":
         pass  # no overrides, just continue
 
     # ensures smoothing is independent of frame rate
-    ar.SMF = args.fps / 43.066666  # 43.0666 is the default frame rate of librosa audio features
+    ar.set_SMF(args.fps / 30)
 
     ckpt = arg_dict.pop("ckpt", None)
     audio_file = arg_dict.pop("audio_file", None)

@@ -1,45 +1,43 @@
-import argparse
 import gc
-import json
-import math
-import os
-import random
-import time
-import uuid
-import warnings
 
-import cachetools
-import kornia.augmentation as kA
-import kornia.geometry.transform as kT
-import librosa as rosa
-import librosa.display
-import madmom as mm
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
 import numpy as np
-import scipy
-import scipy.signal as signal
-import sklearn.cluster
 import torch as th
-import torch.nn.functional as F
 from scipy import interpolate
 
-import generate
-import render
-from models.stylegan1 import G_style
 from models.stylegan2 import Generator
+from .signal import gaussian_filter
 
 # ====================================================================================
 # ================================= latent/noise ops =================================
 # ====================================================================================
 
 
-def get_chroma_latents(chroma, base_latent_selection):
-    base_latents = (chroma[..., None, None] * base_latent_selection[None, ...]).sum(1)
+def chroma_weight_latents(chroma, latents):
+    """Creates chromagram weighted latent sequence
+
+    Args:
+        chroma (th.tensor): Chromagram
+        latents (th.tensor): Latents (must have same number as number of notes in chromagram)
+
+    Returns:
+        th.tensor: Chromagram weighted latent sequence
+    """
+    base_latents = (chroma[..., None, None] * latents[None, ...]).sum(1)
     return base_latents
 
 
 def slerp(val, low, high):
+    """Interpolation along geodesic of n-dimensional unit sphere
+    from https://github.com/soumith/dcgan.torch/issues/14#issuecomment-200025792
+
+    Args:
+        val (float): Value between 0 and 1 representing fraction of interpolation completed
+        low (float): Starting value
+        high (float): Ending value
+
+    Returns:
+        float: Interpolated value
+    """
     omega = np.arccos(np.clip(np.dot(low / np.linalg.norm(low), high / np.linalg.norm(high)), -1, 1))
     so = np.sin(omega)
     if so == 0:
@@ -47,15 +45,30 @@ def slerp(val, low, high):
     return np.sin((1.0 - val) * omega) / so * low + np.sin(val * omega) / so * high
 
 
-def get_gaussian_loops(base_latent_selection, loop_starting_latents, n_frames, n_loops, smoothing):
+def slerp_loops(latent_selection, n_frames, n_loops, smoothing=1, loop=True):
+    """Get looping latents using geodesic interpolation. Total length of n_frames with n_loops repeats.
+
+    Args:
+        latent_selection (th.tensor): Set of latents to loop between (in order)
+        n_frames (int): Total length of output looping sequence
+        n_loops (int): Number of times to loop
+        smoothing (int, optional): Standard deviation of gaussian smoothing kernel. Defaults to 1.
+        loop (bool, optional): Whether to return to first latent. Defaults to True.
+
+    Returns:
+        th.tensor: Sequence of smoothly looping latents
+    """
+    if loop:
+        latent_selection = np.concatenate([latent_selection, latent_selection[[0]]])
+
     base_latents = []
-    for n in range(len(base_latent_selection)):
-        for val in np.linspace(0.0, 1.0, int(n_frames // max(1, n_loops) // len(base_latent_selection))):
+    for n in range(len(latent_selection)):
+        for val in np.linspace(0.0, 1.0, int(n_frames // max(1, n_loops) // len(latent_selection))):
             base_latents.append(
                 slerp(
                     val,
-                    base_latent_selection[(n + loop_starting_latents) % len(base_latent_selection)][0],
-                    base_latent_selection[(n + loop_starting_latents + 1) % len(base_latent_selection)][0],
+                    latent_selection[n % len(latent_selection)][0],
+                    latent_selection[(n + 1) % len(latent_selection)][0],
                 )
             )
     base_latents = th.stack(base_latents)
@@ -67,17 +80,26 @@ def get_gaussian_loops(base_latent_selection, loop_starting_latents, n_frames, n
     return base_latents
 
 
-def get_spline_loops(base_latent_selection, n_frames, n_loops, loop=True):
+def spline_loops(latent_selection, n_frames, n_loops, loop=True):
+    """Get looping latents using spline interpolation. Total length of n_frames with n_loops repeats.
+
+    Args:
+        latent_selection (th.tensor): Set of latents to loop between (in order)
+        n_frames (int): Total length of output looping sequence
+        n_loops (int): Number of times to loop
+        loop (bool, optional): Whether to return to first latent. Defaults to True.
+
+    Returns:
+        th.tensor: Sequence of smoothly looping latents
+    """
     if loop:
-        base_latent_selection = np.concatenate([base_latent_selection, base_latent_selection[[0]]])
+        latent_selection = np.concatenate([latent_selection, latent_selection[[0]]])
 
     x = np.linspace(0, 1, int(n_frames // max(1, n_loops)))
-    base_latents = np.zeros((len(x), *base_latent_selection.shape[1:]))
-    for lay in range(base_latent_selection.shape[1]):
-        for lat in range(base_latent_selection.shape[2]):
-            tck = interpolate.splrep(
-                np.linspace(0, 1, base_latent_selection.shape[0]), base_latent_selection[:, lay, lat]
-            )
+    base_latents = np.zeros((len(x), *latent_selection.shape[1:]))
+    for lay in range(latent_selection.shape[1]):
+        for lat in range(latent_selection.shape[2]):
+            tck = interpolate.splrep(np.linspace(0, 1, latent_selection.shape[0]), latent_selection[:, lay, lat])
             base_latents[:, lay, lat] = interpolate.splev(x, tck)
 
     base_latents = th.cat([th.from_numpy(base_latents)] * int(n_frames / len(base_latents)), axis=0)
@@ -87,6 +109,17 @@ def get_spline_loops(base_latent_selection, n_frames, n_loops, loop=True):
 
 
 def wrapping_slice(tensor, start, length, return_indices=False):
+    """Gets slice of tensor of a given length that wraps around to beginning
+
+    Args:
+        tensor (th.tensor): Tensor to slice
+        start (int): Starting index
+        length (int): Size of slice
+        return_indices (bool, optional): Whether to return indices rather than values. Defaults to False.
+
+    Returns:
+        th.tensor: Values or indices of slice
+    """
     if start + length <= tensor.shape[0]:
         indices = th.arange(start, start + length)
     else:
@@ -98,15 +131,23 @@ def wrapping_slice(tensor, start, length, return_indices=False):
     return tensor[indices]
 
 
-def generate_latents(n_latents, ckpt, G_res, out_size, noconst=False, latent_dim=512, n_mlp=8, channel_multiplier=2):
+def generate_latents(n_latents, ckpt, G_res, noconst=False, latent_dim=512, n_mlp=8, channel_multiplier=2):
+    """Generates random, mapped latents
+
+    Args:
+        n_latents (int): Number of mapped latents to generate 
+        ckpt (str): Generator checkpoint to use
+        G_res (int): Generator's training resolution
+        noconst (bool, optional): Whether the generator was trained without constant starting layer. Defaults to False.
+        latent_dim (int, optional): Size of generator's latent vectors. Defaults to 512.
+        n_mlp (int, optional): Number of layers in the generator's mapping network. Defaults to 8.
+        channel_multiplier (int, optional): Scaling multiplier for generator's channel depth. Defaults to 2.
+
+    Returns:
+        th.tensor: Set of mapped latents
+    """
     generator = Generator(
-        G_res,
-        latent_dim,
-        n_mlp,
-        channel_multiplier=channel_multiplier,
-        constant_input=not noconst,
-        checkpoint=ckpt,
-        output_size=out_size,
+        G_res, latent_dim, n_mlp, channel_multiplier=channel_multiplier, constant_input=not noconst, checkpoint=ckpt,
     ).cuda()
     zs = th.randn((n_latents, latent_dim), device="cuda")
     latent_selection = generator(zs, map_latents=True).cpu()
@@ -116,43 +157,44 @@ def generate_latents(n_latents, ckpt, G_res, out_size, noconst=False, latent_dim
     return latent_selection
 
 
-def load_latents(latent_file):
-    return th.from_numpy(np.load(latent_file))
+def save_latents(latents, filename):
+    """Saves latent vectors to file
+
+    Args:
+        latents (th.tensor): Latent vector(s) to save
+        filename (str): Filename to save to
+    """
+    np.save(filename, latents)
 
 
-def create_circular_mask(h, w, center=None, radius=None, soft=0):
-    if center is None:  # use the middle of the image
-        center = (int(w / 2), int(h / 2))
-    if radius is None:  # use the smallest distance between the center and image walls
-        radius = min(center[0], center[1], w - center[0], h - center[1])
-    Y, X = np.ogrid[:h, :w]
-    dist_from_center = np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2)
-    mask = dist_from_center <= radius
-    if soft > 0:
-        import scipy.ndimage.filters as ndi
+def load_latents(filename):
+    """Load latents from numpy file
 
-        mask = ndi.gaussian_filter(mask, sigma=int(round(soft)))
-    return th.from_numpy(mask)
+    Args:
+        filename (str): Filename to load from
+
+    Returns:
+        th.tensor: Latent vectors
+    """
+    return th.from_numpy(np.load(filename))
 
 
-def perlinterpolant(t):
+def _perlinterpolant(t):
     return t * t * t * (t * (t * 6 - 15) + 10)
 
 
-def perlin_noise(shape, res, tileable=(True, False, False), interpolant=perlinterpolant):
+def perlin_noise(shape, res, tileable=(True, False, False), interpolant=_perlinterpolant):
     """Generate a 3D tensor of perlin noise.
+
     Args:
-        shape: The shape of the generated tensor (tuple of three ints).
-            This must be a multiple of res.
-        res: The number of periods of noise to generate along each
-            axis (tuple of three ints). Note shape must be a multiple
-            of res.
-        tileable: If the noise should be tileable along each axis
-            (tuple of three bools). Defaults to (False, False, False).
-        interpolant: The interpolation function, defaults to
-            t*t*t*(t*(t*6 - 15) + 10).
+        shape: The shape of the generated tensor (tuple of three ints). This must be a multiple of res.
+        res: The number of periods of noise to generate along each axis (tuple of three ints). Note shape must be a multiple of res.
+        tileable: If the noise should be tileable along each axis (tuple of three bools). Defaults to (False, False, False).
+        interpolant: The interpolation function, defaults to t*t*t*(t*(t*6 - 15) + 10).
+
     Returns:
         A tensor of shape shape with the generated noise.
+
     Raises:
         ValueError: If shape is not a multiple of res.
     """

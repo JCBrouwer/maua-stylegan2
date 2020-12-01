@@ -4,11 +4,9 @@ import math
 import os
 import random
 import sys
-import time
 
 import numpy as np
 import torch as th
-import torch.distributed as dist
 import wandb
 from contrastive_learner import ContrastiveLearner, RandomApply
 from kornia import augmentation as augs
@@ -22,7 +20,7 @@ from tqdm import tqdm
 import validation
 from augment import augment
 from dataset import MultiResolutionDataset
-from distributed import get_rank, get_world_size, reduce_loss_dict, reduce_sum, synchronize
+from distributed import get_rank, reduce_loss_dict, reduce_sum, synchronize
 from lookahead_minimax import LookaheadMinimax
 from models.stylegan2 import Discriminator, Generator
 

@@ -1,4 +1,3 @@
-import gc
 import math
 import os
 import random

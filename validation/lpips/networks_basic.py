@@ -1,10 +1,6 @@
-import sys
 import torch
 import torch.nn as nn
-import torch.nn.init as init
 from torch.autograd import Variable
-import numpy as np
-from skimage import color
 from . import pretrained_networks as pn
 
 from . import util

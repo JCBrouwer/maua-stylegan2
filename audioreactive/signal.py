@@ -1,16 +1,3 @@
-import argparse
-import gc
-import json
-import math
-import os
-import random
-import time
-import uuid
-import warnings
-
-import cachetools
-import kornia.augmentation as kA
-import kornia.geometry.transform as kT
 import librosa as rosa
 import librosa.display
 import madmom as mm
@@ -22,16 +9,13 @@ import scipy.signal as signal
 import sklearn.cluster
 import torch as th
 import torch.nn.functional as F
-from scipy import interpolate
 
-import generate
-import render
-from models.stylegan1 import G_style
-from models.stylegan2 import Generator
+SMF = None  # this is set by generate_audiovisual.py based on rendering fps
 
-from .util import *
 
-SMF = 30 / 43.066666  # ensures smoothing is independent of frame rate
+def set_SMF(smf):
+    global SMF
+    SMF = smf
 
 
 # ====================================================================================
@@ -40,6 +24,23 @@ SMF = 30 / 43.066666  # ensures smoothing is independent of frame rate
 
 
 def onsets(audio, sr, n_frames, margin=8, fmin=20, fmax=8000, smooth=1, clip=100, power=1, type="mm"):
+    """Creates onset envelope from audio
+
+    Args:
+        audio (np.array): Audio signal
+        sr (int): Sampling rate of the audio
+        n_frames (int): Total number of frames to resample envelope to
+        margin (int, optional): For percussive source separation, higher values create more extreme separations. Defaults to 8.
+        fmin (int, optional): Minimum frequency for onset analysis. Defaults to 20.
+        fmax (int, optional): Maximum frequency for onset analysis. Defaults to 8000.
+        smooth (int, optional): Standard deviation of gaussian kernel to smooth with. Defaults to 1.
+        clip (int, optional): Percentile to clip onset signal to. Defaults to 100.
+        power (int, optional): Exponent to raise onset signal to. Defaults to 1.
+        type (str, optional): ["rosa", "mm"]. Whether to use librosa or madmom for onset analysis. Madmom is slower but often more accurate. Defaults to "mm".
+
+    Returns:
+        th.tensor, shape=(n_frames,): Onset envelope
+    """
     y_perc = rosa.effects.percussive(y=audio, margin=margin)
     if type == "rosa":
         onset = rosa.onset.onset_strength(y=y_perc, sr=sr, fmin=fmin, fmax=fmax)
@@ -61,13 +62,28 @@ def onsets(audio, sr, n_frames, margin=8, fmin=20, fmax=8000, smooth=1, clip=100
         )
     onset = np.clip(signal.resample(onset, n_frames), onset.min(), onset.max())
     onset = th.from_numpy(onset).float()
-    onset = gaussian_filter(onset, smooth, causal=True)
+    onset = gaussian_filter(onset, smooth, causal=0)
     onset = percentile_clip(onset, clip)
     onset = onset ** power
     return onset
 
 
 def rms(y, sr, n_frames, fmin=20, fmax=8000, smooth=180, clip=50, power=6):
+    """Creates RMS envelope from audio
+
+    Args:
+        audio (np.array): Audio signal
+        sr (int): Sampling rate of the audio
+        n_frames (int): Total number of frames to resample envelope to
+        fmin (int, optional): Minimum frequency for onset analysis. Defaults to 20.
+        fmax (int, optional): Maximum frequency for onset analysis. Defaults to 8000.
+        smooth (int, optional): Standard deviation of gaussian kernel to smooth with. Defaults to 180.
+        clip (int, optional): Percentile to clip onset signal to. Defaults to 50.
+        power (int, optional): Exponent to raise onset signal to. Defaults to 6.
+
+    Returns:
+        th.tensor, shape=(n_frames,): RMS envelope
+    """
     y_filt = signal.sosfilt(signal.butter(12, [fmin, fmax], "bp", fs=sr, output="sos"), y)
     rms = rosa.feature.rms(S=np.abs(rosa.stft(y=y_filt, hop_length=512)))[0]
     rms = np.clip(signal.resample(rms, n_frames), rms.min(), rms.max())
@@ -79,6 +95,17 @@ def rms(y, sr, n_frames, fmin=20, fmax=8000, smooth=180, clip=50, power=6):
 
 
 def raw_chroma(audio, sr, type="cens", nearest_neighbor=True):
+    """Creates chromagram
+
+    Args:
+        audio (np.array): Audio signal
+        sr (int): Sampling rate of the audio
+        type (str, optional): ["cens", "cqt", "stft", "deep", "clp"]. Which strategy to use to calculate the chromagram. Defaults to "cens".
+        nearest_neighbor (bool, optional): Whether to post process using nearest neighbor smoothing. Defaults to True.
+
+    Returns:
+        np.array, shape=(12, n_frames): Chromagram
+    """
     if type == "cens":
         ch = rosa.feature.chroma_cens(y=audio, sr=sr)
     elif type == "cqt":
@@ -87,10 +114,10 @@ def raw_chroma(audio, sr, type="cens", nearest_neighbor=True):
         ch = rosa.feature.chroma_stft(y=audio, sr=sr)
     elif type == "deep":
         sig = mm.audio.signal.Signal(audio, num_channels=1, sample_rate=sr)
-        ch = mm.audio.chroma.DeepChromaProcessor().process(sig)
+        ch = mm.audio.chroma.DeepChromaProcessor().process(sig).T
     elif type == "clp":
         sig = mm.audio.signal.Signal(audio, num_channels=1, sample_rate=sr)
-        ch = mm.audio.chroma.CLPChromaProcessor().process(sig)
+        ch = mm.audio.chroma.CLPChromaProcessor().process(sig).T
     else:
         print("chroma type not recognized, options are: [cens, cqt, deep, clp, or stft]. defaulting to cens...")
         ch = rosa.feature.chroma_cens(y=audio, sr=sr)
@@ -101,28 +128,51 @@ def raw_chroma(audio, sr, type="cens", nearest_neighbor=True):
     return ch
 
 
-def chroma(audio, sr, n_frames, margin=16, type="cens", top_k=12):
+def chroma(audio, sr, n_frames, margin=16, type="cens", notes=12):
+    """Creates chromagram for the harmonic component of the audio
+
+    Args:
+        audio (np.array): Audio signal
+        sr (int): Sampling rate of the audio
+        n_frames (int): Total number of frames to resample envelope to
+        margin (int, optional): For harmonic source separation, higher values create more extreme separations. Defaults to 16.
+        type (str, optional): ["cens", "cqt", "stft", "deep", "clp"]. Which strategy to use to calculate the chromagram. Defaults to "cens".
+        notes (int, optional): Number of notes to use in output chromagram (e.g. 5 for pentatonic scale, 7 for standard western scales). Defaults to 12.
+
+    Returns:
+        th.tensor, shape=(n_frames, 12): Chromagram
+    """
     y_harm = rosa.effects.harmonic(y=audio, margin=margin)
     chroma = raw_chroma(y_harm, sr, type=type).T
     chroma = signal.resample(chroma, n_frames)
-    top_k_indices = np.argsort(np.median(chroma, axis=0))[:top_k]
-    chroma = chroma[top_k_indices]
+    notes_indices = np.argsort(np.median(chroma, axis=0))[:notes]
+    chroma = chroma[:, notes_indices]
     chroma = th.from_numpy(chroma / chroma.sum(1)[:, None]).float()
     return chroma
 
 
-def laplacian_segmentation(y, sr, k=5, plot=False):
-    """
-    Based on https://librosa.org/doc/latest/auto_examples/plot_segmentation.html#sphx-glr-auto-examples-plot-segmentation-py%22
+def laplacian_segmentation(signal, sr, k=5, plot=False):
+    """Segments the audio with pattern recurrence analysis
+    From https://librosa.org/doc/latest/auto_examples/plot_segmentation.html#sphx-glr-auto-examples-plot-segmentation-py%22
+
+    Args:
+        signal (np.array): Audio signal
+        sr (int): Sampling rate of the audio
+        k (int, optional): Number of labels to use during segmentation. Defaults to 5.
+        plot (bool, optional): Whether to show plot of found segmentation. Defaults to False.
+
+    Returns:
+        tuple(list, list): List of starting timestamps and labels of found segments
     """
     BINS_PER_OCTAVE = 12 * 3
     N_OCTAVES = 7
     C = librosa.amplitude_to_db(
-        np.abs(librosa.cqt(y=y, sr=sr, bins_per_octave=BINS_PER_OCTAVE, n_bins=N_OCTAVES * BINS_PER_OCTAVE)), ref=np.max
+        np.abs(librosa.cqt(y=signal, sr=sr, bins_per_octave=BINS_PER_OCTAVE, n_bins=N_OCTAVES * BINS_PER_OCTAVE)),
+        ref=np.max,
     )
 
     # make CQT beat-synchronous to reduce dimensionality
-    tempo, beats = librosa.beat.beat_track(y=y, sr=sr, trim=False)
+    tempo, beats = librosa.beat.beat_track(y=signal, sr=sr, trim=False)
     Csync = librosa.util.sync(C, beats, aggregate=np.median)
 
     # build a weighted recurrence matrix using beat-synchronous CQT
@@ -132,7 +182,7 @@ def laplacian_segmentation(y, sr, k=5, plot=False):
     Rf = df(R, size=(1, 7))
 
     # build the sequence matrix using mfcc-similarity
-    mfcc = librosa.feature.mfcc(y=y, sr=sr)
+    mfcc = librosa.feature.mfcc(y=signal, sr=sr)
     Msync = librosa.util.sync(mfcc, beats)
     path_distance = np.sum(np.diff(Msync, axis=1) ** 2, axis=0)
     sigma = np.median(path_distance)
@@ -185,33 +235,70 @@ def laplacian_segmentation(y, sr, k=5, plot=False):
     return list(bound_times), list(bound_segs)
 
 
-def normalize(y):
-    y -= y.min()
-    y /= y.max()
-    return y
+def normalize(signal):
+    """Normalize signal between 0 and 1
+
+    Args:
+        signal (np.array/th.tensor): Signal to normalize
+
+    Returns:
+        np.array/th.tensor: Normalized signal
+    """
+    signal -= signal.min()
+    signal /= signal.max()
+    return signal
 
 
-def percentile(y, p):
-    k = 1 + round(0.01 * float(p) * (y.numel() - 1))
-    return y.view(-1).kthvalue(k).values.item()
+def percentile(signal, p):
+    """Calculate percentile of signal
+
+    Args:
+        signal (np.array/th.tensor): Signal to normalize
+        p (int): [0-100]. Percentile to find
+
+    Returns:
+        int: Percentile signal value
+    """
+    k = 1 + round(0.01 * float(p) * (signal.numel() - 1))
+    return signal.view(-1).kthvalue(k).values.item()
 
 
-def percentile_clip(y, p):
-    locs = th.arange(0, y.shape[0])
-    peaks = th.ones(y.shape, dtype=bool)
-    main = y.take(locs)
+def percentile_clip(signal, p):
+    """Normalize signal between 0 and 1, clipping peak values above given percentile
 
-    plus = y.take((locs + 1).clamp(0, y.shape[0] - 1))
-    minus = y.take((locs - 1).clamp(0, y.shape[0] - 1))
+    Args:
+        signal (th.tensor): Signal to normalize
+        p (int): [0-100]. Percentile to clip to
+
+    Returns:
+        th.tensor: Clipped signal
+    """
+    locs = th.arange(0, signal.shape[0])
+    peaks = th.ones(signal.shape, dtype=bool)
+    main = signal.take(locs)
+
+    plus = signal.take((locs + 1).clamp(0, signal.shape[0] - 1))
+    minus = signal.take((locs - 1).clamp(0, signal.shape[0] - 1))
     peaks &= th.gt(main, plus)
     peaks &= th.gt(main, minus)
 
-    y = y.clamp(0, percentile(y[peaks], p))
-    y /= y.max()
-    return y
+    signal = signal.clamp(0, percentile(signal[peaks], p))
+    signal /= signal.max()
+    return signal
 
 
 def compress(signal, threshold, ratio, invert=False):
+    """Expand or compress signal. Values above/below (depending on invert) threshold are multiplied by ratio.
+
+    Args:
+        signal (th.tensor): Signal to normalize
+        threshold (int): Signal value above/below which to change signal
+        ratio (float): Value to multiply signal with
+        invert (bool, optional): Specifies if values above or below threshold are affected. Defaults to False.
+
+    Returns:
+        th.tensor: Compressed/expanded signal
+    """
     if invert:
         signal[signal < threshold] *= ratio
     else:
@@ -219,7 +306,22 @@ def compress(signal, threshold, ratio, invert=False):
     return normalize(signal)
 
 
+def expand(signal, threshold, ratio, invert=False):
+    """Alias for compress. Whether compression or expansion occurs is determined by values of threshold and ratio"""
+    return compress(signal, threshold, ratio, invert)
+
+
 def gaussian_filter(x, sigma, causal=None):
+    """Smooth 3 or 4 dimensional tensors along time (first) axis with gaussian kernel.
+
+    Args:
+        x (th.tensor): Tensor to be smoothed
+        sigma (float): Standard deviation for gaussian kernel (higher value gives smoother result)
+        causal (float, optional): Factor to multiply right side of gaussian kernel with. Lower value decreases effect of "future" values. Defaults to None.
+
+    Returns:
+        th.tensor: Smoothed tensor
+    """
     dim = len(x.shape)
     while len(x.shape) < 3:
         x = x[:, None]

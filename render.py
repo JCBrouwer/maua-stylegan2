@@ -1,5 +1,4 @@
 import queue
-import uuid
 from threading import Thread
 
 import ffmpeg
@@ -102,8 +101,8 @@ def render(
         noise[ni] = noise_scale.float().contiguous().pin_memory() if noise_scale is not None else None
 
     param_dict = dict(generator.named_parameters())
-    for param, (transform, modulation) in rewrites.items():
-        rewrites[param] = [transform, modulation.float().contiguous().pin_memory()]
+    for param, (rewrite, modulation) in rewrites.items():
+        rewrites[param] = [rewrite, modulation.float().contiguous().pin_memory()]
         original_weights[param] = param_dict[param].copy().cpu().float().contiguous().pin_memory()
 
     for bend in bends:
@@ -133,8 +132,9 @@ def render(
                 else:
                     bend_batch.append({"layer": bend["layer"], "transform": bend["transform"]})
 
-        for param, rewrite in rewrites.items():
-            rewritten_weight = rewrite(original_weights[param], n,).cuda(non_blocking=True)
+        for param, (rewrite, modulation) in rewrites.items():
+            transform = rewrite(modulation[n : n + batch_size])
+            rewritten_weight = transform(original_weights[param]).cuda(non_blocking=True)
             param_attrs = param.split(".")
             mod = generator
             for attr in param_attrs[:-1]:

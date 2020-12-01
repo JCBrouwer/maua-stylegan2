@@ -11,7 +11,7 @@ def initialize(args):
 
 def get_latents(selection, args):
     chroma = ar.chroma(args.audio, args.sr, args.n_frames)
-    chroma_latents = ar.get_chroma_latents(chroma, selection)
+    chroma_latents = ar.chroma_weight_latents(chroma, selection)
     latents = ar.gaussian_filter(chroma_latents, 4)
 
     lo_onsets = args.lo_onsets[:, None, None]

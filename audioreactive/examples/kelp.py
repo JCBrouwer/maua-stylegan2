@@ -1,10 +1,12 @@
-import math
-from functools import partial
+"""
+This file shows an example of a loop based interpolation
+Here sections are identified with laplacian segmentation and looping latents are generated for each section
+The noise is looping perlin noise
+Long term section analysis is done with the RMS to interpolate between latent sequences for the intro/outro and drop
+"""
 
-import kornia.augmentation as kA
-import kornia.geometry.transform as kT
+
 import librosa as rosa
-import numpy as np
 import torch as th
 
 import audioreactive as ar
@@ -16,7 +18,7 @@ BPM = 130
 def initialize(args):
     # RMS can be used to distinguish between the drop sections and intro/outros
     rms = ar.rms(args.audio, args.sr, args.n_frames, smooth=10, clip=60, power=1)
-    rms = ar.compress(rms, threshold=0.8, ratio=10)
+    rms = ar.expand(rms, threshold=0.8, ratio=10)
     rms = ar.gaussian_filter(rms, 4)
     rms = ar.normalize(rms)
     args.rms = rms
@@ -58,13 +60,13 @@ def get_latents(selection, args):
         # get portion of latent selection (wrapping around to start)
         latent_selection_slice = ar.wrapping_slice(selection, l, 4)
         # spline interpolation loops through selection slice
-        latent_section = ar.get_spline_loops(latent_selection_slice, n_frames=section_frames, n_loops=section_bars / 4)
+        latent_section = ar.spline_loops(latent_selection_slice, n_frames=section_frames, n_loops=section_bars / 4)
         # set the color with laplacian segmentation label, (1 latent repeated for entire section in upper layers)
         latent_section[:, color_layer:] = th.cat([selection[[l], color_layer:]] * section_frames)
 
         # same as above but for the drop latents (with faster loops)
         drop_selection_slice = ar.wrapping_slice(drop_selection, l, 4)
-        drop_section = ar.get_spline_loops(drop_selection_slice, n_frames=section_frames, n_loops=section_bars / 2)
+        drop_section = ar.spline_loops(drop_selection_slice, n_frames=section_frames, n_loops=section_bars / 2)
         drop_section[:, color_layer:] = th.cat([drop_selection[[l], color_layer:]] * section_frames)
 
         # merged based on RMS (drop section or not)
@@ -109,8 +111,8 @@ def get_noise(height, width, scale, num_scales, args):
 
 
 def get_bends(args):
-    # mirror the first layer out halfway to both sides (2:1 aspect ratio)
-    # + add some noise to give the whole thing a little variation (hides the mirroring)
+    # repeat the intermediate features outwards on both sides (2:1 aspect ratio)
+    # + add some noise to give the whole thing a little variation (disguises the repetition)
     transform = th.nn.Sequential(
         th.nn.ReplicationPad2d((2, 2, 0, 0)), ar.AddNoise(0.025 * th.randn(size=(1, 1, 4, 8), device="cuda")),
     )

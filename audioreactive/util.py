@@ -1,33 +1,8 @@
-import argparse
-import gc
-import json
-import math
-import os
-import random
-import time
-import uuid
-import warnings
-
-import cachetools
-import kornia.augmentation as kA
-import kornia.geometry.transform as kT
 import librosa as rosa
 import librosa.display
-import madmom as mm
-import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy
 import scipy.signal as signal
-import sklearn.cluster
-import torch as th
-import torch.nn.functional as F
-from scipy import interpolate
-
-import generate
-import render
-from models.stylegan1 import G_style
-from models.stylegan2 import Generator
 
 # ====================================================================================
 # ==================================== utilities =====================================
@@ -35,6 +10,11 @@ from models.stylegan2 import Generator
 
 
 def info(arr):
+    """Shows statistics and shape information of (lists of) np.arrays/th.tensors
+
+    Args:
+        arr (np.array/th.tensor/list): List of or single np.array or th.tensor
+    """
     if isinstance(arr, list):
         print([(list(a.shape), f"{a.min():.2f}", f"{a.mean():.2f}", f"{a.max():.2f}") for a in arr])
     else:
@@ -42,6 +22,11 @@ def info(arr):
 
 
 def plot_signals(signals):
+    """Shows plot of (multiple) 1D signals
+
+    Args:
+        signals (np.array/th.tensor): List of signals (1 non-unit dimension)
+    """
     info(signals)
     plt.figure(figsize=(16, 4 * len(signals)))
     for sbplt, y in enumerate(signals):
@@ -56,6 +41,12 @@ def plot_signals(signals):
 
 
 def plot_spectra(spectra, chroma=False):
+    """Shows plot of (multiple) spectrograms
+
+    Args:
+        spectra (np.array/th.tensor): List of spectrograms
+        chroma (bool, optional): Whether to plot with chromagram y-axis label. Defaults to False.
+    """
     fig, axes = plt.subplots(len(spectra), 1, figsize=(16, 4 * len(spectra)))
     for ax, spectrum in zip(axes if len(spectra) > 1 else [axes], spectra):
         try:
@@ -70,6 +61,12 @@ def plot_spectra(spectra, chroma=False):
 
 
 def plot_audio(audio, sr):
+    """Shows spectrogram of audio signal
+
+    Args:
+        audio (np.array): Audio signal to be plotted
+        sr (int): Sampling rate of the audio
+    """
     plt.figure(figsize=(16, 9))
     rosa.display.specshow(
         rosa.power_to_db(rosa.feature.melspectrogram(y=audio, sr=sr), ref=np.max), y_axis="mel", x_axis="time"
@@ -80,6 +77,12 @@ def plot_audio(audio, sr):
 
 
 def plot_chroma_comparison(audio, sr):
+    """Shows plot comparing different chromagram strategies.
+
+    Args:
+        audio (np.array): Audio signal to be plotted
+        sr (int): Sampling rate of the audio
+    """
     fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(16, 9))
     for col, types in enumerate([["cens", "cqt"], ["deep", "clp"], ["stft"]]):
         for row, type in enumerate(types):

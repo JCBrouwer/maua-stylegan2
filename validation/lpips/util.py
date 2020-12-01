@@ -5,7 +5,6 @@ from __future__ import print_function
 import numpy as np
 from skimage.measure import compare_ssim
 import torch
-from torch.autograd import Variable
 
 
 def normalize_tensor(in_feat, eps=1e-10):
