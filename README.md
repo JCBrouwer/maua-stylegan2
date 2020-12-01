@@ -1,6 +1,8 @@
-This is my fork of stylegan2-pytorch. There are many like it, but this one is mine.
+# maua-stylegan2
 
-It contains the code for [Audio-reactive Latent Interpolations with StyleGAN](https://wavefunk.xyz/assets/audio-reactive-stylegan/paper.pdf).
+This is the repo for my experiments with StyleGAN2. There are many like it, but this one is mine.
+
+It contains the code for [Audio-reactive Latent Interpolations with StyleGAN](https://wavefunk.xyz/assets/audio-reactive-stylegan/paper.pdf) for the NeurIPS 2020 [Workshop on Machine Learning for Creativity and Design](https://neurips2020creativity.github.io/).
 
 The original base is [Rosinality's excellent implementation](https://github.com/rosinality/stylegan2-pytorch), but I've gathered code from multiple different repositories and hacked/grafted it all together. License information for the code should all be in the LICENSE folder, but if you find anything missing or incorrect please let me know and I'll fix it immediately. Tread carefully when trying to distribute any code from this repo, it's meant for research and demonstration.
 
@@ -44,7 +46,7 @@ def initialize(args):
     return args
 
 def get_latents(selection, args):
-    # selection holds some latent vectors generated randomly or from a file (according to what you specify)
+    # selection holds some latent vectors (generated randomly or from a file)
     # generate an audioreactive latent tensor of shape [n_frames, layers, latent_dim]
 
     latents = ar.chroma_weight_latents(args.chroma, selection)
