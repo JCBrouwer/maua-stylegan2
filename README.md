@@ -41,7 +41,7 @@ from generate_audiovisual import generate
 generate("/path/to/model.pt", "/path/to/audio.wav")
 ```
 
-This will use the default audioreactive settings (which aren't great).
+This will use the default audio-reactive settings (which aren't great).
 
 To customize the generated interpolation, more functions can be defined to generate latents, noise, network bends, model rewrites, and truncation.
 
@@ -81,10 +81,10 @@ Examples showing how to use the library and demonstrating some of the techniques
 One important thing to note is that the outputs of the functions must adhere strictly to the expected formats. 
 
 Each of the functions is called with all of the arguments from the command line (or `generate()`) in the `args` variable. On top of the arguments, `args` also contains:
-* audio: raw audio signal
-* sr: sampling rate of audio
-* n_frames: total number of interpolation frames
-* duration: length of audio in seconds
+- audio: raw audio signal
+- sr: sampling rate of audio
+- n_frames: total number of interpolation frames
+- duration: length of audio in seconds
 
 ```
 def initialize(args):
