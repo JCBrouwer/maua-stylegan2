@@ -143,7 +143,7 @@ def get_truncation(args):
     return truncation
 ```
 
-The arguments to `generate_audiovisual.py` are:
+The arguments to `generate_audiovisual.py` are as follows. The first two are required, and the remaining are optional.
 ```
 generate_audiovisual.py
   --ckpt CKPT                              # path to model checkpoint
