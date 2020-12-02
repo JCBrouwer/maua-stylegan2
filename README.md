@@ -6,7 +6,7 @@ It contains the code for [Audio-reactive Latent Interpolations with StyleGAN](ht
 
 The original base is [Rosinality's excellent implementation](https://github.com/rosinality/stylegan2-pytorch), but I've gathered code from multiple different repositories and hacked/grafted it all together. License information for the code should all be in the LICENSE folder, but if you find anything missing or incorrect please let me know and I'll fix it immediately. Tread carefully when trying to distribute any code from this repo, it's meant for research and demonstration.
 
-The files of interest and their purpose are:
+The files/folders of interest and their purpose are:
 
 | File/Folder | Description
 | :--- | :----------
@@ -31,46 +31,81 @@ conda env create -f env.yml
 
 ## Generating audio-reactive interpolations
 
-Audio-reactive interpolations are specified by a set of functions which generate latents, noise, network bends, model rewrites, and truncation.
+The simplest way to get started is to try either (in shell):
+```
+python generate_audiovisual.py --ckpt "/path/to/model.pt" --audio_file "/path/to/audio.wav"
+```
+or (in e.g. a jupyter notebook):
+```
+from generate_audiovisual import generate
+generate("/path/to/model.pt", "/path/to/audio.wav")
+```
 
-These functions are given to the `generate()` function in `generate_audiovisual.py` and then rendered by `render.py`.
+This will use the default audioreactive settings (which aren't great).
 
-Examples demonstrating some of the techniques discussed in the paper can be found in `audioreactive/examples/`.
+To customize the generated interpolation, more functions can be defined to generate latents, noise, network bends, model rewrites, and truncation.
 
-A playlist with example results can be found [here](https://www.youtube.com/watch?v=2LxHRGppdpA&list=PLkain1QGMwiWndQwr3U4shvNpoFC21E3a).
-
-Here are the functions that can be specified:
 ```
 import audioreactive as ar
+from generate_audiovisual import generate
 
+def initialize(args):
+    args.onsets = ar.onsets(...)
+    args.chroma = ar.chroma(...)
+    return args
+
+def get_latents(selection, args):
+    latents = ar.chroma_weight_latents(args.chroma, selection)
+    return latents
+
+def get_noise(height, width, scale, num_scales, args):
+    noise = ar.perlin_noise(...)
+    noise *= 1 + args.onsets
+    return noise
+
+generate(ckpt="/path/to/model.pt", audio_file="/path/to/audio.wav", initialize=initialize, get_latents=get_latents, get_noise=get_noise)
+```
+
+When running from command line, the `generate()` call at the end can be left out and the interpolation can be generated with:
+
+```
+python generate_audiovisual.py --ckpt "/path/to/model.pt" --audio_file "/path/to/audio.wav" --audioreactive_file "/path/to/the/code_above.py"
+```
+
+This lets you change arguments on the command line rather than having to add them to the `generate()` call in you python file (use whatever you prefer).
+
+Within these functions, you can execute any python code to make the inputs to the network react to the music. There are a number of useful functions provided in `audioreactive/` (imported above as `ar`).
+
+Examples showing how to use the library and demonstrating some of the techniques discussed in the paper can be found in `audioreactive/examples/`. A playlist with example results can be found [here](https://www.youtube.com/watch?v=2LxHRGppdpA&list=PLkain1QGMwiWndQwr3U4shvNpoFC21E3a).
+
+One important thing to note is that the outputs of the functions must adhere strictly to the expected formats. 
+
+Each of the functions is called with all of the arguments from the command line (or `generate()`) in the `args` variable. On top of the arguments, `args` also contains:
+* audio: raw audio signal
+* sr: sampling rate of audio
+* n_frames: total number of interpolation frames
+* duration: length of audio in seconds
+
+```
 def initialize(args):
     # intialize values used in multiple of the following functions here
     # e.g. onsets, chroma, RMS, segmentations, bpms, etc.
     # this is useful to prevent duplicate computations (get_noise is called for each noise size)
     # remember to store them back in args
-    
-    args.onsets = ar.onsets(...)
-    args.chroma = ar.chroma(...)
     ...
-
     return args
 
 def get_latents(selection, args):
     # selection holds some latent vectors (generated randomly or from a file)
     # generate an audioreactive latent tensor of shape [n_frames, layers, latent_dim]
-
-    latents = ar.chroma_weight_latents(args.chroma, selection)
     ...
-
     return latents
 
 def get_noise(height, width, scale, num_scales, args):
     # height and width are the spatial dimensions of the current noise layer
     # scale is the index and num_scales the total number of noise layers
     # generate an audioreactive noise tensor of shape [n_frames, 1, height, width]
-
     ...
-
     return noise
 
 def get_bends(args):
@@ -90,9 +125,7 @@ def get_bends(args):
     # (The second one is technical debt in a nutshell. It's a workaround to get kornia transforms
     #  to play nicely. You're probably better off using the first option with a th.nn.Module that
     #  has its modulation as an attribute and keeps count of which frame it's rendering internally).
-
     ...
-
     return bends
 
 def get_rewrites(args):
@@ -101,31 +134,16 @@ def get_rewrites(args):
     #       param_name -> [transform, modulation]
     # where: param_name is the fully-qualified parameter name (see generator.named_children())
     #        transform & modulation follow the form of the second network bending dict option above
-    
     ...
-
     return rewrites
 
 def get_truncation(args):
     # generate a sequence of truncation values of shape (n_frames,)
-
     ...
-
     return truncation
 ```
 
-args (the argument supplied to all the functions) contains all the arguments supplied to generate() or generate_audiovisual.py (depending on how you're running).
-
-It also contains:
-* audio: raw audio signal
-* sr: sampling rate of audio
-* n_frames: total number of interpolation frames
-* duration: length of audio in seconds
-
-This information, together with the functions in the `audioreactive` folder, can be used to generate expressive audio-reactive interpolations.
-
-Once a file has been created with a set of these functions (unwanted functions can be left out), the audio-reactive interpolation can be rendered by calling `generate_audiovisual.py`.
-
+The arguments to `generate_audiovisual.py` are:
 ```
 generate_audiovisual.py
   --ckpt CKPT                              # path to model checkpoint
@@ -150,17 +168,7 @@ generate_audiovisual.py
   --channel_multiplier CHANNEL_MULTIPLIER  # generator's channel scaling multiplier
 ```
 
-Alternatively, generate() can be called directly from python. It takes the same arguments as generate_audiovisual.py except instead of supplying an audioreactive_file, the functions should be supplied directly (i.e. initialize, get_latents, get_noise, get_bends, get_rewrites, and get_truncation as arguments).
-
-The simplest way to get started is to try either (in shell):
-```
-python generate_audiovisual.py --ckpt "/path/to/model.pt" --audio_file "/path/to/audio.wav"
-```
-or (in e.g. a jupyter notebook):
-```
-from generate_audiovisual import generate
-generate("/path/to/model.pt", "/path/to/audio.wav")
-```
+Alternatively, `generate()` can be called directly from python. It takes the same arguments as generate_audiovisual.py except instead of supplying an audioreactive_file, the functions should be supplied directly (i.e. initialize, get_latents, get_noise, get_bends, get_rewrites, and get_truncation as arguments).
 
 Model checkpoints can be converted from tensorflow .pkl's with [rosinality's script](https://github.com/rosinality/stylegan2-pytorch/blob/master/convert_weight.py) (the one in this repo is broken). Both StyleGAN2 and StyleGAN2-ADA tensorflow checkpoints should work once converted. A good place to find models is [this repo](https://github.com/justinpinkney/awesome-pretrained-stylegan2).
 
