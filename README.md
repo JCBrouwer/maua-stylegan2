@@ -50,8 +50,8 @@ import audioreactive as ar
 from generate_audiovisual import generate
 
 def initialize(args):
-    args.onsets = ar.onsets(...)
-    args.chroma = ar.chroma(...)
+    args.onsets = ar.onsets(args.audio, args.sr, ...)
+    args.chroma = ar.chroma(args.audio, args.sr, ...)
     return args
 
 def get_latents(selection, args):
@@ -170,6 +170,6 @@ generate_audiovisual.py
 
 Alternatively, `generate()` can be called directly from python. It takes the same arguments as generate_audiovisual.py except instead of supplying an audioreactive_file, the functions should be supplied directly (i.e. initialize, get_latents, get_noise, get_bends, get_rewrites, and get_truncation as arguments).
 
-Model checkpoints can be converted from tensorflow .pkl's with [rosinality's script](https://github.com/rosinality/stylegan2-pytorch/blob/master/convert_weight.py) (the one in this repo is broken). Both StyleGAN2 and StyleGAN2-ADA tensorflow checkpoints should work once converted. A good place to find models is [this repo](https://github.com/justinpinkney/awesome-pretrained-stylegan2).
+Model checkpoints can be converted from tensorflow .pkl's with [Rosinality's script](https://github.com/rosinality/stylegan2-pytorch/blob/master/convert_weight.py) (the one in this repo is broken). Both StyleGAN2 and StyleGAN2-ADA tensorflow checkpoints should work once converted. A good place to find models is [this repo](https://github.com/justinpinkney/awesome-pretrained-stylegan2).
 
 There is minimal support for rendering with StyleGAN1 checkpoints as well, although only with latent and noise (no network bending or model rewriting).
