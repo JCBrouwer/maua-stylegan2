@@ -2,9 +2,7 @@ import os
 import gc
 import wandb
 import argparse
-import validation
 import torch as th
-import numpy as np
 from tqdm import tqdm
 from torch.utils import data
 import torch.nn.functional as F

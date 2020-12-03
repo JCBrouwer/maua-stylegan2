@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 import torch as th
 from autoencoder import ConvSegNet
-from torchvision import datasets, utils
+from torchvision import datasets
 import torchvision.transforms as transforms
 
 

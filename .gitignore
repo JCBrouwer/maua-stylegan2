@@ -1,3 +1,15 @@
+wandb/
+*.lmdb/
+*.pkl
+checkpoints/
+maua-stylegan/
+.vscode
+output/
+workspace/*
+!workspace
+output/*
+!output
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -128,11 +140,3 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-wandb/
-*.lmdb/
-*.pkl
-
-checkpoints/
-maua-stylegan/
-.vscode
-output/

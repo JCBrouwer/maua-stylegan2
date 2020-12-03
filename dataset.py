@@ -2,7 +2,7 @@ from io import BytesIO
 
 import lmdb
 from PIL import Image
-from PIL import Image, ImageFile
+from PIL import Image
 from torch.utils.data import Dataset
 
 

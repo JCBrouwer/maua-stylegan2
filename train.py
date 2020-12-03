@@ -1,39 +1,30 @@
 import argparse
+import gc
 import math
+import os
 import random
-import os, gc, sys
-import time
+import sys
 
 import numpy as np
 import torch as th
+import wandb
+from contrastive_learner import ContrastiveLearner, RandomApply
+from kornia import augmentation as augs
+from scipy.ndimage import gaussian_filter
 from torch import nn
 from torch.nn import functional as F
 from torch.utils import data
-import torch.distributed as dist
 from torchvision import transforms, utils
 from tqdm import tqdm
-from scipy.ndimage import gaussian_filter
 
-import wandb
 import validation
-
-from models.stylegan2 import Generator, Discriminator
+from augment import augment
 from dataset import MultiResolutionDataset
-from distributed import (
-    get_rank,
-    synchronize,
-    reduce_loss_dict,
-    reduce_sum,
-    get_world_size,
-)
+from distributed import get_rank, reduce_loss_dict, reduce_sum, synchronize
+from lookahead_minimax import LookaheadMinimax
+from models.stylegan2 import Discriminator, Generator
 
 sys.path.insert(0, "../lookahead_minimax")
-from lookahead_minimax import LookaheadMinimax
-
-from contrastive_learner import ContrastiveLearner, RandomApply
-from kornia import augmentation as augs
-
-from augment import augment
 
 
 def data_sampler(dataset, shuffle, distributed):
@@ -313,7 +304,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                 + f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
             )
             if "Augment" in log_dict:
-                description += f"   Aug: {log_dict['Augment']:.4f}   Rt: {log_dict['Rt']:.4f}"
+                description += f"   Aug: {log_dict['Augment']:.4f}"  #   Rt: {log_dict['Rt']:.4f}"
             if "R1 Penalty" in log_dict:
                 description += f"   R1: {log_dict['R1 Penalty']:.4f}"
             if "Path Length Regularization" in log_dict:
@@ -321,6 +312,16 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
             pbar.set_description(description)
 
             if i % args.checkpoint_every == 0:
+                check_name = "-".join(
+                    [
+                        args.name,
+                        args.runname,
+                        wandb.run.dir.split("/")[-1].split("-")[-1],
+                        int(fid),
+                        args.size,
+                        str(i).zfill(6),
+                    ]
+                )
                 th.save(
                     {
                         "g": g_module.state_dict(),
@@ -330,7 +331,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                         "g_optim": g_optim.state_dict(),
                         "d_optim": d_optim.state_dict(),
                     },
-                    f"/home/hans/modelzoo/maua-sg2/{args.name}-{args.runname}-{wandb.run.dir.split('/')[-1].split('-')[-1]}-{int(fid)}-{args.size}-{str(i).zfill(6)}.pt",
+                    f"/home/hans/modelzoo/maua-sg2/{check_name}.pt",
                 )
 
 
@@ -340,7 +341,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # data options
-    parser.add_argument("path", type=str)
+    parser.add_argument("--path", type=str, default="/home/hans/trainsets/cyphept")
     parser.add_argument("--runname", type=str, default=None)
     parser.add_argument("--vflip", type=bool, default=False)
     parser.add_argument("--hflip", type=bool, default=True)
@@ -349,7 +350,11 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--num_accumulate", type=int, default=1)
 
-    parser.add_argument("--checkpoint", type=str, default=None)
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default=None,  # "/home/hans/modelzoo/maua-sg2/cyphept-baseline-2ohkjhvp-77-256-040000.pt"
+    )
     parser.add_argument("--transfer_mapping_only", type=bool, default=False)
     parser.add_argument("--start_iter", type=int, default=0)
     parser.add_argument("--iter", type=int, default=60_000)
@@ -388,11 +393,11 @@ if __name__ == "__main__":
     parser.add_argument("--ada_length", type=int, default=40_000)
 
     # validation options
-    parser.add_argument("--val_batch_size", type=int, default=8)
-    parser.add_argument("--fid_n_sample", type=int, default=5000)
+    parser.add_argument("--val_batch_size", type=int, default=6)
+    parser.add_argument("--fid_n_sample", type=int, default=2500)
     parser.add_argument("--fid_truncation", type=float, default=None)
     parser.add_argument("--ppl_space", choices=["z", "w"], default="w")
-    parser.add_argument("--ppl_n_sample", type=int, default=2500)
+    parser.add_argument("--ppl_n_sample", type=int, default=1250)
     parser.add_argument("--ppl_crop", type=bool, default=False)
 
     # logging options
