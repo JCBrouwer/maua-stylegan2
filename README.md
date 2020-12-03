@@ -4,7 +4,7 @@ This is the repo for my experiments with StyleGAN2. There are many like it, but 
 
 It contains the code for [Audio-reactive Latent Interpolations with StyleGAN](https://wavefunk.xyz/assets/audio-reactive-stylegan/paper.pdf) for the NeurIPS 2020 [Workshop on Machine Learning for Creativity and Design](https://neurips2020creativity.github.io/).
 
-The original base is [Rosinality's excellent implementation](https://github.com/rosinality/stylegan2-pytorch), but I've gathered code from multiple different repositories and hacked/grafted it all together. License information for the code should all be in the LICENSE folder, but if you find anything missing or incorrect please let me know and I'll fix it immediately. Tread carefully when trying to distribute any code from this repo, it's meant for research and demonstration.
+The original base is [Kim Seonghyeon's excellent implementation](https://github.com/rosinality/stylegan2-pytorch), but I've gathered code from multiple different repositories or other places online and hacked/grafted it all together. License information for the code should all be in the LICENSE folder, but if you find anything missing or incorrect please let me know and I'll fix it immediately. Tread carefully when trying to distribute any code from this repo, it's meant for research and demonstration.
 
 The files/folders of interest and their purpose are:
 
@@ -170,6 +170,20 @@ generate_audiovisual.py
 
 Alternatively, `generate()` can be called directly from python. It takes the same arguments as generate_audiovisual.py except instead of supplying an audioreactive_file, the functions should be supplied directly (i.e. initialize, get_latents, get_noise, get_bends, get_rewrites, and get_truncation as arguments).
 
-Model checkpoints can be converted from tensorflow .pkl's with [Rosinality's script](https://github.com/rosinality/stylegan2-pytorch/blob/master/convert_weight.py) (the one in this repo is broken). Both StyleGAN2 and StyleGAN2-ADA tensorflow checkpoints should work once converted. A good place to find models is [this repo](https://github.com/justinpinkney/awesome-pretrained-stylegan2).
+Model checkpoints can be converted from tensorflow .pkl's with [Kim Seonghyeon's script](https://github.com/rosinality/stylegan2-pytorch/blob/master/convert_weight.py) (the one in this repo is broken). Both StyleGAN2 and StyleGAN2-ADA tensorflow checkpoints should work once converted. A good place to find models is [this repo](https://github.com/justinpinkney/awesome-pretrained-stylegan2).
 
 There is minimal support for rendering with StyleGAN1 checkpoints as well, although only with latent and noise (no network bending or model rewriting).
+
+## Citation
+
+If you use the techniques introduced in the paper or the code in this repository for your research, please cite the paper:
+```
+@InProceedings{Brouwer_2020_NeurIPS_Workshops},
+    author = {Brouwer, Hans},
+    title = {Audio-reactive Latent Interpolations with StyleGAN},
+    booktitle = {Proceedings of the 4th Workshop on Machine Learning for Creativity and Design at NeurIPS 2020},
+    month = {December},
+    year = {2020},
+    url={https://jcbrouwer.github.io/assets/audio-reactive-stylegan/paper.pdf}
+}
+```
