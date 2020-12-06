@@ -114,7 +114,7 @@ def render(
     if not isinstance(truncation, float):
         truncation = truncation.float().contiguous().pin_memory()
 
-    pbar = tqdm(range(0, len(latents), batch_size))
+    pbar = tqdm(range(0, len(latents), batch_size), position=0, leave=True)
     for n in pbar:
         # load batches of data onto the GPU
         latent_batch = latents[n : n + batch_size].cuda(non_blocking=True)
