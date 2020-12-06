@@ -79,8 +79,15 @@ def generate(
     n_mlp=8,
     channel_multiplier=2,
     randomize_noise=False,
-    args={},
+    args=None,
 ):
+    # if args is empty (i.e. generate() called directly instead of through __main__)
+    # create args Namespace with all locally available variables
+    if args is None:
+        args = argparse.Namespace()
+        for k, v in locals():
+            setattr(args, k, v)
+
     time_taken = time.time()
     th.set_grad_enabled(False)
 
