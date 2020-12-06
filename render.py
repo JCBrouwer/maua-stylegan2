@@ -75,7 +75,7 @@ def render(
     # writes numpy frames to ffmpeg stdin as raw rgb24 bytes
     def make_video(jobs_in):
         w, h = [int(dim) for dim in output_size.split("x")]
-        for _ in range(len(latents)):
+        for _ in tqdm(range(len(latents)), position=0, leave=True, ncols=40):
             img = jobs_in.get(timeout=10)
             if img.shape[1] == 2048:
                 img = img[:, 112:-112, :]
@@ -115,8 +115,7 @@ def render(
     if not isinstance(truncation, float):
         truncation = truncation.float().contiguous().pin_memory()
 
-    pbar = tqdm(range(0, len(latents), batch_size), position=0, leave=True)
-    for n in pbar:
+    for n in range(0, len(latents), batch_size):
         # load batches of data onto the GPU
         latent_batch = latents[n : n + batch_size].cuda(non_blocking=True)
 
@@ -164,7 +163,6 @@ def render(
             splitter.start()
             renderer.start()
 
-    pbar.set_description("Finalizing render...")
     splitter.join()
     renderer.join()
 

@@ -196,7 +196,6 @@ def generate(
     )
 
     print(f"\npreprocessing took {time.time() - time_taken:.2f}s\n")
-    time_taken = time.time()
 
     print(f"rendering {n_frames} frames...")
     checkpoint_title = ckpt.split("/")[-1].split(".")[0].lower()
@@ -219,7 +218,7 @@ def generate(
         ffmpeg_preset=ffmpeg_preset,
     )
 
-    print(f"\nrendering took {(time.time() - time_taken)/60:.2f} minutes")
+    print(f"\ntotal time taken: {(time.time() - time_taken)/60:.2f} minutes")
 
 
 if __name__ == "__main__":

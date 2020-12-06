@@ -2,7 +2,6 @@ import librosa as rosa
 import librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.signal as signal
 
 # ====================================================================================
 # ==================================== utilities =====================================
@@ -27,7 +26,6 @@ def plot_signals(signals):
     Args:
         signals (np.array/th.tensor): List of signals (1 non-unit dimension)
     """
-    info(signals)
     plt.figure(figsize=(16, 4 * len(signals)))
     for sbplt, y in enumerate(signals):
         try:
