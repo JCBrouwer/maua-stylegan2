@@ -84,9 +84,13 @@ def generate(
     # if args is empty (i.e. generate() called directly instead of through __main__)
     # create args Namespace with all locally available variables
     if args is None:
+        kwargs = locals()
         args = argparse.Namespace()
-        for k, v in locals():
+        for k, v in kwargs.items():
             setattr(args, k, v)
+
+    # ensures smoothing is independent of frame rate
+    ar.set_SMF(args.fps / 30)
 
     time_taken = time.time()
     th.set_grad_enabled(False)
@@ -268,9 +272,6 @@ if __name__ == "__main__":
             setattr(args, arg, val)
     except:
         pass  # no overrides, just continue
-
-    # ensures smoothing is independent of frame rate
-    ar.set_SMF(args.fps / 30)
 
     ckpt = arg_dict.pop("ckpt", None)
     audio_file = arg_dict.pop("audio_file", None)
