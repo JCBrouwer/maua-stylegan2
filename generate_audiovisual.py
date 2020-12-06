@@ -74,7 +74,7 @@ def generate(
     dataparallel=False,
     truncation=1.0,
     stylegan1=False,
-    noconst=True,
+    noconst=False,
     latent_dim=512,
     n_mlp=8,
     channel_multiplier=2,

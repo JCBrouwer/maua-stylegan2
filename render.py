@@ -5,6 +5,7 @@ import ffmpeg
 import numpy as np
 import PIL.Image
 import torch as th
+from tqdm import tqdm
 
 th.set_grad_enabled(False)
 th.backends.cudnn.benchmark = True
@@ -57,7 +58,7 @@ def render(
                 ac=2,
                 v="warning",
             )
-            .global_args("-benchmark", "-stats", "-hide_banner")
+            .global_args("-hide_banner")
             .overwrite_output()
             .run_async(pipe_stdin=True)
         )
@@ -65,7 +66,7 @@ def render(
         video = (
             ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / duration, s=output_size)
             .output(output_file, framerate=len(latents) / duration, vcodec="libx264", preset="slow", v="warning",)
-            .global_args("-benchmark", "-stats", "-hide_banner")
+            .global_args("-hide_banner")
             .overwrite_output()
             .run_async(pipe_stdin=True)
         )
@@ -101,6 +102,7 @@ def render(
         noise[ni] = noise_scale.float().contiguous().pin_memory() if noise_scale is not None else None
 
     param_dict = dict(generator.named_parameters())
+    original_weights = {}
     for param, (rewrite, modulation) in rewrites.items():
         rewrites[param] = [rewrite, modulation.float().contiguous().pin_memory()]
         original_weights[param] = param_dict[param].copy().cpu().float().contiguous().pin_memory()
@@ -112,7 +114,8 @@ def render(
     if not isinstance(truncation, float):
         truncation = truncation.float().contiguous().pin_memory()
 
-    for n in range(0, len(latents), batch_size):
+    pbar = tqdm(range(0, len(latents), batch_size))
+    for n in pbar:
         # load batches of data onto the GPU
         latent_batch = latents[n : n + batch_size].cuda(non_blocking=True)
 
@@ -160,6 +163,7 @@ def render(
             splitter.start()
             renderer.start()
 
+    pbar.set_description("Finalizing render...")
     splitter.join()
     renderer.join()
 
