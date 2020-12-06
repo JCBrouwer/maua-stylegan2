@@ -75,7 +75,7 @@ def render(
     # writes numpy frames to ffmpeg stdin as raw rgb24 bytes
     def make_video(jobs_in):
         w, h = [int(dim) for dim in output_size.split("x")]
-        for _ in tqdm(range(len(latents)), position=0, leave=True, ncols=40):
+        for _ in tqdm(range(len(latents)), position=0, leave=True, ncols=80):
             img = jobs_in.get(timeout=10)
             if img.shape[1] == 2048:
                 img = img[:, 112:-112, :]
