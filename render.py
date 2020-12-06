@@ -44,7 +44,7 @@ def render(
     # start background ffmpeg process that listens on stdin for frame data
     output_size = "1024x1024" if out_size == 1024 else ("512x512" if out_size == 512 else "1920x1080")
     if audio_file is not None:
-        audio = ffmpeg.input(audio_file, ss=offset, to=offset + duration, guess_layout_max=0)
+        audio = ffmpeg.input(audio_file, ss=offset, t=duration, guess_layout_max=0)
         video = (
             ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / duration, s=output_size)
             .output(
