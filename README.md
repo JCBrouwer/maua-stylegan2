@@ -29,6 +29,8 @@ cd maua-stylegan2
 conda env create -f env.yml
 ```
 
+Alternatively, check out this [Colab Notebook](https://colab.research.google.com/drive/1Ig1EXfmBC01qik11Q32P0ZffFtNipiBR)
+
 ## Generating audio-reactive interpolations
 
 The simplest way to get started is to try either (in shell):
