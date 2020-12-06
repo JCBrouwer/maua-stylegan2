@@ -25,6 +25,7 @@ def render(
     bends=[],
     rewrites={},
     randomize_noise=False,
+    ffmpeg_preset="slow",
 ):
     split_queue = queue.Queue()
     render_queue = queue.Queue()
@@ -53,7 +54,7 @@ def render(
                 output_file,
                 framerate=len(latents) / duration,
                 vcodec="libx264",
-                preset="slow",
+                preset=ffmpeg_preset,
                 audio_bitrate="320K",
                 ac=2,
                 v="warning",

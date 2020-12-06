@@ -79,6 +79,7 @@ def generate(
     n_mlp=8,
     channel_multiplier=2,
     randomize_noise=False,
+    ffmpeg_preset="slow",
     args=None,
 ):
     # if args is empty (i.e. generate() called directly instead of through __main__)
@@ -215,6 +216,7 @@ def generate(
         out_size=out_size,
         output_file=title,
         randomize_noise=randomize_noise,
+        ffmpeg_preset=ffmpeg_preset,
     )
 
     print(f"\nrendering took {(time.time() - time_taken)/60:.2f} minutes")
@@ -242,6 +244,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_mlp", type=int, default=8)
     parser.add_argument("--channel_multiplier", type=int, default=2)
     parser.add_argument("--randomize_noise", action="store_true")
+    parser.add_argument("--ffmpeg_preset", type=str, default="slow")
     args = parser.parse_args()
 
     # transform file path to python module string
