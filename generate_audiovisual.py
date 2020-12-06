@@ -109,9 +109,7 @@ def generate(
     if latent_file is not None:
         latent_selection = ar.load_latents(latent_file)
     else:
-        latent_selection = ar.generate_latents(
-            12, ckpt, G_res, out_size, noconst, latent_dim, n_mlp, channel_multiplier
-        )
+        latent_selection = ar.generate_latents(12, ckpt, G_res, noconst, latent_dim, n_mlp, channel_multiplier)
     if shuffle_latents:
         random_indices = random.sample(range(len(latent_selection)), len(latent_selection))
         latent_selection = latent_selection[random_indices]
