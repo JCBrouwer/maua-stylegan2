@@ -1,6 +1,7 @@
 from io import BytesIO
 
 import lmdb
+import numpy as np
 from PIL import Image
 from PIL import Image
 from torch.utils.data import Dataset
@@ -23,13 +24,20 @@ class MultiResolutionDataset(Dataset):
         return self.length
 
     def __getitem__(self, index):
-        with self.env.begin(write=False) as txn:
-            key = f"{self.resolution}-{str(index).zfill(5)}".encode("utf-8")
-            # print(key)
-            img_bytes = txn.get(key)
+        while True:
+            try:
+                with self.env.begin(write=False) as txn:
+                    key = f"{self.resolution}-{str(index).zfill(5)}".encode("utf-8")
+                    # print(key)
+                    img_bytes = txn.get(key)
 
-        buffer = BytesIO(img_bytes)
-        img = Image.open(buffer)
+                buffer = BytesIO(img_bytes)
+                img = Image.open(buffer)
+                break
+            except:
+                print(f"ERROR loading image {index}")
+                index = int(np.random.rand() * self.length)
+                print(f"Trying again with {index}...")
         img = self.transform(img)
 
         return img

@@ -317,8 +317,8 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                         args.name,
                         args.runname,
                         wandb.run.dir.split("/")[-1].split("-")[-1],
-                        int(fid),
-                        args.size,
+                        str(int(fid)),
+                        str(args.size),
                         str(i).zfill(6),
                     ]
                 )
@@ -350,11 +350,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--num_accumulate", type=int, default=1)
 
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        default=None,  # "/home/hans/modelzoo/maua-sg2/cyphept-baseline-2ohkjhvp-77-256-040000.pt"
-    )
+    parser.add_argument("--checkpoint", type=str, default=None)
     parser.add_argument("--transfer_mapping_only", type=bool, default=False)
     parser.add_argument("--start_iter", type=int, default=0)
     parser.add_argument("--iter", type=int, default=60_000)
@@ -576,8 +572,8 @@ if __name__ == "__main__":
     if get_rank() == 0:
         validation.get_dataset_inception_features(loader, args.name, args.size)
         if args.runname is not None:
-            wandb.init(project=f"maua-stylegan-sweep", name=args.runname, config=vars(args))
+            wandb.init(project=f"temperatuur", name=args.runname, config=vars(args))
         else:
-            wandb.init(project=f"maua-stylegan-sweep", config=vars(args))
+            wandb.init(project=f"temperatuur", config=vars(args))
 
     train(args, loader, generator, discriminator, contrast_learner, g_optim, d_optim, g_ema)
