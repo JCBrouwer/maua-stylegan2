@@ -4,6 +4,7 @@ import math
 import os
 import random
 import sys
+import time
 
 import numpy as np
 import torch as th
@@ -130,6 +131,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
         if i > args.iter:
             print("Done!")
             break
+        tick_start = time.time()
 
         loss_dict = {
             "Generator": th.tensor(0, device=device).float(),
@@ -245,6 +247,8 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
 
         loss_reduced = reduce_loss_dict(loss_dict)
         log_dict = {k: v.mean().item() / args.num_accumulate for k, v in loss_reduced.items() if v != 0}
+        log_dict["Tick Length"] = time.time() - tick_start
+
         if get_rank() == 0:
             if args.log_spec_norm:
                 G_norms = []
@@ -264,7 +268,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                 log_dict[f"Spectral Norms/D mean spectral norm"] = np.log(D_norms).mean()
                 log_dict[f"Spectral Norms/D max spectral norm"] = np.log(D_norms).max()
 
-            if i % args.img_every == 0:
+            if args.img_every != -1 and i % args.img_every == 0:
                 gc.collect()
                 th.cuda.empty_cache()
                 with th.no_grad():
@@ -277,7 +281,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                     grid = utils.make_grid(sample, nrow=10, normalize=True, range=(-1, 1))
                 log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
 
-            if i % args.eval_every == 0:
+            if args.eval_every != -1 and i % args.eval_every == 0:
                 fid_dict = validation.fid(g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name)
 
                 fid = fid_dict["FID"]
@@ -299,10 +303,14 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                 th.cuda.empty_cache()
 
             wandb.log(log_dict)
-            description = (
-                f"FID: {fid:.4f}   PPL: {ppl:.4f}   Dens: {density:.4f}   Cov: {coverage:.4f}   "
-                + f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
-            )
+
+            if args.eval_every != -1:
+                description = (
+                    f"FID: {fid:.4f}   PPL: {ppl:.4f}   Dens: {density:.4f}   Cov: {coverage:.4f}   "
+                    + f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
+                )
+            else:
+                description = f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
             if "Augment" in log_dict:
                 description += f"   Aug: {log_dict['Augment']:.4f}"  #   Rt: {log_dict['Rt']:.4f}"
             if "R1 Penalty" in log_dict:
@@ -315,9 +323,9 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                 check_name = "-".join(
                     [
                         args.name,
-                        args.runname,
+                        args.wbname,
                         wandb.run.dir.split("/")[-1].split("-")[-1],
-                        str(int(fid)),
+                        # str(int(fid)),
                         str(args.size),
                         str(i).zfill(6),
                     ]
@@ -340,9 +348,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument("--wbname", type=str, required=True)
+    parser.add_argument("--wbproj", type=str, required=True)
+    parser.add_argument("--wbgroup", type=str, default=None)
+
     # data options
-    parser.add_argument("--path", type=str, default="/home/hans/trainsets/cyphept")
-    parser.add_argument("--runname", type=str, default=None)
+    parser.add_argument("--path", type=str, required=True)
     parser.add_argument("--vflip", type=bool, default=False)
     parser.add_argument("--hflip", type=bool, default=True)
 
@@ -571,9 +582,9 @@ if __name__ == "__main__":
 
     if get_rank() == 0:
         validation.get_dataset_inception_features(loader, args.name, args.size)
-        if args.runname is not None:
-            wandb.init(project=f"temperatuur", name=args.runname, config=vars(args))
+        if args.wbgroup is None:
+            wandb.init(project=args.wbproj, name=args.wbname, config=vars(args))
         else:
-            wandb.init(project=f"temperatuur", config=vars(args))
+            wandb.init(project=args.wbproj, group=args.wbgroup, name=args.wbname, config=vars(args))
 
     train(args, loader, generator, discriminator, contrast_learner, g_optim, d_optim, g_ema)
