@@ -235,6 +235,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("--ckpt", type=str)
 parser.add_argument("--res", type=int, default=1024)
+parser.add_argument("--output_dir", type=str, default="./workspace/")
 parser.add_argument("--truncation", type=int, default=1.5)
 parser.add_argument("--noconst", action="store_false")
 
@@ -318,22 +319,22 @@ def save():
     intro_latents = np.concatenate(ALL_LATENTS)[INTRO_IDXS]
     torchvision.utils.save_image(
         render_latents(th.from_numpy(intro_latents)),
-        f"workspace/{name}_intro_latents.jpg",
+        f"{args.output_dir}/{name}_intro_latents.jpg",
         nrow=int(round(math.sqrt(intro_latents.shape[0]) * 4 / 3)),
         padding=0,
         normalize=False,
     )
-    np.save(f"workspace/{name}_intro_latents.npy", intro_latents)
+    np.save(f"{args.output_dir}/{name}_intro_latents.npy", intro_latents)
 
     drop_latents = np.concatenate(ALL_LATENTS)[DROP_IDXS]
     torchvision.utils.save_image(
         render_latents(th.from_numpy(drop_latents)),
-        f"workspace/{name}_drop_latents.jpg",
+        f"{args.output_dir}/{name}_drop_latents.jpg",
         nrow=int(round(math.sqrt(drop_latents.shape[0]) * 4 / 3)),
         padding=0,
         normalize=False,
     )
-    np.save(f"workspace/{name}_drop_latents.npy", drop_latents)
+    np.save(f"{args.output_dir}/{name}_drop_latents.npy", drop_latents)
 
 
 tk.Label(panel, text="latents", height=3, bg="black", fg="white").pack(side="top")
