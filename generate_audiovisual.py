@@ -266,7 +266,7 @@ if __name__ == "__main__":
                 exit(1)
 
     # override with args from the OVERRIDE dict in the specified file
-    arg_dict = vars(args)
+    arg_dict = vars(args).copy()
     try:
         file = __import__(".".join(modnames[:-1]), fromlist=[modnames[-1]]).__dict__[modnames[-1]]
         for arg, val in getattr(file, "OVERRIDE").items():

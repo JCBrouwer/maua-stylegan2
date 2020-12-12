@@ -54,6 +54,7 @@ def render(
                 output_file,
                 framerate=len(latents) / duration,
                 vcodec="libx264",
+                pix_fmt="yuv420p",
                 preset=ffmpeg_preset,
                 audio_bitrate="320K",
                 ac=2,
@@ -66,7 +67,14 @@ def render(
     else:
         video = (
             ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / duration, s=output_size)
-            .output(output_file, framerate=len(latents) / duration, vcodec="libx264", preset="slow", v="warning",)
+            .output(
+                output_file,
+                framerate=len(latents) / duration,
+                vcodec="libx264",
+                pix_fmt="yuv420p",
+                preset="slow",
+                v="warning",
+            )
             .global_args("-hide_banner")
             .overwrite_output()
             .run_async(pipe_stdin=True)
