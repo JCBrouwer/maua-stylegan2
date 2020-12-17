@@ -250,28 +250,26 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
         log_dict["Tick Length"] = time.time() - tick_start
 
         if get_rank() == 0:
-            if args.log_spec_norm:
-                G_norms = []
-                for name, spec_norm in g_module.named_buffers():
-                    if "spectral_norm" in name:
-                        G_norms.append(spec_norm.cpu().numpy())
-                G_norms = np.array(G_norms)
-                D_norms = []
-                for name, spec_norm in d_module.named_buffers():
-                    if "spectral_norm" in name:
-                        D_norms.append(spec_norm.cpu().numpy())
-                D_norms = np.array(D_norms)
-                log_dict[f"Spectral Norms/G min spectral norm"] = np.log(G_norms).min()
-                log_dict[f"Spectral Norms/G mean spectral norm"] = np.log(G_norms).mean()
-                log_dict[f"Spectral Norms/G max spectral norm"] = np.log(G_norms).max()
-                log_dict[f"Spectral Norms/D min spectral norm"] = np.log(D_norms).min()
-                log_dict[f"Spectral Norms/D mean spectral norm"] = np.log(D_norms).mean()
-                log_dict[f"Spectral Norms/D max spectral norm"] = np.log(D_norms).max()
+            with th.no_grad():
+                if args.log_spec_norm:
+                    G_norms = []
+                    for name, spec_norm in g_module.named_buffers():
+                        if "spectral_norm" in name:
+                            G_norms.append(spec_norm.cpu().numpy())
+                    G_norms = np.array(G_norms)
+                    D_norms = []
+                    for name, spec_norm in d_module.named_buffers():
+                        if "spectral_norm" in name:
+                            D_norms.append(spec_norm.cpu().numpy())
+                    D_norms = np.array(D_norms)
+                    log_dict[f"Spectral Norms/G min spectral norm"] = np.log(G_norms).min()
+                    log_dict[f"Spectral Norms/G mean spectral norm"] = np.log(G_norms).mean()
+                    log_dict[f"Spectral Norms/G max spectral norm"] = np.log(G_norms).max()
+                    log_dict[f"Spectral Norms/D min spectral norm"] = np.log(D_norms).min()
+                    log_dict[f"Spectral Norms/D mean spectral norm"] = np.log(D_norms).mean()
+                    log_dict[f"Spectral Norms/D max spectral norm"] = np.log(D_norms).max()
 
-            if args.img_every != -1 and i % args.img_every == 0:
-                gc.collect()
-                th.cuda.empty_cache()
-                with th.no_grad():
+                if args.img_every != -1 and i % args.img_every == 0:
                     g_ema.eval()
                     sample = []
                     for sub in range(0, len(sample_z), args.batch_size):
@@ -279,68 +277,73 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                         sample.append(subsample.cpu())
                     sample = th.cat(sample)
                     grid = utils.make_grid(sample, nrow=10, normalize=True, range=(-1, 1))
-                log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
+                    log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
 
-            if args.eval_every != -1 and i % args.eval_every == 0:
-                fid_dict = validation.fid(g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name)
+                if args.eval_every != -1 and i % args.eval_every == 0:
+                    fid_dict = validation.fid(
+                        g_ema, args.val_batch_size, args.fid_n_sample, args.fid_truncation, args.name
+                    )
 
-                fid = fid_dict["FID"]
-                fids.append(fid)
-                density = fid_dict["Density"]
-                coverage = fid_dict["Coverage"]
+                    fid = fid_dict["FID"]
+                    fids.append(fid)
+                    density = fid_dict["Density"]
+                    coverage = fid_dict["Coverage"]
 
-                ppl = validation.ppl(
-                    g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
-                )
+                    ppl = validation.ppl(
+                        g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
+                    )
 
-                log_dict["Evaluation/FID"] = fid
-                log_dict["Sweep/FID_smooth"] = gaussian_filter(np.array(fids), [5])[-1]
-                log_dict["Evaluation/Density"] = density
-                log_dict["Evaluation/Coverage"] = coverage
-                log_dict["Evaluation/PPL"] = ppl
+                    log_dict["Evaluation/FID"] = fid
+                    log_dict["Sweep/FID_smooth"] = gaussian_filter(np.array(fids), [5])[-1]
+                    log_dict["Evaluation/Density"] = density
+                    log_dict["Evaluation/Coverage"] = coverage
+                    log_dict["Evaluation/PPL"] = ppl
 
-                gc.collect()
-                th.cuda.empty_cache()
+                    gc.collect()
+                    th.cuda.empty_cache()
 
-            wandb.log(log_dict)
+                wandb.log(log_dict)
 
-            if args.eval_every != -1:
-                description = (
-                    f"FID: {fid:.4f}   PPL: {ppl:.4f}   Dens: {density:.4f}   Cov: {coverage:.4f}   "
-                    + f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
-                )
-            else:
-                description = f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
-            if "Augment" in log_dict:
-                description += f"   Aug: {log_dict['Augment']:.4f}"  #   Rt: {log_dict['Rt']:.4f}"
-            if "R1 Penalty" in log_dict:
-                description += f"   R1: {log_dict['R1 Penalty']:.4f}"
-            if "Path Length Regularization" in log_dict:
-                description += f"   Path: {log_dict['Path Length Regularization']:.4f}"
-            pbar.set_description(description)
+                if args.eval_every != -1:
+                    description = (
+                        f"FID: {fid:.4f}   PPL: {ppl:.4f}   Dens: {density:.4f}   Cov: {coverage:.4f}   "
+                        + f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
+                    )
+                else:
+                    description = f"G: {log_dict['Generator']:.4f}   D: {log_dict['Discriminator']:.4f}"
+                if "Augment" in log_dict:
+                    description += f"   Aug: {log_dict['Augment']:.4f}"  #   Rt: {log_dict['Rt']:.4f}"
+                if "R1 Penalty" in log_dict:
+                    description += f"   R1: {log_dict['R1 Penalty']:.4f}"
+                if "Path Length Regularization" in log_dict:
+                    description += f"   Path: {log_dict['Path Length Regularization']:.4f}"
+                pbar.set_description(description)
 
-            if i % args.checkpoint_every == 0:
-                check_name = "-".join(
-                    [
-                        args.name,
-                        args.wbname,
-                        wandb.run.dir.split("/")[-1].split("-")[-1],
-                        # str(int(fid)),
-                        str(args.size),
-                        str(i).zfill(6),
-                    ]
-                )
-                th.save(
-                    {
-                        "g": g_module.state_dict(),
-                        "d": d_module.state_dict(),
-                        # "cl": cl_module.state_dict(),
-                        "g_ema": g_ema.state_dict(),
-                        "g_optim": g_optim.state_dict(),
-                        "d_optim": d_optim.state_dict(),
-                    },
-                    f"/home/hans/modelzoo/maua-sg2/{check_name}.pt",
-                )
+                if i % args.checkpoint_every == 0:
+                    check_name = "-".join(
+                        [
+                            args.name,
+                            args.wbname,
+                            wandb.run.dir.split("/")[-1].split("-")[-1],
+                            # str(int(fid)),
+                            str(args.size),
+                            str(i).zfill(6),
+                        ]
+                    )
+                    th.save(
+                        {
+                            "g": g_module.state_dict(),
+                            "d": d_module.state_dict(),
+                            # "cl": cl_module.state_dict(),
+                            "g_ema": g_ema.state_dict(),
+                            "g_optim": g_optim.state_dict(),
+                            "d_optim": d_optim.state_dict(),
+                        },
+                        f"/home/hans/modelzoo/maua-sg2/{check_name}.pt",
+                    )
+
+        if args.profile_mem:
+            gpu_profile(frame=sys._getframe(), event="line", arg=None)
 
 
 if __name__ == "__main__":
@@ -409,9 +412,10 @@ if __name__ == "__main__":
 
     # logging options
     parser.add_argument("--log_spec_norm", type=bool, default=False)
-    parser.add_argument("--img_every", type=int, default=250)
-    parser.add_argument("--eval_every", type=int, default=1000)
+    parser.add_argument("--img_every", type=int, default=1000)
+    parser.add_argument("--eval_every", type=int, default=-1)
     parser.add_argument("--checkpoint_every", type=int, default=1000)
+    parser.add_argument("--profile_mem", action="store_true")
 
     # (multi-)GPU options
     parser.add_argument("--local_rank", type=int, default=0)
@@ -426,6 +430,14 @@ if __name__ == "__main__":
     args.num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
     th.backends.cudnn.benchmark = args.cudnn_benchmark
     args.distributed = args.num_gpus > 1
+
+    # code for updating wandb configs that were incorrect
+    # if args.local_rank == 0:
+    #     api = wandb.Api()
+    #     run = api.run("wav/temperatuur/7kp6g0zt")
+    #     run.config = vars(args)
+    #     run.update()
+    # exit()
 
     if args.distributed:
         th.cuda.set_device(args.local_rank)
@@ -470,20 +482,23 @@ if __name__ == "__main__":
     g_ema.eval()
     accumulate(g_ema, generator, 0)
 
-    augment_fn = nn.Sequential(
-        nn.ReflectionPad2d(int((math.sqrt(2) - 1) * args.size / 4)),  # zoom out
-        augs.RandomHorizontalFlip(),
-        RandomApply(augs.RandomAffine(degrees=0, translate=(0.25, 0.25), shear=(15, 15)), p=0.1),
-        RandomApply(augs.RandomRotation(180), p=0.1),
-        augs.RandomResizedCrop(size=(args.size, args.size), scale=(1, 1), ratio=(1, 1)),
-        RandomApply(augs.RandomResizedCrop(size=(args.size, args.size), scale=(0.5, 0.9)), p=0.1),  # zoom in
-        RandomApply(augs.RandomErasing(), p=0.1),
-    )
-    contrast_learner = (
-        ContrastiveLearner(discriminator, args.size, augment_fn=augment_fn, hidden_layer=(-1, 0))
-        if args.contrastive > 0
-        else None
-    )
+    if args.contrastive > 0:
+        contrast_learner = ContrastiveLearner(
+            discriminator,
+            args.size,
+            augment_fn=nn.Sequential(
+                nn.ReflectionPad2d(int((math.sqrt(2) - 1) * args.size / 4)),  # zoom out
+                augs.RandomHorizontalFlip(),
+                RandomApply(augs.RandomAffine(degrees=0, translate=(0.25, 0.25), shear=(15, 15)), p=0.1),
+                RandomApply(augs.RandomRotation(180), p=0.1),
+                augs.RandomResizedCrop(size=(args.size, args.size), scale=(1, 1), ratio=(1, 1)),
+                RandomApply(augs.RandomResizedCrop(size=(args.size, args.size), scale=(0.5, 0.9)), p=0.1),  # zoom in
+                RandomApply(augs.RandomErasing(), p=0.1),
+            ),
+            hidden_layer=(-1, 0),
+        )
+    else:
+        contrast_learner = None
 
     g_reg_ratio = args.g_reg_every / (args.g_reg_every + 1)
     d_reg_ratio = args.d_reg_every / (args.d_reg_every + 1)
@@ -586,5 +601,11 @@ if __name__ == "__main__":
             wandb.init(project=args.wbproj, name=args.wbname, config=vars(args))
         else:
             wandb.init(project=args.wbproj, group=args.wbgroup, name=args.wbname, config=vars(args))
+
+    if args.profile_mem:
+        os.environ["GPU_DEBUG"] = str(args.local_rank)
+        from gpu_profile import gpu_profile
+
+        sys.settrace(gpu_profile)
 
     train(args, loader, generator, discriminator, contrast_learner, g_optim, d_optim, g_ema)
