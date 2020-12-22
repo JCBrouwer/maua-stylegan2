@@ -116,12 +116,26 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
     loader = sample_data(loader)
     sample_z = th.randn(args.n_sample, args.latent_size, device=device)
     mse = th.nn.MSELoss()
-    mean_path_length = 0
-    ada_augment = th.tensor([0.0, 0.0], device=device)
-    ada_aug_p = args.augment_p if args.augment_p > 0 else 0.0
-    ada_aug_step = args.ada_target / args.ada_length
-    r_t_stat = 0
+    mean_path_length = th.cuda.FloatTensor([0.0])
+    ada_aug_signs = th.cuda.FloatTensor([0.0])
+    ada_aug_n = th.cuda.FloatTensor([0.0])
+    ada_aug_p = th.cuda.FloatTensor([args.augment_p if args.augment_p > 0 else 0.0])
+    ada_aug_step = th.cuda.FloatTensor([args.ada_target / args.ada_length])
+    r_t_stat = th.cuda.FloatTensor([0.0])
     fids = []
+
+    loss_dict = {
+        "Generator": th.cuda.FloatTensor([0.0]),
+        "Discriminator": th.cuda.FloatTensor([0.0]),
+        "Real Score": th.cuda.FloatTensor([0.0]),
+        "Fake Score": th.cuda.FloatTensor([0.0]),
+        "Contrastive": th.cuda.FloatTensor([0.0]),
+        "Consistency": th.cuda.FloatTensor([0.0]),
+        "R1 Penalty": th.cuda.FloatTensor([0.0]),
+        "Path Length Regularization": th.cuda.FloatTensor([0.0]),
+        "Augment": th.cuda.FloatTensor([0.0]),
+        "Rt": th.cuda.FloatTensor([0.0]),
+    }
 
     pbar = range(args.iter)
     if get_rank() == 0:
@@ -133,25 +147,16 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
             break
         tick_start = time.time()
 
-        loss_dict = {
-            "Generator": th.tensor(0, device=device).float(),
-            "Discriminator": th.tensor(0, device=device).float(),
-            "Real Score": th.tensor(0, device=device).float(),
-            "Fake Score": th.tensor(0, device=device).float(),
-            "Contrastive": th.tensor(0, device=device).float(),
-            "Consistency": th.tensor(0, device=device).float(),
-            "R1 Penalty": th.tensor(0, device=device).float(),
-            "Path Length Regularization": th.tensor(0, device=device).float(),
-            "Augment": th.tensor(0, device=device).float(),
-            "Rt": th.tensor(0, device=device).float(),
-        }
+        for k, v in loss_dict.items():
+            loss_dict[k].mul_(0)
 
         requires_grad(generator, False)
         requires_grad(discriminator, True)
 
         discriminator.zero_grad()
         for _ in range(args.num_accumulate):
-            real_img_og = next(loader).to(device)
+            real_img_og = next(loader).to(device, non_blocking=True)
+
             noise = make_noise(args.batch_size, args.latent_size, args.mixing_prob)
             fake_img_og, _ = generator(noise)
             if args.augment:
@@ -190,7 +195,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
         if args.r1 > 0 and i % args.d_reg_every == 0:
             discriminator.zero_grad()
             for _ in range(args.num_accumulate):
-                real_img = next(loader).to(device)
+                real_img = next(loader).to(device, non_blocking=True)
                 real_img.requires_grad = True
                 real_pred = discriminator(real_img)
                 r1_loss = d_r1_penalty(real_img, real_pred, args)
@@ -200,23 +205,23 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
             d_optim.step()
 
         if args.augment and args.augment_p == 0:
-            ada_augment += th.tensor((th.sign(real_pred).sum().item(), real_pred.shape[0]), device=device)
-            ada_augment = reduce_sum(ada_augment)
+            ada_aug_signs += th.sign(real_pred).sum().item()
+            ada_aug_n += real_pred.shape[0]
+            ada_aug_signs, ada_aug_n = reduce_sum(ada_aug_signs), reduce_sum(ada_aug_n)
 
-            if ada_augment[1] > 255:
-                pred_signs, n_pred = ada_augment.tolist()
-
-                r_t_stat = pred_signs / n_pred
-                loss_dict["Rt"] = th.tensor(r_t_stat, device=device).float()
+            if ada_aug_n > 255:
+                r_t_stat = ada_aug_signs / ada_aug_n
+                loss_dict["Rt"] += r_t_stat
                 if r_t_stat > args.ada_target:
                     sign = 1
                 else:
                     sign = -1
 
-                ada_aug_p += sign * ada_aug_step * n_pred
-                ada_aug_p = min(1, max(0, ada_aug_p))
-                ada_augment.mul_(0)
-                loss_dict["Augment"] = th.tensor(ada_aug_p, device=device).float()
+                ada_aug_p += sign * ada_aug_step * ada_aug_n
+                ada_aug_p = th.clamp(ada_aug_p, 0, 1)
+                ada_aug_signs.mul_(0)
+                ada_aug_n.mul_(0)
+                loss_dict["Augment"] += ada_aug_p
 
         requires_grad(generator, True)
         requires_grad(discriminator, False)
@@ -274,8 +279,8 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                     sample = []
                     for sub in range(0, len(sample_z), args.batch_size):
                         subsample, _ = g_ema([sample_z[sub : sub + args.batch_size]])
-                        sample.append(subsample.cpu())
-                    sample = th.cat(sample)
+                        sample.append(subsample.detach().cpu())
+                    sample = th.cat(sample).detach()
                     grid = utils.make_grid(sample, nrow=10, normalize=True, range=(-1, 1))
                     log_dict["Generated Images EMA"] = [wandb.Image(grid, caption=f"Step {i}")]
 
@@ -298,9 +303,6 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                     log_dict["Evaluation/Density"] = density
                     log_dict["Evaluation/Coverage"] = coverage
                     log_dict["Evaluation/PPL"] = ppl
-
-                    gc.collect()
-                    th.cuda.empty_cache()
 
                 wandb.log(log_dict)
 
@@ -367,10 +369,10 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint", type=str, default=None)
     parser.add_argument("--transfer_mapping_only", type=bool, default=False)
     parser.add_argument("--start_iter", type=int, default=0)
-    parser.add_argument("--iter", type=int, default=60_000)
+    parser.add_argument("--iter", type=int, default=20_000)
 
     # model options
-    parser.add_argument("--size", type=int, default=256)
+    parser.add_argument("--size", type=int, default=1024)
     parser.add_argument("--min_rgb_size", type=int, default=4)
     parser.add_argument("--latent_size", type=int, default=512)
     parser.add_argument("--n_mlp", type=int, default=8)
@@ -395,12 +397,12 @@ if __name__ == "__main__":
     parser.add_argument("--mixing_prob", type=float, default=0.666)
 
     # augmentation options
-    parser.add_argument("--augment", type=bool, default=False)
+    parser.add_argument("--augment", type=bool, default=True)
     parser.add_argument("--contrastive", type=float, default=0)
     parser.add_argument("--balanced_consistency", type=float, default=0)
     parser.add_argument("--augment_p", type=float, default=0)
     parser.add_argument("--ada_target", type=float, default=0.6)
-    parser.add_argument("--ada_length", type=int, default=40_000)
+    parser.add_argument("--ada_length", type=int, default=15_000)
 
     # validation options
     parser.add_argument("--val_batch_size", type=int, default=6)
@@ -451,7 +453,7 @@ if __name__ == "__main__":
         channel_multiplier=args.channel_multiplier,
         constant_input=args.constant_input,
         min_rgb_size=args.min_rgb_size,
-    ).to(device)
+    ).to(device, non_blocking=True)
     discriminator = Discriminator(args.size, channel_multiplier=args.channel_multiplier, use_skip=args.d_skip).to(
         device
     )
@@ -477,7 +479,7 @@ if __name__ == "__main__":
         channel_multiplier=args.channel_multiplier,
         constant_input=args.constant_input,
         min_rgb_size=args.min_rgb_size,
-    ).to(device)
+    ).to(device, non_blocking=True)
     g_ema.requires_grad_(False)
     g_ema.eval()
     accumulate(g_ema, generator, 0)

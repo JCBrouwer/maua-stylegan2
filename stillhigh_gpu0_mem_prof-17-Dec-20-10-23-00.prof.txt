@@ -1,0 +1,557 @@
+__main__ train:106                                :2087.1 Mb     if args.distributed:
++ __main__ train:106                                 (1, 1, 32, 32)       <class 'torch.Tensor'>
++ __main__ train:106                                 (32,)                <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64, 32, 3, 3)       <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 64, 128, 3, 3)   <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (256, 512)           <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 512)           <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 8192)          <class 'torch.Tensor'>
++ __main__ train:106                                 (32, 32, 3, 3)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 512, 1, 1)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 256, 1, 1)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 1, 1)         <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128, 128, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 256, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (128, 64, 1, 1)      <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 32, 32, 3, 3)    <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 256, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 512, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 128, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 4, 4)         <class 'torch.Tensor'>
++ __main__ train:106                                 (128, 512)           <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 256, 1, 1)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 512, 1, 1)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (256,)               <class 'torch.Tensor'>
++ __main__ train:106                                 (512,)               <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 513, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64, 32, 3, 3)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 32, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 64, 64)       <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 128, 128)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 256, 256)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 512, 512)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 1024, 1024)   <class 'torch.Tensor'>
++ __main__ train:106                                 (1,)                 <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512,)               <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 256, 256, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 512, 512, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 513, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (256,)               <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 256, 512, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 128, 128, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 64, 64, 3, 3)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 512)             <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64, 512)            <class 'torch.Tensor'>
++ __main__ train:106                                 (32,)                <class 'torch.Tensor'>
++ __main__ train:106                                 (32, 3, 1, 1)        <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (256, 128, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64, 64, 3, 3)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 64, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 256, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 512, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (32, 32, 3, 3)       <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 128, 256, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 1, 1)         <class 'torch.Tensor'>
++ __main__ train:106                                 (128, 64, 1, 1)      <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 32, 64, 3, 3)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 64, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64,)                <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 16, 16)       <class 'torch.Tensor'>
++ __main__ train:106                                 (1,)                 <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 32, 64, 3, 3)    <class 'torch.Tensor'>
++ __main__ train:106                                 (64, 32, 1, 1)       <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 8, 8)         <class 'torch.Tensor'>
++ __main__ train:106                                 (64,)                <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 32, 32, 3, 3)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128, 512)           <class 'torch.Tensor'>
++ __main__ train:106                                 (128, 64, 3, 3)      <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 128, 1, 1)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 512, 4, 4)       <class 'torch.Tensor'>
++ __main__ train:106                                 (64, 64, 3, 3)       <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 128, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 64, 128, 3, 3)   <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 512, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 256, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 512)           <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 512)           <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (4, 4)               <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 8192)          <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 128, 1, 1)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 512, 4, 4)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (32, 512)            <class 'torch.Tensor'>
++ __main__ train:106                                 (128,)               <class 'torch.Tensor'>
++ __main__ train:106                                 (64, 32, 1, 1)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128,)               <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (32, 512)            <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 128, 256, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 32, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (32, 3, 1, 1)        <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 256, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 512, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 256, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128, 128, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (256, 128, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128, 64, 3, 3)      <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 512, 512, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 256, 256, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 256, 512, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 128, 128, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 64, 64, 3, 3)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 512)             <class 'torch.Tensor'>
++ __main__ train:106                                 (64, 512)            <class 'torch.nn.parameter.Parameter'>
+models.stylegan2 forward:250                      :4333.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (60, 512)            <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 4, 4)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 1024, 4, 4)      <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1,)                 <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 18, 512)         <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512)             <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :2129.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 6, 4, 4)         <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+models.stylegan2 forward:235                      :4333.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
++ models.stylegan2 forward:235                       (1, 1024, 4, 4)      <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 3, 4, 4)         <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 9, 9)      <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 4, 4)      <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 4, 4)         <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :6501.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 8, 8)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 1024, 8, 8)      <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 4, 4)      <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 9, 9)      <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :2129.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 6, 8, 8)         <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+models.stylegan2 forward:235                      :4333.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
++ models.stylegan2 forward:235                       (2, 3, 8, 8)         <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 8, 8)      <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 17, 17)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 8, 8)      <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 8, 8)         <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 3, 4, 4)         <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :8697.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 16, 16)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 1024, 16, 16)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 8, 8)      <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 17, 17)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :2133.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 6, 16, 16)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+models.stylegan2 forward:235                      :4345.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
++ models.stylegan2 forward:235                       (2, 3, 16, 16)       <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 16, 16)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 33, 33)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 16, 16)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 16, 16)       <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 3, 8, 8)         <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :6521.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 32, 32)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 1024, 32, 32)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 16, 16)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 33, 33)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 6, 32, 32)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+models.stylegan2 forward:235                      :6521.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
++ models.stylegan2 forward:235                       (2, 3, 32, 32)       <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 32, 32)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 65, 65)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 32, 32)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 32, 32)       <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 3, 16, 16)       <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 1024, 64, 64)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 6, 64, 64)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 64, 64)     <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 32, 32)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 65, 65)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :6649.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 256, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 512, 128, 128)   <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 3, 64, 64)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (512, 256, 3, 3)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 256)             <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 256, 128, 128)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 64, 64)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 64, 64)       <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 3, 32, 32)       <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (6, 256, 1, 1)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 6, 128, 128)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (512, 256, 3, 3)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 256)             <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :8941.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 128, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 256, 256, 256)   <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 3, 128, 128)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (256, 128, 3, 3)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 128)             <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 128, 256, 256)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 256, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 256, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 512, 128, 128)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 128, 128)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 3, 64, 64)       <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (6, 128, 1, 1)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 6, 256, 256)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (256, 128, 3, 3)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 128)             <class 'torch.Tensor'>
+torchvision.transforms.functional to_tensor:87    :4353.1 Mb     if pic.mode == 'I':
++ torchvision.transforms.functional to_tensor:87     (60, 512)            <class 'torch.Tensor'>
++ torchvision.transforms.functional to_tensor:87     (1,)                 <class 'torch.Tensor'>
+torch.tensor wrapped:23                           :4353.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
++ torch.tensor wrapped:23                            (60, 512)            <class 'torch.Tensor'>
++ torch.tensor wrapped:23                            (1,)                 <class 'torch.Tensor'>
+torch.overrides <genexpr>:1084                    :4353.1 Mb         type(a) is not torch.Tensor and
++ torch.overrides <genexpr>:1084                     (60, 512)            <class 'torch.Tensor'>
++ torch.overrides <genexpr>:1084                     (1,)                 <class 'torch.Tensor'>
+selectors __init__:213                            :4353.1 Mb         self._map = _SelectorMapping(self)
++ selectors __init__:213                             (1,)                 <class 'torch.Tensor'>
++ selectors __init__:213                             (60, 512)            <class 'torch.Tensor'>
+sre_compile _compile:149                          :4353.1 Mb                 emit(SUCCESS)
++ sre_compile _compile:149                           (60, 512)            <class 'torch.Tensor'>
++ sre_compile _compile:149                           (1,)                 <class 'torch.Tensor'>
+importlib._bootstrap parent:420                   :4353.1 Mb             return self.name.rpartition('.')[0]
++ importlib._bootstrap parent:420                    (60, 512)            <class 'torch.Tensor'>
++ importlib._bootstrap parent:420                    (1,)                 <class 'torch.Tensor'>
+threading is_set:509                              :4353.1 Mb         return self._flag
++ threading is_set:509                               (60, 512)            <class 'torch.Tensor'>
++ threading is_set:509                               (1,)                 <class 'torch.Tensor'>
+multiprocessing.queues _start_thread:156          :4353.1 Mb         debug('Queue._start_thread()')
++ multiprocessing.queues _start_thread:156           (60, 512)            <class 'torch.Tensor'>
++ multiprocessing.queues _start_thread:156           (1,)                 <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :6631.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 32, 1, 1)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 64, 1024, 1024)  <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 3, 512, 512)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (64, 32, 3, 3)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 64, 512, 512)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 32)              <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 128, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 128, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 256, 256, 256)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 3, 128, 128)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 256, 256)     <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (6, 32, 1, 1)        <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 6, 1024, 1024)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (64, 32, 3, 3)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 32)              <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :6627.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 32, 1024, 1024)  <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 32, 1, 1)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 32, 1, 1)        <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 64, 1024, 1024)  <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 1024, 1024)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 64, 64)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 3, 512, 512)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 4, 4)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 16, 16)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 8, 8)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 32, 32)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 64, 512, 512)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 18, 512)         <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 256, 128, 128)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 128, 256, 256)   <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :4323.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 64, 512, 512)    <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 32, 1025, 1025)  <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :8933.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 32, 1025, 1025)  <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :4323.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 128, 256, 256)   <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 64, 513, 513)    <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :6631.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 64, 512, 512)    <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 64, 513, 513)    <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :4325.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 256, 128, 128)   <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 128, 255, 255)   <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :5487.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 128, 256, 256)   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 128, 255, 255)   <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :6593.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 64, 64)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 256, 128, 128)   <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :5487.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 32, 32)     <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 63, 63)     <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :6593.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 512, 64, 64)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 63, 63)     <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :5491.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 16, 16)     <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 31, 31)     <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :7685.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 512, 32, 32)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 31, 31)     <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :5495.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 8, 8)       <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 15, 15)     <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :6593.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 512, 16, 16)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 15, 15)     <class 'torch.Tensor'>
+torch.nn.modules.module __getattr__:769           :5495.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 4, 4)       <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 7, 7)       <class 'torch.Tensor'>
+torchvision.transforms.functional to_tensor:89    :6631.1 Mb     elif pic.mode == 'I;16':
+importlib._bootstrap _handle_fromlist:1019        :6631.1 Mb     if hasattr(module, '__path__'):
+selectors __init__:64                             :6631.1 Mb         self._selector = selector
+torch.overrides <genexpr>:1087                    :6631.1 Mb         for a in relevant_args
+importlib._bootstrap _handle_fromlist:1019        :6631.1 Mb     if hasattr(module, '__path__'):
+torch.nn.modules.module __getattr__:769           :6595.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 1, 4, 4)         <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 513, 4, 4)       <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 8, 8)       <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 7, 7)       <class 'torch.Tensor'>
+threading start:849                               :6631.1 Mb         with _active_limbo_lock:
+sre_compile _compile:150                          :6631.1 Mb                 code[skip] = _len(code) - skip
+multiprocessing.util debug:49                     :6631.1 Mb     if _logger:
+torch.nn.modules.module __getattr__:769           :6865.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 32, 32)     <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 1)               <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 4, 4)       <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 1, 4, 4)         <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 513, 4, 4)       <class 'torch.Tensor'>
+torch.autograd backward:132                       :7743.1 Mb         allow_unreachable=True)  # allow_unreachable flag
++ torch.autograd backward:132                        (2, 1)               <class 'torch.Tensor'>
++ torch.autograd backward:132                        ()                   <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 512)             <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 32, 32)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512)             <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 1)               <class 'torch.Tensor'>
+torch.overrides <genexpr>:1084                    :6895.1 Mb         type(a) is not torch.Tensor and
+torchvision.transforms.functional normalize:278   :6895.1 Mb     if (std == 0).any():
+torchvision.transforms.transforms __call__:66     :6895.1 Mb         for t in self.transforms:
+multiprocessing.connection _recv:381              :6895.1 Mb             if n == 0:
+threading __init__:791                            :6895.1 Mb         self._args = args
+multiprocessing.util __init__:187                 :6895.1 Mb         if (exitpriority is not None) and not isinstance(exitpriority,int):
+torch.nn.modules.module _call_impl:718            :6895.1 Mb                 self._forward_pre_hooks.values()):
+selectors _fileobj_lookup:224                     :6895.1 Mb         try:
+torch.tensor wrapped:23                           :7743.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+torch.overrides <genexpr>:1087                    :7743.1 Mb         for a in relevant_args
+torchvision.transforms.transforms __call__:67     :7743.1 Mb             img = t(img)
+torch.nn.modules.module _call_impl:724            :7743.1 Mb         if torch._C._get_tracing_state():
+threading __init__:792                            :7743.1 Mb         self._kwargs = kwargs
+multiprocessing.util __init__:192                 :7743.1 Mb         if obj is not None:
+multiprocessing.connection _recv:386              :7743.1 Mb             buf.write(chunk)
+selectors _fileobj_lookup:225                     :7743.1 Mb             return _fileobj_to_fd(fileobj)
+torch.nn.modules.module __getattr__:769           :4999.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512)             <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 32, 1024, 1024)  <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            ()                   <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 1)               <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 1)               <class 'torch.Tensor'>
+- torch.autograd backward:132                        ()                   <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 512)             <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+torch.autograd grad:204                           :6097.1 Mb         inputs, allow_unused)
++ torch.autograd grad:204                            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ torch.autograd grad:204                            (2, 1)               <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+torch.autograd grad:204                           :7037.1 Mb         inputs, allow_unused)
++ torch.autograd grad:204                            (1,)                 <class 'torch.Tensor'>
+torch.nn.modules.module _call_impl:724            :6179.1 Mb         if torch._C._get_tracing_state():
+torch.nn.modules.module _call_impl:724            :6179.1 Mb         if torch._C._get_tracing_state():
+selectors select:422                              :6179.1 Mb             if event & ~self._EVENT_WRITE:
+torchvision.transforms.functional to_tensor:102   :6179.1 Mb         return img.float().div(255)
+torchvision.transforms.functional to_tensor:81    :6179.1 Mb     if accimage is not None and isinstance(pic, accimage.Image):
+torch.tensor wrapped:24                           :6179.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.queues get:92                     :6179.1 Mb         if block and timeout is None:
+torch.tensor <genexpr>:24                         :6179.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.nn.modules.module __getattr__:769           :7295.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 4, 4)       <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 8, 8)       <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (1,)                 <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 3, 16, 16)       <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (512, 512)           <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 16, 16)     <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 18, 512)         <class 'torch.Tensor'>
+- torch.autograd grad:204                            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.autograd grad:204                            (1,)                 <class 'torch.Tensor'>
+- torch.autograd grad:204                            (2, 1)               <class 'torch.Tensor'>
+torch.autograd backward:132                       :5145.1 Mb         allow_unreachable=True)  # allow_unreachable flag
++ torch.autograd backward:132                        (2, 1)               <class 'torch.Tensor'>
++ torch.autograd backward:132                        ()                   <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 4, 4)       <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 8, 8)       <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 3, 16, 16)       <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (512, 512)           <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 16, 16)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 18, 512)         <class 'torch.Tensor'>
+op.upfirdn2d forward:119                          :5429.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
++ op.upfirdn2d forward:119                           (4, 4)               <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (64, 1025, 1025, 1)  <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (64, 1024, 1024, 1)  <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 512)             <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512)             <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+models.stylegan2 forward:633                      :5813.1 Mb             out = (out + skip) / math.sqrt(2)
++ models.stylegan2 forward:633                       (2, 64, 512, 512)    <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (64, 1024, 1024, 1)  <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (64, 1025, 1025, 1)  <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (4, 4)               <class 'torch.Tensor'>
+op.upfirdn2d forward:119                          :6071.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
++ op.upfirdn2d forward:119                           (128, 511, 511, 1)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (128, 512, 512, 1)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (4, 4)               <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 128, 256, 256)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+op.upfirdn2d forward:119                          :6347.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
++ op.upfirdn2d forward:119                           (2, 256, 128, 128)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (512, 127, 127, 1)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (512, 128, 128, 1)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 512, 64, 64)     <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (128, 511, 511, 1)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (128, 512, 512, 1)   <class 'torch.Tensor'>
+- models.stylegan2 forward:633                       (2, 64, 512, 512)    <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 128, 256, 256)   <class 'torch.Tensor'>
+torch.autograd backward:132                       :7507.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+- op.upfirdn2d forward:119                           (4, 4)               <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (512, 127, 127, 1)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (512, 128, 128, 1)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 512, 64, 64)     <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 256, 128, 128)   <class 'torch.Tensor'>
+torch.nn.modules.module _call_impl:727            :7293.1 Mb             result = self.forward(*input, **kwargs)
+torch.nn.modules.module _call_impl:727            :7293.1 Mb             result = self.forward(*input, **kwargs)
+selectors select:423                              :7293.1 Mb                 events |= EVENT_READ
+torchvision.transforms.transforms __call__:66     :7293.1 Mb         for t in self.transforms:
+multiprocessing.queues get:97                     :7293.1 Mb             if block:
+torch.tensor <genexpr>:24                         :7293.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.tensor <genexpr>:24                         :7293.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torchvision.transforms.functional to_tensor:87    :7293.1 Mb     if pic.mode == 'I':
+torch.autograd backward:132                       :7799.1 Mb         allow_unreachable=True)  # allow_unreachable flag
++ torch.autograd backward:132                        (1,)                 <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 512)             <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 512)             <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            ()                   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 1)               <class 'torch.Tensor'>
+torchvision.transforms.functional_pil _is_pil_image:16:7799.1 Mb     if accimage is not None:
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.autograd backward:132                       :8411.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+- torch.nn.modules.module __getattr__:769            (1,)                 <class 'torch.Tensor'>
+selectors select:415                              :8411.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8411.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8411.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8411.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8411.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8411.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8411.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8411.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.nn.functional grid_sample:3391              :9123.1 Mb     return torch.grid_sampler(input, grid, mode_enum, padding_mode_enum, align_corners)
++ torch.nn.functional grid_sample:3391               (2, 512)             <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               (2, 5573, 5573, 2)   <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               (2, 1)               <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               (1,)                 <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               ()                   <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               (2, 3, 5573, 5573)   <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               (2, 3, 2792, 2792)   <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               (12, 12)             <class 'torch.Tensor'>
+- torch.autograd backward:132                        (1,)                 <class 'torch.Tensor'>
+- torch.autograd backward:132                        ()                   <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 512)             <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 1)               <class 'torch.Tensor'>
+multiprocessing.queues put:82                     :9123.1 Mb         if not self._sem.acquire(block, timeout):
+torchvision.transforms.functional to_tensor:89    :9123.1 Mb     elif pic.mode == 'I;16':
+selectors select:415                              :9123.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9123.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9123.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9123.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9123.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9123.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.nn.functional grid_sample:3391              :9983.1 Mb     return torch.grid_sampler(input, grid, mode_enum, padding_mode_enum, align_corners)
++ torch.nn.functional grid_sample:3391               (2, 3, 6129, 6129)   <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               (2, 3, 3070, 3070)   <class 'torch.Tensor'>
++ torch.nn.functional grid_sample:3391               (2, 6129, 6129, 2)   <class 'torch.Tensor'>
+- torch.nn.functional grid_sample:3391               (2, 3, 5573, 5573)   <class 'torch.Tensor'>
+- torch.nn.functional grid_sample:3391               (2, 3, 2792, 2792)   <class 'torch.Tensor'>
+- torch.nn.functional grid_sample:3391               (2, 5573, 5573, 2)   <class 'torch.Tensor'>
+torch.autograd backward:132                       :10843.1Mb         allow_unreachable=True)  # allow_unreachable flag
++ torch.autograd backward:132                        (2, 1)               <class 'torch.Tensor'>
++ torch.autograd backward:132                        ()                   <class 'torch.Tensor'>
+- torch.nn.functional grid_sample:3391               (2, 3, 6129, 6129)   <class 'torch.Tensor'>
+- torch.nn.functional grid_sample:3391               (12, 12)             <class 'torch.Tensor'>
+- torch.nn.functional grid_sample:3391               (2, 3, 3070, 3070)   <class 'torch.Tensor'>
+- torch.nn.functional grid_sample:3391               (2, 6129, 6129, 2)   <class 'torch.Tensor'>
+multiprocessing.connection poll:257               :9983.1 Mb         return self._poll(timeout)
+selectors select:415                              :9983.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10843.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10843.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10843.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10843.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10843.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10843.1Mb             fd_event_list = self._selector.poll(timeout)
+multiprocessing.connection _poll:414              :10843.1Mb         r = wait([self], timeout)
+selectors select:418                              :10843.1Mb         for fd, event in fd_event_list:

@@ -1,0 +1,865 @@
+__main__ train:106                                :2087.1 Mb     if args.distributed:
++ __main__ train:106                                 (1, 3, 1, 1)         <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128, 64, 1, 1)      <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 32, 64, 3, 3)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 1, 32, 32)       <class 'torch.Tensor'>
++ __main__ train:106                                 (64, 64, 3, 3)       <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 128, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 512)           <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 512)           <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 8192)          <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 128, 1, 1)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 32, 32, 3, 3)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 128, 256, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64, 32, 1, 1)       <class 'torch.Tensor'>
++ __main__ train:106                                 (64, 512)            <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128,)               <class 'torch.Tensor'>
++ __main__ train:106                                 (32,)                <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (32, 512)            <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 128, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64, 64, 3, 3)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 32, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 8, 8)         <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 128, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 512, 4, 4)       <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 512, 4, 4)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (256, 128, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 64, 64)       <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 128, 128)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 256, 256)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 512, 512)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 1024, 1024)   <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 32, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128, 64, 3, 3)      <class 'torch.Tensor'>
++ __main__ train:106                                 (128,)               <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (32, 512)            <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64, 512)            <class 'torch.Tensor'>
++ __main__ train:106                                 (32,)                <class 'torch.Tensor'>
++ __main__ train:106                                 (32, 3, 1, 1)        <class 'torch.Tensor'>
++ __main__ train:106                                 (64, 32, 3, 3)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 1, 4, 4)         <class 'torch.Tensor'>
++ __main__ train:106                                 (64, 32, 1, 1)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 128, 256, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 32, 32, 3, 3)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 128, 1, 1)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (256, 512)           <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 512)           <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 8192)          <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (32, 32, 3, 3)       <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 32, 64, 3, 3)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 1, 1)         <class 'torch.Tensor'>
++ __main__ train:106                                 (128, 64, 1, 1)      <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 1, 16, 16)       <class 'torch.Tensor'>
++ __main__ train:106                                 (128, 128, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 256, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 256, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (64,)                <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128, 512)           <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 512, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 512, 1, 1)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 256, 1, 1)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 64, 128, 3, 3)   <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 256, 512, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 128, 128, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 64, 64, 3, 3)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 512)             <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 512, 512, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 256, 256, 3, 3)  <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 64, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512,)               <class 'torch.Tensor'>
++ __main__ train:106                                 (256,)               <class 'torch.Tensor'>
++ __main__ train:106                                 (256, 256, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 512, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 256, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128, 128, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 513, 3, 3)     <class 'torch.Tensor'>
++ __main__ train:106                                 (4, 4)               <class 'torch.Tensor'>
++ __main__ train:106                                 (1,)                 <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 512, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 256, 1, 1)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512, 256, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 512, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1,)                 <class 'torch.Tensor'>
++ __main__ train:106                                 (512, 513, 3, 3)     <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (32, 32, 3, 3)       <class 'torch.Tensor'>
++ __main__ train:106                                 (256,)               <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (512,)               <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 3, 64, 1, 1)     <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 512, 512, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 256, 256, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 256, 512, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 128, 128, 3, 3)  <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 64, 64, 3, 3)    <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 64, 128, 3, 3)   <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (1, 512)             <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 256, 1, 1)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64, 32, 3, 3)       <class 'torch.Tensor'>
++ __main__ train:106                                 (1, 3, 512, 1, 1)    <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (32, 3, 1, 1)        <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (128, 512)           <class 'torch.nn.parameter.Parameter'>
++ __main__ train:106                                 (64,)                <class 'torch.Tensor'>
++ __main__ train:106                                 (128, 64, 3, 3)      <class 'torch.nn.parameter.Parameter'>
+threading __enter__:241                           :4353.1 Mb         return self._lock.__enter__()
++ threading __enter__:241                            (60, 512)            <class 'torch.Tensor'>
++ threading __enter__:241                            (1,)                 <class 'torch.Tensor'>
+torch.nn.modules.module _call_impl:724            :4353.1 Mb         if torch._C._get_tracing_state():
++ torch.nn.modules.module _call_impl:724             (1,)                 <class 'torch.Tensor'>
++ torch.nn.modules.module _call_impl:724             (60, 512)            <class 'torch.Tensor'>
+multiprocessing.connection _poll:414              :4353.1 Mb         r = wait([self], timeout)
++ multiprocessing.connection _poll:414               (1,)                 <class 'torch.Tensor'>
++ multiprocessing.connection _poll:414               (60, 512)            <class 'torch.Tensor'>
+torch.tensor <genexpr>:24                         :4353.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
++ torch.tensor <genexpr>:24                          (60, 512)            <class 'torch.Tensor'>
++ torch.tensor <genexpr>:24                          (1,)                 <class 'torch.Tensor'>
+torch.nn.modules.module _call_impl:724            :4353.1 Mb         if torch._C._get_tracing_state():
++ torch.nn.modules.module _call_impl:724             (1,)                 <class 'torch.Tensor'>
++ torch.nn.modules.module _call_impl:724             (60, 512)            <class 'torch.Tensor'>
+sre_compile compile:781                           :4353.1 Mb         pattern, flags | p.pattern.flags, code,
++ sre_compile compile:781                            (60, 512)            <class 'torch.Tensor'>
++ sre_compile compile:781                            (1,)                 <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :4333.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1, 1024, 4, 4)      <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1,)                 <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 4, 4)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (60, 512)            <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512)             <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 18, 512)         <class 'torch.Tensor'>
+torch.overrides has_torch_function:1087           :4353.1 Mb         for a in relevant_args
++ torch.overrides has_torch_function:1087            (60, 512)            <class 'torch.Tensor'>
++ torch.overrides has_torch_function:1087            (1,)                 <class 'torch.Tensor'>
+multiprocessing.queues _start_thread:170          :4353.1 Mb         self._thread.start()
++ multiprocessing.queues _start_thread:170           (1,)                 <class 'torch.Tensor'>
++ multiprocessing.queues _start_thread:170           (60, 512)            <class 'torch.Tensor'>
+re _compile:289                                   :2131.1 Mb     if not (flags & DEBUG):
+selectors __init__:349                            :2131.1 Mb         self._selector = self._selector_cls()
+torch.overrides <genexpr>:1087                    :2131.1 Mb         for a in relevant_args
+importlib._bootstrap _handle_fromlist:1044        :2131.1 Mb     return module
+threading __init__:791                            :2131.1 Mb         self._args = args
+torchvision.transforms.functional normalize:277   :2131.1 Mb     std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
+threading start:847                               :2131.1 Mb         if self._started.is_set():
+torch.overrides <genexpr>:1087                    :2131.1 Mb         for a in relevant_args
+models.stylegan2 forward:250                      :2129.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1, 6, 4, 4)         <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+torch.overrides has_torch_function:1087           :4353.1 Mb         for a in relevant_args
+torchvision.transforms.functional_pil _is_pil_image:19:4353.1 Mb         return isinstance(img, Image.Image)
+torch.overrides <genexpr>:1084                    :4353.1 Mb         type(a) is not torch.Tensor and
+enum __new__:541                                  :4353.1 Mb             return cls._value2member_map_[value]
+threading __init__:500                            :4353.1 Mb         self._cond = Condition(Lock())
+selectors _fileobj_to_fd:36                       :4353.1 Mb         try:
+torchvision.transforms.functional normalize:284   :4353.1 Mb     tensor.sub_(mean).div_(std)
+threading wait:551                                :4353.1 Mb             if not signaled:
+models.stylegan2 forward:235                      :4333.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
++ models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 9, 9)      <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 3, 4, 4)         <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 4, 4)      <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 4, 4)      <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 4, 4)         <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+torchvision.transforms.functional hflip:458       :6521.1 Mb         return F_pil.hflip(img)
+torch.nn.modules.module _call_impl:730            :6521.1 Mb                 self._forward_hooks.values()):
+selectors _fileobj_to_fd:41                       :6521.1 Mb     if fd < 0:
+torch.tensor wrapped:26                           :6521.1 Mb         try:
+torch.nn.modules.module _call_impl:729            :6521.1 Mb                 _global_forward_hooks.values(),
+importlib._bootstrap __exit__:320                 :6521.1 Mb             spec = self._spec
+threading __init__:226                            :6521.1 Mb         try:
+multiprocessing.util debug:49                     :6521.1 Mb     if _logger:
+models.stylegan2 forward:250                      :6501.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 1024, 8, 8)      <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 8, 8)       <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 9, 9)      <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 4, 4)      <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+importlib._bootstrap __exit__:327                 :4317.1 Mb                 _verbose_message('import {!r} # {!r}', spec.name, spec.loader)
+torchvision.transforms.functional normalize:285   :4317.1 Mb     return tensor
+torchvision.transforms.transforms __call__:104    :4317.1 Mb         return F.to_tensor(pic)
+selectors register:355                            :4317.1 Mb             poller_events |= self._EVENT_READ
+multiprocessing.queues _start_thread:177          :4317.1 Mb                 exitpriority=-5
+torch.utils.data._utils.fetch fetch:47            :4317.1 Mb         return self.collate_fn(data)
+torch.nn.modules.module _call_impl:729            :4317.1 Mb                 _global_forward_hooks.values(),
+models.stylegan2 forward:250                      :2129.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1, 6, 8, 8)         <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+threading __init__:232                            :4317.1 Mb         except AttributeError:
+torch.nn.modules.module _call_impl:728            :2129.1 Mb         for hook in itertools.chain(
+torch.nn.modules.module _call_impl:730            :2129.1 Mb                 self._forward_hooks.values()):
+threading __init__:233                            :2129.1 Mb             pass
+multiprocessing.util __init__:187                 :2129.1 Mb         if (exitpriority is not None) and not isinstance(exitpriority,int):
+importlib._bootstrap _verbose_message:224         :2129.1 Mb     if sys.flags.verbose >= verbosity:
+torchvision.transforms.functional to_tensor:63    :2129.1 Mb     if not(F_pil._is_pil_image(pic) or _is_numpy(pic)):
+selectors register:356                            :2129.1 Mb         if events & EVENT_WRITE:
+torch.utils.data._utils.collate default_collate:45:2129.1 Mb     elem = batch[0]
+models.stylegan2 forward:235                      :4333.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
++ models.stylegan2 forward:235                       (2, 3, 8, 8)         <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 8, 8)      <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 17, 17)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 3, 4, 4)         <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 8, 8)      <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 8, 8)         <class 'torch.Tensor'>
+torch.nn.modules.module _call_impl:729            :4333.1 Mb                 _global_forward_hooks.values(),
+torch.nn.modules.module _call_impl:734            :4333.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+threading __init__:234                            :4333.1 Mb         try:
+importlib._bootstrap __exit__:329                 :4333.1 Mb             self._spec._initializing = False
+torchvision.transforms.functional_pil _is_pil_image:16:4333.1 Mb     if accimage is not None:
+multiprocessing.util __init__:192                 :4333.1 Mb         if obj is not None:
+torch.utils.data._utils.collate default_collate:46:4333.1 Mb     elem_type = type(elem)
+selectors register:358                            :4333.1 Mb         try:
+models.stylegan2 forward:250                      :8697.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 1024, 16, 16)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 16, 16)     <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 8, 8)      <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 17, 17)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+torch.nn.modules.module _call_impl:749            :8697.1 Mb         return result
+torch.nn.modules.module _call_impl:730            :8697.1 Mb                 self._forward_hooks.values()):
+threading __init__:235                            :8697.1 Mb             self._is_owned = lock._is_owned
+multiprocessing.util __init__:193                 :8697.1 Mb             self._weakref = weakref.ref(obj, self)
+selectors register:359                            :8697.1 Mb             self._selector.register(key.fd, poller_events)
+importlib._bootstrap _load_unlocked:682           :8697.1 Mb     return sys.modules[spec.name]
+torch.utils.data._utils.collate default_collate:47:8697.1 Mb     if isinstance(elem, torch.Tensor):
+torchvision.transforms.functional_pil _is_pil_image:19:8697.1 Mb         return isinstance(img, Image.Image)
+models.stylegan2 forward:250                      :2133.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1, 6, 16, 16)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+torchvision.transforms.transforms __call__:66     :2133.1 Mb         for t in self.transforms:
+torch.nn.modules.module _call_impl:734            :2133.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+selectors register:363                            :2133.1 Mb         return key
+importlib._bootstrap _find_and_load_unlocked:968  :2133.1 Mb     if parent:
+multiprocessing.util __init__:197                 :2133.1 Mb         self._callback = callback
+torch.utils.data._utils.collate default_collate:48:2133.1 Mb         out = None
+torchvision.transforms.functional to_tensor:66    :2133.1 Mb     if _is_numpy(pic) and not _is_numpy_image(pic):
+threading __init__:236                            :2133.1 Mb         except AttributeError:
+models.stylegan2 forward:235                      :4345.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
++ models.stylegan2 forward:235                       (2, 3, 16, 16)       <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 16, 16)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 33, 33)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 3, 8, 8)         <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 16, 16)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 16, 16)       <class 'torch.Tensor'>
+torch.nn.modules.module _call_impl:749            :4345.1 Mb         return result
+importlib._bootstrap _find_and_load_unlocked:970  :4345.1 Mb         parent_module = sys.modules[parent]
+multiprocessing.connection wait:914               :4345.1 Mb             for obj in object_list:
+multiprocessing.util __init__:198                 :4345.1 Mb         self._args = args
+torchvision.transforms.transforms __call__:67     :4345.1 Mb             img = t(img)
+torchvision.transforms.functional _is_numpy:44    :4345.1 Mb     return isinstance(img, np.ndarray)
+threading __init__:237                            :4345.1 Mb             pass
+torch.utils.data._utils.collate default_collate:49:4345.1 Mb         if torch.utils.data.get_worker_info() is not None:
+models.stylegan2 forward:250                      :6521.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 1024, 32, 32)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 32, 32)     <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 16, 16)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 33, 33)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+torchvision.transforms.transforms __call__:66     :6521.1 Mb         for t in self.transforms:
+importlib._bootstrap _find_and_load_unlocked:971  :6521.1 Mb         setattr(parent_module, name.rpartition('.')[2], module)
+multiprocessing.connection wait:917               :6521.1 Mb             if timeout is not None:
+multiprocessing.util __init__:199                 :6521.1 Mb         self._kwargs = kwargs or {}
+torchvision.transforms.transforms __call__:104    :6521.1 Mb         return F.to_tensor(pic)
+torchvision.transforms.functional to_tensor:69    :6521.1 Mb     if isinstance(pic, np.ndarray):
+threading __init__:238                            :6521.1 Mb         self._waiters = _deque()
+torch.utils.data._utils.worker get_worker_info:109:6521.1 Mb     return _worker_info
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1, 6, 32, 32)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+torchvision.transforms.transforms __call__:68     :4327.1 Mb         return img
+importlib._bootstrap _find_and_load_unlocked:972  :4327.1 Mb     return module
+multiprocessing.connection wait:918               :4327.1 Mb                 deadline = time.monotonic() + timeout
+torchvision.transforms.functional to_tensor:63    :4327.1 Mb     if not(F_pil._is_pil_image(pic) or _is_numpy(pic)):
+multiprocessing.util __init__:200                 :4327.1 Mb         self._key = (exitpriority, next(_finalizer_counter))
+torchvision.transforms.functional to_tensor:81    :4327.1 Mb     if accimage is not None and isinstance(pic, accimage.Image):
+threading __init__:501                            :4327.1 Mb         self._flag = False
+torch.utils.data._utils.collate default_collate:52:4327.1 Mb             numel = sum([x.numel() for x in batch])
+models.stylegan2 forward:235                      :6521.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
++ models.stylegan2 forward:235                       (2, 3, 32, 32)       <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 32, 32)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (1, 1024, 65, 65)    <class 'torch.Tensor'>
++ models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 3, 16, 16)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 32, 32)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 32, 32)       <class 'torch.Tensor'>
+dataset __getitem__:42                            :6521.1 Mb         return img
+importlib._bootstrap __exit__:152                 :6521.1 Mb         self._lock.release()
+multiprocessing.connection wait:920               :6521.1 Mb             while True:
+multiprocessing.util __init__:201                 :6521.1 Mb         self._pid = os.getpid()
+torchvision.transforms.functional_pil _is_pil_image:16:6521.1 Mb     if accimage is not None:
+torchvision.transforms.functional to_tensor:87    :6521.1 Mb     if pic.mode == 'I':
+threading __init__:800                            :6521.1 Mb         self._is_stopped = False
+torch.utils.data._utils.collate <listcomp>:52     :6521.1 Mb             numel = sum([x.numel() for x in batch])
+dataset __getitem__:34                            :4327.1 Mb                 img = Image.open(buffer)
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 1024, 64, 64)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 6, 64, 64)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 512, 64, 64)     <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1024, 512, 3, 3)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 32, 32)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (1, 1024, 65, 65)    <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 512)             <class 'torch.Tensor'>
+importlib._bootstrap release:104                  :4327.1 Mb         tid = _thread.get_ident()
+multiprocessing.connection wait:921               :4327.1 Mb                 ready = selector.select(timeout)
+torchvision.transforms.functional_pil _is_pil_image:19:4327.1 Mb         return isinstance(img, Image.Image)
+multiprocessing.util __init__:203                 :4327.1 Mb         _finalizer_registry[self._key] = self
+torchvision.transforms.functional to_tensor:89    :4327.1 Mb     elif pic.mode == 'I;16':
+threading __init__:801                            :4327.1 Mb         self._initialized = True
+torch.utils.data._utils.collate <listcomp>:52     :4327.1 Mb             numel = sum([x.numel() for x in batch])
+_weakrefset add:82                                :6649.1 Mb         if self._pending_removals:
+selectors select:423                              :6649.1 Mb                 events |= EVENT_READ
+importlib._bootstrap _handle_fromlist:1044        :6649.1 Mb     return module
+torch.overrides has_torch_function:1083           :6649.1 Mb     return _is_torch_function_enabled() and any(
+multiprocessing.util __init__:198                 :6649.1 Mb         self._args = args
+torchvision.transforms.functional to_tensor:100   :6649.1 Mb     img = img.permute((2, 0, 1)).contiguous()
+torchvision.transforms.functional to_tensor:98    :6649.1 Mb     img = img.view(pic.size[1], pic.size[0], len(pic.getbands()))
+torch.utils.data._utils.collate <listcomp>:52     :6649.1 Mb             numel = sum([x.numel() for x in batch])
+models.stylegan2 forward:250                      :6649.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 256, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 512, 128, 128)   <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 256)             <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 3, 64, 64)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (512, 256, 3, 3)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 256, 128, 128)   <class 'torch.Tensor'>
+- models.stylegan2 forward:235                       (2, 3, 32, 32)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 512, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 512, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 1024, 64, 64)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 64, 64)       <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1, 6, 128, 128)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (6, 256, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 256)             <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (512, 256, 3, 3)     <class 'torch.Tensor'>
+threading wait:550                                :4327.1 Mb             signaled = self._flag
+multiprocessing.connection _check_readable:139    :4327.1 Mb         if not self._readable:
+torchvision.transforms.transforms __call__:67     :4327.1 Mb             img = t(img)
+torch.utils.data._utils.worker is_alive:57        :4327.1 Mb             return not self.manager_dead
+torchvision.transforms.functional normalize:278   :4327.1 Mb     if (std == 0).any():
+torch.overrides has_torch_function:1087           :4327.1 Mb         for a in relevant_args
+torch.nn.modules.module _call_impl:718            :4327.1 Mb                 self._forward_pre_hooks.values()):
+torch.storage _new_shared:137                     :4327.1 Mb             return cls._new_using_fd(size)
+torch.overrides <genexpr>:1084                    :8941.1 Mb         type(a) is not torch.Tensor and
+multiprocessing.queues _start_thread:156          :8941.1 Mb         debug('Queue._start_thread()')
+torchvision.transforms.functional normalize:276   :8941.1 Mb     mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
+torch.nn.modules.module _call_impl:734            :8941.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+multiprocessing.util __init__:193                 :8941.1 Mb             self._weakref = weakref.ref(obj, self)
+torch.overrides has_torch_function:1084           :8941.1 Mb         type(a) is not torch.Tensor and
+multiprocessing.connection _recv:378              :8941.1 Mb         while remaining > 0:
+multiprocessing.connection _check_closed:135      :8941.1 Mb         if self._handle is None:
+models.stylegan2 forward:250                      :8941.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 1, 128, 1, 1)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 256, 256, 256)   <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 128)             <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 3, 128, 128)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (256, 128, 3, 3)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 128, 256, 256)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 256, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 3, 64, 64)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 256, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 512, 128, 128)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 128, 128)     <class 'torch.Tensor'>
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1, 6, 256, 256)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (6, 128, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 128)             <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (256, 128, 3, 3)     <class 'torch.Tensor'>
+multiprocessing.queues _start_thread:184          :4327.1 Mb             exitpriority=10
+torch.overrides has_torch_function:1087           :4327.1 Mb         for a in relevant_args
+multiprocessing.connection _recv:380              :4327.1 Mb             n = len(chunk)
+torch.tensor wrapped:23                           :4327.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+selectors __init__:349                            :4327.1 Mb         self._selector = self._selector_cls()
+threading __init__:787                            :4327.1 Mb         if kwargs is None:
+torch.nn.modules.module _call_impl:728            :4327.1 Mb         for hook in itertools.chain(
+torchvision.transforms.functional hflip:458       :4327.1 Mb         return F_pil.hflip(img)
+threading __init__:791                            :6631.1 Mb         self._args = args
+torch.tensor wrapped:26                           :6631.1 Mb         try:
+torchvision.transforms.functional to_tensor:101   :6631.1 Mb     if isinstance(img, torch.ByteTensor):
+torch.nn.modules.module _call_impl:730            :6631.1 Mb                 self._forward_hooks.values()):
+multiprocessing.connection _check_closed:135      :6631.1 Mb         if self._handle is None:
+multiprocessing.connection _poll:415              :6631.1 Mb         return bool(r)
+threading wait:549                                :6631.1 Mb         with self._cond:
+torch.tensor <genexpr>:24                         :6631.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+models.stylegan2 forward:250                      :6631.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (2, 64, 512, 512)    <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 1, 32, 1, 1)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (1, 64, 1024, 1024)  <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 32)              <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 3, 512, 512)     <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (64, 32, 3, 3)       <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 128, 1, 1)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 256, 256)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 128, 1, 1)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 256, 256, 256)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 3, 128, 128)     <class 'torch.Tensor'>
+multiprocessing.util __init__:187                 :4327.1 Mb         if (exitpriority is not None) and not isinstance(exitpriority,int):
+importlib._bootstrap _handle_fromlist:1019        :4327.1 Mb     if hasattr(module, '__path__'):
+torchvision.transforms.functional normalize:275   :4327.1 Mb     dtype = tensor.dtype
+torch.tensor <genexpr>:24                         :4327.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+threading __init__:228                            :4327.1 Mb         except AttributeError:
+multiprocessing.connection _recv:381              :4327.1 Mb             if n == 0:
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
++ models.stylegan2 forward:250                       (1, 6, 1024, 1024)   <class 'torch.Tensor'>
++ models.stylegan2 forward:250                       (6, 32, 1, 1)        <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 32)              <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (64, 32, 3, 3)       <class 'torch.Tensor'>
+torchvision.transforms.functional normalize:280   :4327.1 Mb     if mean.ndim == 1:
+multiprocessing.connection wait:918               :4327.1 Mb                 deadline = time.monotonic() + timeout
+torch.utils.data._utils.collate <listcomp>:52     :6627.1 Mb             numel = sum([x.numel() for x in batch])
+multiprocessing.synchronize __enter__:95          :6627.1 Mb         return self._semlock.__enter__()
+selectors close:269                               :6627.1 Mb         self._fd_to_key.clear()
+torchvision.transforms.transforms __call__:66     :6627.1 Mb         for t in self.transforms:
+torchvision.transforms.functional to_tensor:89    :6627.1 Mb     elif pic.mode == 'I;16':
+torch.utils.data._utils.worker _worker_loop:169   :6627.1 Mb         while watchdog.is_alive():
+threading is_set:509                              :6627.1 Mb         return self._flag
+torchvision.transforms.functional to_tensor:63    :6627.1 Mb     if not(F_pil._is_pil_image(pic) or _is_numpy(pic)):
+torch.nn.modules.module __getattr__:769           :6627.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 32, 1024, 1024)  <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 3, 512, 512)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 16, 16)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 128, 256, 256)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (6, 32, 1, 1)        <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 64, 512, 512)    <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 32, 32)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 4, 4)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 8, 8)       <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512, 64, 64)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 1, 32, 1, 1)     <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 64, 1024, 1024)  <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (1, 6, 1024, 1024)   <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 18, 512)         <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 256, 128, 128)   <class 'torch.Tensor'>
+multiprocessing.queues put:82                     :4323.1 Mb         if not self._sem.acquire(block, timeout):
+multiprocessing.connection poll:257               :4323.1 Mb         return self._poll(timeout)
+torch.nn.modules.module _call_impl:727            :4323.1 Mb             result = self.forward(*input, **kwargs)
+multiprocessing.connection _recv:387              :4323.1 Mb             remaining -= n
+torchvision.transforms.functional to_tensor:102   :4323.1 Mb         return img.float().div(255)
+multiprocessing.queues _start_thread:175          :4323.1 Mb                 self._thread, Queue._finalize_join,
+dataset __getitem__:35                            :4323.1 Mb                 break
+torch.nn.modules.module _call_impl:727            :4323.1 Mb             result = self.forward(*input, **kwargs)
+torch.nn.modules.module __getattr__:769           :4323.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 32, 1025, 1025)  <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 64, 512, 512)    <class 'torch.Tensor'>
+selectors __enter__:200                           :8933.1 Mb         return self
+multiprocessing.util __init__:193                 :8933.1 Mb             self._weakref = weakref.ref(obj, self)
+torch.nn.modules.module _call_impl:716            :8933.1 Mb         for hook in itertools.chain(
+multiprocessing.connection _recv_bytes:411        :8933.1 Mb         return self._recv(size)
+torchvision.transforms.functional normalize:272   :8933.1 Mb     if not inplace:
+multiprocessing.queues _start_thread:160          :8933.1 Mb         self._thread = threading.Thread(
+torch.nn.modules.module _call_impl:718            :8933.1 Mb                 self._forward_pre_hooks.values()):
+torch.tensor <genexpr>:24                         :8933.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.nn.modules.module __getattr__:769           :8933.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 32, 1025, 1025)  <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+multiprocessing.util __init__:197                 :4323.1 Mb         self._callback = callback
+torchvision.transforms.transforms forward:647     :4323.1 Mb         return img
+torch.tensor wrapped:23                           :4323.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+torch.nn.modules.module __getattr__:769           :4323.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 64, 513, 513)    <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 128, 256, 256)   <class 'torch.Tensor'>
+threading __init__:792                            :4323.1 Mb         self._kwargs = kwargs
+torch.overrides has_torch_function:1087           :4323.1 Mb         for a in relevant_args
+torch.overrides has_torch_function:1084           :4323.1 Mb         type(a) is not torch.Tensor and
+selectors _fileobj_to_fd:43                       :4323.1 Mb     return fd
+multiprocessing.queues get:109                    :4323.1 Mb                 self._sem.release()
+selectors register:245                            :6631.1 Mb         return key
+threading current_thread:1233                     :6631.1 Mb         return _active[get_ident()]
+torch.overrides <genexpr>:1084                    :6631.1 Mb         type(a) is not torch.Tensor and
+torch.overrides <genexpr>:1087                    :6631.1 Mb         for a in relevant_args
+torch.tensor <genexpr>:24                         :6631.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.util __init__:203                 :6631.1 Mb         _finalizer_registry[self._key] = self
+torch.nn.modules.module _call_impl:749            :6631.1 Mb         return result
+torch.nn.modules.module __getattr__:769           :6631.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 64, 513, 513)    <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 64, 512, 512)    <class 'torch.Tensor'>
+torch.utils.data._utils.worker _worker_loop:174   :6631.1 Mb             if isinstance(r, _ResumeIteration):
+multiprocessing.synchronize is_set:332            :4325.1 Mb             return False
+torch.nn.modules.module _call_impl:730            :4325.1 Mb                 self._forward_hooks.values()):
+torch.nn.modules.module _call_impl:717            :4325.1 Mb                 _global_forward_pre_hooks.values(),
+torch.nn.modules.module __getattr__:769           :4325.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 128, 255, 255)   <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 256, 128, 128)   <class 'torch.Tensor'>
+importlib._bootstrap _handle_fromlist:1044        :4325.1 Mb     return module
+torch.utils.data._utils.worker _worker_loop:169   :4325.1 Mb         while watchdog.is_alive():
+torchvision.transforms.functional normalize:281   :4325.1 Mb         mean = mean.view(-1, 1, 1)
+selectors select:407                              :4325.1 Mb         elif timeout <= 0:
+threading __init__:229                            :4325.1 Mb             pass
+torch.utils.data._utils.fetch fetch:43            :5487.1 Mb         if self.auto_collation:
+torch.tensor wrapped:24                           :5487.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torchvision.transforms.functional normalize:282   :5487.1 Mb     if std.ndim == 1:
+dataset __getitem__:42                            :5487.1 Mb         return img
+threading __init__:230                            :5487.1 Mb         try:
+selectors select:412                              :5487.1 Mb             timeout = math.ceil(timeout * 1e3)
+torch.nn.modules.module _call_impl:718            :5487.1 Mb                 self._forward_pre_hooks.values()):
+torch.utils.data._utils.worker is_alive:55        :5487.1 Mb             if not self.manager_dead:
+torch.nn.modules.module __getattr__:769           :5487.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 128, 255, 255)   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 128, 256, 256)   <class 'torch.Tensor'>
+selectors select:418                              :6593.1 Mb         for fd, event in fd_event_list:
+torch.nn.modules.module _call_impl:724            :6593.1 Mb         if torch._C._get_tracing_state():
+multiprocessing.connection _check_closed:135      :6593.1 Mb         if self._handle is None:
+torch.nn.modules.module _call_impl:717            :6593.1 Mb                 _global_forward_pre_hooks.values(),
+_weakrefset add:82                                :6593.1 Mb         if self._pending_removals:
+torch.overrides <genexpr>:1087                    :6593.1 Mb         for a in relevant_args
+torchvision.transforms.functional hflip:458       :6593.1 Mb         return F_pil.hflip(img)
+torch.utils.data._utils.collate default_collate:45:6593.1 Mb     elem = batch[0]
+torch.nn.modules.module __getattr__:769           :6593.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 64, 64)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 256, 128, 128)   <class 'torch.Tensor'>
+multiprocessing.connection recv_bytes:214         :5487.1 Mb         if maxlength is not None and maxlength < 0:
+torch.nn.modules.module __getattr__:769           :5487.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 63, 63)     <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 32, 32)     <class 'torch.Tensor'>
+torchvision.transforms.transforms __call__:66     :5487.1 Mb         for t in self.transforms:
+importlib._bootstrap _handle_fromlist:1019        :5487.1 Mb     if hasattr(module, '__path__'):
+threading start:849                               :5487.1 Mb         with _active_limbo_lock:
+torch.nn.modules.module _call_impl:728            :5487.1 Mb         for hook in itertools.chain(
+torch.overrides <genexpr>:1084                    :5487.1 Mb         type(a) is not torch.Tensor and
+torch.overrides <genexpr>:1084                    :5487.1 Mb         type(a) is not torch.Tensor and
+selectors register:352                            :5487.1 Mb         key = super().register(fileobj, events, data)
+threading start:850                               :6593.1 Mb             _limbo[self] = self
+importlib._bootstrap _handle_fromlist:1020        :6593.1 Mb         for x in fromlist:
+torch.nn.modules.module _call_impl:729            :6593.1 Mb                 _global_forward_hooks.values(),
+torch.overrides <genexpr>:1087                    :6593.1 Mb         for a in relevant_args
+multiprocessing.connection _recv:375              :6593.1 Mb         buf = io.BytesIO()
+torchvision.transforms.transforms __call__:67     :6593.1 Mb             img = t(img)
+selectors register:235                            :6593.1 Mb         if (not events) or (events & ~(EVENT_READ | EVENT_WRITE)):
+torch.nn.modules.module __getattr__:769           :6593.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 512, 63, 63)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 64, 64)     <class 'torch.Tensor'>
+torch.overrides <genexpr>:1087                    :6593.1 Mb         for a in relevant_args
+multiprocessing.connection _check_closed:135      :5491.1 Mb         if self._handle is None:
+torchvision.transforms.transforms __call__:66     :5491.1 Mb         for t in self.transforms:
+torchvision.transforms.functional to_tensor:66    :5491.1 Mb     if _is_numpy(pic) and not _is_numpy_image(pic):
+torchvision.transforms.transforms forward:647     :5491.1 Mb         return img
+multiprocessing.connection _recv:388              :5491.1 Mb         return buf
+torch.utils.data._utils.collate default_collate:55:5491.1 Mb         return torch.stack(batch, 0, out=out)
+torchvision.transforms.functional to_tensor:87    :5491.1 Mb     if pic.mode == 'I':
+multiprocessing.queues _start_thread:173          :5491.1 Mb         if not self._joincancelled:
+torch.nn.modules.module __getattr__:769           :5491.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 31, 31)     <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 16, 16)     <class 'torch.Tensor'>
+torchvision.transforms.functional to_tensor:91    :7687.1 Mb     elif pic.mode == 'F':
+multiprocessing.connection _recv_bytes:409        :7687.1 Mb         if maxsize is not None and size > maxsize:
+multiprocessing.queues _start_thread:175          :7687.1 Mb                 self._thread, Queue._finalize_join,
+torch.nn.modules.module _call_impl:717            :7687.1 Mb                 _global_forward_pre_hooks.values(),
+multiprocessing.queues put:81                     :7687.1 Mb         assert not self._closed, "Queue {0!r} has been closed".format(self)
+torchvision.transforms.functional to_tensor:69    :7687.1 Mb     if isinstance(pic, np.ndarray):
+torch.nn.modules.module _call_impl:729            :7687.1 Mb                 _global_forward_hooks.values(),
+selectors _fileobj_to_fd:43                       :7687.1 Mb     return fd
+torch.nn.modules.module __getattr__:769           :7685.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 512, 31, 31)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 32, 32)     <class 'torch.Tensor'>
+multiprocessing.connection _recv:381              :5495.1 Mb             if n == 0:
+torchvision.transforms.transforms __call__:66     :5495.1 Mb         for t in self.transforms:
+selectors register:355                            :5495.1 Mb             poller_events |= self._EVENT_READ
+torchvision.transforms.functional to_tensor:98    :5495.1 Mb     img = img.view(pic.size[1], pic.size[0], len(pic.getbands()))
+torch.nn.modules.module __getattr__:769           :5495.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 15, 15)     <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 8, 8)       <class 'torch.Tensor'>
+multiprocessing.util __init__:199                 :5495.1 Mb         self._kwargs = kwargs or {}
+torch.tensor wrapped:24                           :5495.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.queues _start_thread:159          :5495.1 Mb         self._buffer.clear()
+torch.nn.modules.module _call_impl:717            :5495.1 Mb                 _global_forward_pre_hooks.values(),
+selectors register:356                            :6593.1 Mb         if events & EVENT_WRITE:
+torchvision.transforms.functional to_tensor:100   :6593.1 Mb     img = img.permute((2, 0, 1)).contiguous()
+multiprocessing.queues _start_thread:160          :6593.1 Mb         self._thread = threading.Thread(
+torch.nn.modules.module _call_impl:718            :6593.1 Mb                 self._forward_pre_hooks.values()):
+torch.tensor <genexpr>:24                         :6593.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.nn.modules.module __getattr__:769           :6593.1 Mb                 return _parameters[name]
+- torch.nn.modules.module __getattr__:769            (2, 512, 15, 15)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 16, 16)     <class 'torch.Tensor'>
+torchvision.transforms.transforms __call__:67     :6593.1 Mb             img = t(img)
+multiprocessing.connection _recv:387              :6593.1 Mb             remaining -= n
+multiprocessing.util __init__:200                 :6593.1 Mb         self._key = (exitpriority, next(_finalizer_counter))
+threading __init__:792                            :5495.1 Mb         self._kwargs = kwargs
+torch.overrides has_torch_function:1084           :5495.1 Mb         type(a) is not torch.Tensor and
+torch.nn.modules.module __getattr__:769           :5495.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512, 7, 7)       <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 4, 4)       <class 'torch.Tensor'>
+torchvision.transforms.functional normalize:273   :5495.1 Mb         tensor = tensor.clone()
+multiprocessing.queues _start_thread:182          :5495.1 Mb             self, Queue._finalize_close,
+selectors select:418                              :5495.1 Mb         for fd, event in fd_event_list:
+torchvision.transforms.functional normalize:265   :5495.1 Mb     if not isinstance(tensor, torch.Tensor):
+torch.overrides <genexpr>:1084                    :5495.1 Mb         type(a) is not torch.Tensor and
+multiprocessing.queues get:109                    :5495.1 Mb                 self._sem.release()
+threading daemon:1129                             :6595.1 Mb         return self._daemonic
+torch.nn.modules.module __getattr__:769           :6595.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 1, 4, 4)         <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 513, 4, 4)       <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 7, 7)       <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 8, 8)       <class 'torch.Tensor'>
+torchvision.transforms.functional normalize:275   :6595.1 Mb     dtype = tensor.dtype
+torch.overrides <genexpr>:1087                    :6595.1 Mb         for a in relevant_args
+multiprocessing.queues _start_thread:183          :6595.1 Mb             [self._buffer, self._notempty],
+selectors select:419                              :6595.1 Mb             events = 0
+torchvision.transforms.functional normalize:268   :6595.1 Mb     if tensor.ndim < 3:
+multiprocessing.queues get:111                    :6595.1 Mb                 self._rlock.release()
+torch.tensor wrapped:26                           :6595.1 Mb         try:
+torchvision.transforms.functional to_tensor:89    :6865.1 Mb     elif pic.mode == 'I;16':
+multiprocessing.connection _recv:377              :6865.1 Mb         remaining = size
+torch.nn.modules.module __getattr__:769           :6865.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 1)               <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 512, 32, 32)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 1, 4, 4)         <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 513, 4, 4)       <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 4, 4)       <class 'torch.Tensor'>
+threading daemon:1137                             :6865.1 Mb         self._daemonic = daemonic
+multiprocessing.queues get:98                     :6865.1 Mb                 deadline = time.monotonic() + timeout
+torchvision.transforms.functional normalize:284   :6865.1 Mb     tensor.sub_(mean).div_(std)
+dataset __getitem__:40                            :6865.1 Mb         img = self.transform(img)
+torchvision.transforms.transforms __call__:68     :6865.1 Mb         return img
+torchvision.transforms.functional to_tensor:93    :6865.1 Mb     elif pic.mode == '1':
+multiprocessing.queues _start_thread:177          :8083.1 Mb                 exitpriority=-5
+torch.tensor wrapped:23                           :8083.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+torchvision.transforms.functional normalize:277   :8083.1 Mb     std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
+multiprocessing.connection recv_bytes:219         :8083.1 Mb         return buf.getvalue()
+importlib._bootstrap _handle_fromlist:1044        :8083.1 Mb     return module
+torch.tensor wrapped:26                           :8083.1 Mb         try:
+torch.storage _new_shared:131                     :8083.1 Mb         from torch.multiprocessing import get_sharing_strategy
+selectors _fileobj_lookup:224                     :8083.1 Mb         try:
+torch.tensor wrapped:23                           :9199.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+multiprocessing.util __init__:193                 :9199.1 Mb             self._weakref = weakref.ref(obj, self)
+torch.tensor wrapped:24                           :9199.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.queues get:109                    :9199.1 Mb                 self._sem.release()
+torch.tensor wrapped:24                           :9199.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.tensor wrapped:27                           :9199.1 Mb             return f(*args, **kwargs)
+selectors register:358                            :10303.1Mb         try:
+multiprocessing.queues put:81                     :10303.1Mb         assert not self._closed, "Queue {0!r} has been closed".format(self)
+importlib._bootstrap _handle_fromlist:1019        :7475.1 Mb     if hasattr(module, '__path__'):
+multiprocessing.util __init__:197                 :7475.1 Mb         self._callback = callback
+torch.tensor <genexpr>:24                         :6769.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.tensor <genexpr>:24                         :6769.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.queues get:111                    :6769.1 Mb                 self._rlock.release()
+torchvision.transforms.transforms forward:647     :6769.1 Mb         return img
+selectors register:359                            :6769.1 Mb             self._selector.register(key.fd, poller_events)
+multiprocessing.queues put:82                     :6769.1 Mb         if not self._sem.acquire(block, timeout):
+importlib._bootstrap _handle_fromlist:1044        :7923.1 Mb     return module
+multiprocessing.util __init__:198                 :7923.1 Mb         self._args = args
+torch.tensor wrapped:24                           :6769.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.util __init__:199                 :6769.1 Mb         self._kwargs = kwargs or {}
+importlib._bootstrap _handle_fromlist:1019        :7035.1 Mb     if hasattr(module, '__path__'):
+multiprocessing.connection <listcomp>:923         :7035.1 Mb                     return [key.fileobj for (key, events) in ready]
+torchvision.transforms.functional to_tensor:98    :7035.1 Mb     img = img.view(pic.size[1], pic.size[0], len(pic.getbands()))
+torchvision.transforms.functional to_tensor:101   :7035.1 Mb     if isinstance(img, torch.ByteTensor):
+torch.utils.data._utils.worker _worker_loop:197   :7035.1 Mb                 try:
+selectors register:353                            :7035.1 Mb         poller_events = 0
+multiprocessing.connection _recv:378              :7035.1 Mb         while remaining > 0:
+torch.overrides has_torch_function:1084           :7035.1 Mb         type(a) is not torch.Tensor and
+torch.autograd backward:132                       :7743.1 Mb         allow_unreachable=True)  # allow_unreachable flag
++ torch.autograd backward:132                        ()                   <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 1)               <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 512)             <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 1)               <class 'torch.Tensor'>
+- models.stylegan2 forward:250                       (2, 512)             <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512, 32, 32)     <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+importlib._bootstrap _handle_fromlist:1044        :7743.1 Mb     return module
+torch.utils.data._utils.worker _worker_loop:198   :7743.1 Mb                     data = fetcher.fetch(index)
+torch.overrides has_torch_function:1087           :7743.1 Mb         for a in relevant_args
+multiprocessing.connection <listcomp>:923         :7743.1 Mb                     return [key.fileobj for (key, events) in ready]
+torchvision.transforms.functional to_tensor:102   :7743.1 Mb         return img.float().div(255)
+selectors register:354                            :7743.1 Mb         if events & EVENT_READ:
+multiprocessing.connection _recv:379              :7743.1 Mb             chunk = read(handle, remaining)
+torchvision.transforms.functional to_tensor:100   :7743.1 Mb     img = img.permute((2, 0, 1)).contiguous()
+selectors select:405                              :7441.1 Mb         if timeout is None:
+selectors _fileobj_to_fd:36                       :7387.1 Mb         try:
+torchvision.transforms.functional to_tensor:69    :7441.1 Mb     if isinstance(pic, np.ndarray):
+torch.nn.modules.module __getattr__:769           :4999.1 Mb                 return _parameters[name]
++ torch.nn.modules.module __getattr__:769            (2, 512)             <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 1)               <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            ()                   <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 32, 1024, 1024)  <class 'torch.Tensor'>
++ torch.nn.modules.module __getattr__:769            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.autograd backward:132                        ()                   <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 1)               <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 512)             <class 'torch.Tensor'>
+selectors select:415                              :4999.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :4999.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:407                              :4999.1 Mb         elif timeout <= 0:
+torchvision.transforms.functional to_tensor:81    :4999.1 Mb     if accimage is not None and isinstance(pic, accimage.Image):
+selectors _fileobj_to_fd:37                       :4999.1 Mb             fd = int(fileobj.fileno())
+multiprocessing.queues get:103                    :5587.1 Mb                     timeout = deadline - time.monotonic()
+multiprocessing.connection wait:922               :6355.1 Mb                 if ready:
+selectors select:412                              :6611.1 Mb             timeout = math.ceil(timeout * 1e3)
+torchvision.transforms.functional to_tensor:87    :6611.1 Mb     if pic.mode == 'I':
+multiprocessing.connection fileno:170             :6355.1 Mb         self._check_closed()
+torch.autograd grad:204                           :6097.1 Mb         inputs, allow_unused)
++ torch.autograd grad:204                            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ torch.autograd grad:204                            (2, 1)               <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+multiprocessing.queues get:104                    :6097.1 Mb                     if not self._poll(timeout):
+multiprocessing.connection wait:925               :6097.1 Mb                     if timeout is not None:
+multiprocessing.connection _check_closed:135      :6097.1 Mb         if self._handle is None:
+torchvision.transforms.functional to_tensor:89    :6097.1 Mb     elif pic.mode == 'I;16':
+selectors select:413                              :6097.1 Mb         ready = []
+multiprocessing.connection poll:255               :6609.1 Mb         self._check_closed()
+multiprocessing.connection wait:926               :6609.1 Mb                         timeout = deadline - time.monotonic()
+multiprocessing.connection fileno:171             :6609.1 Mb         return self._handle
+torchvision.transforms.functional to_tensor:91    :6609.1 Mb     elif pic.mode == 'F':
+selectors select:414                              :6609.1 Mb         try:
+multiprocessing.connection _check_closed:135      :9169.1 Mb         if self._handle is None:
+multiprocessing.connection wait:927               :9169.1 Mb                         if timeout < 0:
+selectors _fileobj_to_fd:41                       :9169.1 Mb     if fd < 0:
+torchvision.transforms.functional to_tensor:93    :9169.1 Mb     elif pic.mode == '1':
+selectors select:415                              :9169.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors register:352                            :8657.1 Mb         key = super().register(fileobj, events, data)
+torch.nn.modules.module _call_impl:724            :8657.1 Mb         if torch._C._get_tracing_state():
+torch.nn.modules.module _call_impl:727            :7505.1 Mb             result = self.forward(*input, **kwargs)
+selectors register:235                            :7505.1 Mb         if (not events) or (events & ~(EVENT_READ | EVENT_WRITE)):
+torch.utils.data._utils.worker _worker_loop:171   :7249.1 Mb                 r = index_queue.get(timeout=MP_STATUS_CHECK_INTERVAL)
+selectors register:238                            :5165.1 Mb         key = SelectorKey(fileobj, self._fileobj_lookup(fileobj), events, data)
+torchvision.transforms.transforms forward:615     :5165.1 Mb         if torch.rand(1) < self.p:
+selectors select:415                              :7355.1 Mb             fd_event_list = self._selector.poll(timeout)
+multiprocessing.queues get:97                     :5167.1 Mb             if block:
+selectors _fileobj_lookup:224                     :6267.1 Mb         try:
+torch.tensor wrapped:23                           :6267.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+selectors select:418                              :6267.1 Mb         for fd, event in fd_event_list:
+multiprocessing.queues get:98                     :6267.1 Mb                 deadline = time.monotonic() + timeout
+torchvision.transforms.functional _is_numpy:44    :7037.1 Mb     return isinstance(img, np.ndarray)
+torch.autograd grad:204                           :7037.1 Mb         inputs, allow_unused)
++ torch.autograd grad:204                            (1,)                 <class 'torch.Tensor'>
+multiprocessing.connection fileno:171             :7037.1 Mb         return self._handle
+selectors select:415                              :7037.1 Mb             fd_event_list = self._selector.poll(timeout)
+torchvision.transforms.functional to_tensor:81    :7295.1 Mb     if accimage is not None and isinstance(pic, accimage.Image):
+torch.autograd backward:132                       :7295.1 Mb         allow_unreachable=True)  # allow_unreachable flag
++ torch.autograd backward:132                        (1,)                 <class 'torch.Tensor'>
+- torch.autograd grad:204                            (1,)                 <class 'torch.Tensor'>
+selectors _fileobj_to_fd:41                       :7295.1 Mb     if fd < 0:
+selectors select:418                              :7295.1 Mb         for fd, event in fd_event_list:
+selectors select:415                              :7295.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7295.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7295.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7295.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7295.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7015.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:418                              :5659.1 Mb         for fd, event in fd_event_list:
+selectors select:415                              :5401.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:428                              :7339.1 Mb         return ready
+selectors select:418                              :7339.1 Mb         for fd, event in fd_event_list:
+selectors _fileobj_lookup:224                     :5147.1 Mb         try:
+multiprocessing.connection wait:921               :5147.1 Mb                 ready = selector.select(timeout)
+selectors select:415                              :5147.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors _fileobj_lookup:225                     :7333.1 Mb             return _fileobj_to_fd(fileobj)
+selectors select:407                              :7333.1 Mb         elif timeout <= 0:
+torch.autograd backward:132                       :5147.1 Mb         allow_unreachable=True)  # allow_unreachable flag
++ torch.autograd backward:132                        ()                   <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 1)               <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ torch.autograd backward:132                        (2, 512)             <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 512)             <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 1)               <class 'torch.Tensor'>
+- torch.autograd grad:204                            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.autograd grad:204                            (2, 1)               <class 'torch.Tensor'>
+selectors select:415                              :5147.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors _fileobj_to_fd:33                       :5147.1 Mb     if isinstance(fileobj, int):
+selectors select:412                              :5147.1 Mb             timeout = math.ceil(timeout * 1e3)
+selectors select:415                              :5171.1 Mb             fd_event_list = self._selector.poll(timeout)
+op.upfirdn2d forward:119                          :5429.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
++ op.upfirdn2d forward:119                           (2, 32, 1024, 1024)  <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 512)             <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (64, 1024, 1024, 1)  <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (64, 1025, 1025, 1)  <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 3, 1024, 1024)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (4, 4)               <class 'torch.Tensor'>
+- torch.autograd backward:132                        (2, 512)             <class 'torch.Tensor'>
+selectors select:415                              :5429.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :5429.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:418                              :5429.1 Mb         for fd, event in fd_event_list:
+models.stylegan2 forward:633                      :5813.1 Mb             out = (out + skip) / math.sqrt(2)
++ models.stylegan2 forward:633                       (2, 64, 512, 512)    <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (64, 1024, 1024, 1)  <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (64, 1025, 1025, 1)  <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (4, 4)               <class 'torch.Tensor'>
+selectors select:418                              :5813.1 Mb         for fd, event in fd_event_list:
+selectors select:418                              :5813.1 Mb         for fd, event in fd_event_list:
+selectors select:428                              :5813.1 Mb         return ready
+op.upfirdn2d forward:119                          :6071.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
++ op.upfirdn2d forward:119                           (128, 511, 511, 1)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (4, 4)               <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 128, 256, 256)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (128, 512, 512, 1)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 32, 1024, 1024)  <class 'torch.Tensor'>
+selectors select:428                              :6071.1 Mb         return ready
+selectors select:428                              :6071.1 Mb         return ready
+multiprocessing.connection wait:922               :6071.1 Mb                 if ready:
+op.upfirdn2d forward:119                          :6347.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
++ op.upfirdn2d forward:119                           (512, 128, 128, 1)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (512, 127, 127, 1)   <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 512, 64, 64)     <class 'torch.Tensor'>
++ op.upfirdn2d forward:119                           (2, 256, 128, 128)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (128, 511, 511, 1)   <class 'torch.Tensor'>
+- models.stylegan2 forward:633                       (2, 64, 512, 512)    <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 128, 256, 256)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (128, 512, 512, 1)   <class 'torch.Tensor'>
+multiprocessing.connection wait:922               :6347.1 Mb                 if ready:
+multiprocessing.connection wait:922               :6347.1 Mb                 if ready:
+multiprocessing.connection wait:925               :6347.1 Mb                     if timeout is not None:
+torch.utils.data._utils.worker _worker_loop:169   :7507.1 Mb         while watchdog.is_alive():
+multiprocessing.connection wait:928               :7507.1 Mb                             return ready
+torch.autograd backward:132                       :7507.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+- op.upfirdn2d forward:119                           (2, 512, 64, 64)     <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 256, 128, 128)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (512, 128, 128, 1)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (512, 127, 127, 1)   <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (4, 4)               <class 'torch.Tensor'>
+multiprocessing.connection wait:926               :7507.1 Mb                         timeout = deadline - time.monotonic()
+selectors select:415                              :7507.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7507.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7507.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7507.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.overrides has_torch_function:1084           :7799.1 Mb         type(a) is not torch.Tensor and
+torch.autograd backward:132                       :7799.1 Mb         allow_unreachable=True)  # allow_unreachable flag
++ torch.autograd backward:132                        (2, 512)             <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 512)             <class 'torch.Tensor'>
+- op.upfirdn2d forward:119                           (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            ()                   <class 'torch.Tensor'>
+- torch.nn.modules.module __getattr__:769            (2, 3, 1024, 1024)   <class 'torch.Tensor'>
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7799.1 Mb             fd_event_list = self._selector.poll(timeout)

@@ -1,0 +1,678 @@
+__main__ train:106                                :2087.1 Mb     if args.distributed:
+importlib._bootstrap _handle_fromlist:1019        :4353.1 Mb     if hasattr(module, '__path__'):
+threading daemon:1133                             :4353.1 Mb         if not self._initialized:
+torchvision.transforms.functional normalize:275   :4353.1 Mb     dtype = tensor.dtype
+importlib._bootstrap _handle_fromlist:1019        :4353.1 Mb     if hasattr(module, '__path__'):
+importlib._bootstrap _handle_fromlist:1021        :4353.1 Mb             if not isinstance(x, str):
+multiprocessing.connection wait:913               :4353.1 Mb         with _WaitSelector() as selector:
+sre_compile compile:781                           :4335.1 Mb         pattern, flags | p.pattern.flags, code,
+torch.tensor wrapped:27                           :4333.1 Mb             return f(*args, **kwargs)
+models.stylegan2 forward:250                      :4333.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+torch.tensor <genexpr>:24                         :2131.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.overrides <genexpr>:1084                    :2131.1 Mb         type(a) is not torch.Tensor and
+torch.overrides <genexpr>:1084                    :2129.1 Mb         type(a) is not torch.Tensor and
+multiprocessing.connection wait:915               :2129.1 Mb                 selector.register(obj, selectors.EVENT_READ)
+models.stylegan2 forward:250                      :2129.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+torchvision.transforms.transforms __call__:66     :2129.1 Mb         for t in self.transforms:
+threading start:847                               :2129.1 Mb         if self._started.is_set():
+torch.storage _new_shared:137                     :2129.1 Mb             return cls._new_using_fd(size)
+enum __call__:315                                 :2129.1 Mb             return cls.__new__(cls, value)
+multiprocessing.util __init__:187                 :4353.1 Mb         if (exitpriority is not None) and not isinstance(exitpriority,int):
+threading __init__:787                            :4353.1 Mb         if kwargs is None:
+importlib._bootstrap _verbose_message:224         :4353.1 Mb     if sys.flags.verbose >= verbosity:
+torch.nn.modules.module _call_impl:734            :4353.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+torch.utils.data._utils.fetch <listcomp>:44       :4353.1 Mb             data = [self.dataset[idx] for idx in possibly_batched_index]
+torch.overrides <genexpr>:1084                    :4353.1 Mb         type(a) is not torch.Tensor and
+selectors register:358                            :4353.1 Mb         try:
+torch.tensor wrapped:23                           :4353.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+models.stylegan2 forward:235                      :4333.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
+torch.overrides has_torch_function:1087           :6521.1 Mb         for a in relevant_args
+multiprocessing.queues _start_thread:181          :6521.1 Mb         self._close = Finalize(
+threading current_thread:1233                     :6521.1 Mb         return _active[get_ident()]
+importlib._bootstrap release:105                  :6521.1 Mb         with self.lock:
+torch.utils.data._utils.collate default_collate:47:6521.1 Mb     if isinstance(elem, torch.Tensor):
+selectors select:407                              :6521.1 Mb         elif timeout <= 0:
+torchvision.transforms.transforms __call__:66     :6521.1 Mb         for t in self.transforms:
+dataset __getitem__:41                            :6521.1 Mb         img = self.transform(img)
+models.stylegan2 forward:250                      :6501.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+selectors select:418                              :4317.1 Mb         for fd, event in fd_event_list:
+torch.nn.modules.module _call_impl:718            :4317.1 Mb                 self._forward_pre_hooks.values()):
+torch.utils.data._utils.collate <listcomp>:52     :4317.1 Mb             numel = sum([x.numel() for x in batch])
+multiprocessing.util __init__:193                 :4317.1 Mb             self._weakref = weakref.ref(obj, self)
+torch.tensor wrapped:26                           :4317.1 Mb         try:
+torchvision.transforms.functional_pil _is_pil_image:19:4317.1 Mb         return isinstance(img, Image.Image)
+threading __init__:500                            :4317.1 Mb         self._cond = Condition(Lock())
+models.stylegan2 forward:250                      :2129.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+importlib._bootstrap release:112                  :2129.1 Mb                 if self.waiters:
+selectors select:419                              :2129.1 Mb             events = 0
+torch.nn.modules.module _call_impl:724            :2129.1 Mb         if torch._C._get_tracing_state():
+torch.utils.data._utils.collate <listcomp>:52     :2129.1 Mb             numel = sum([x.numel() for x in batch])
+multiprocessing.util __init__:197                 :2129.1 Mb         self._callback = callback
+torch.tensor wrapped:27                           :2129.1 Mb             return f(*args, **kwargs)
+torchvision.transforms.functional to_tensor:66    :2129.1 Mb     if _is_numpy(pic) and not _is_numpy_image(pic):
+threading __init__:217                            :2129.1 Mb         if lock is None:
+importlib._bootstrap _handle_fromlist:1020        :4353.1 Mb         for x in fromlist:
+torch.nn.modules.module _call_impl:734            :4353.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+torchvision.transforms.functional to_tensor:89    :4353.1 Mb     elif pic.mode == 'I;16':
+threading __init__:227                            :4353.1 Mb             self._release_save = lock._release_save
+importlib._bootstrap _handle_fromlist:1020        :4353.1 Mb         for x in fromlist:
+selectors _key_from_fd:285                        :4353.1 Mb             return self._fd_to_key[fd]
+torch.tensor wrapped:24                           :4353.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.queues put:88                     :4353.1 Mb             self._buffer.append(obj)
+models.stylegan2 forward:235                      :4333.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
+torchvision.transforms.functional to_tensor:66    :8715.1 Mb     if _is_numpy(pic) and not _is_numpy_image(pic):
+threading __init__:235                            :8715.1 Mb             self._is_owned = lock._is_owned
+multiprocessing.connection <listcomp>:923         :8715.1 Mb                     return [key.fileobj for (key, events) in ready]
+torch.overrides <genexpr>:1084                    :8715.1 Mb         type(a) is not torch.Tensor and
+threading notify:350                              :8715.1 Mb             return
+torch.nn.modules.module _call_impl:718            :8715.1 Mb                 self._forward_pre_hooks.values()):
+importlib._bootstrap _handle_fromlist:1019        :8715.1 Mb     if hasattr(module, '__path__'):
+torch.storage _new_shared:137                     :8715.1 Mb             return cls._new_using_fd(size)
+models.stylegan2 forward:250                      :8697.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+threading __enter__:241                           :6513.1 Mb         return self._lock.__enter__()
+torchvision.transforms.functional to_tensor:100   :6513.1 Mb     img = img.permute((2, 0, 1)).contiguous()
+threading __init__:806                            :6513.1 Mb         _dangling.add(self)
+multiprocessing.connection recv_bytes:213         :6513.1 Mb         self._check_readable()
+torch.tensor <genexpr>:24                         :6513.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.utils.data._utils.worker _worker_loop:171   :6513.1 Mb                 r = index_queue.get(timeout=MP_STATUS_CHECK_INTERVAL)
+torch.nn.modules.module _call_impl:730            :6513.1 Mb                 self._forward_hooks.values()):
+models.stylegan2 forward:250                      :2133.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+multiprocessing.queues put:86                     :2133.1 Mb             if self._thread is None:
+torchvision.transforms.functional to_tensor:101   :2133.1 Mb     if isinstance(img, torch.ByteTensor):
+_weakrefset add:82                                :2133.1 Mb         if self._pending_removals:
+multiprocessing.connection _check_readable:139    :2133.1 Mb         if not self._readable:
+torch.tensor <genexpr>:24                         :2133.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.queues get:92                     :2133.1 Mb         if block and timeout is None:
+torch.nn.modules.module _call_impl:734            :2133.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+torchvision.transforms.functional to_tensor:98    :2133.1 Mb     img = img.view(pic.size[1], pic.size[0], len(pic.getbands()))
+multiprocessing.queues _start_thread:160          :4363.1 Mb         self._thread = threading.Thread(
+threading is_set:509                              :4363.1 Mb         return self._flag
+multiprocessing.connection _recv:376              :4363.1 Mb         handle = self._handle
+multiprocessing.queues get:102                    :4363.1 Mb                 if block:
+torch.overrides <genexpr>:1087                    :4363.1 Mb         for a in relevant_args
+torch.nn.modules.module _call_impl:717            :4363.1 Mb                 _global_forward_pre_hooks.values(),
+torch.nn.modules.module _call_impl:717            :4363.1 Mb                 _global_forward_pre_hooks.values(),
+torchvision.transforms.transforms __call__:67     :4363.1 Mb             img = t(img)
+models.stylegan2 forward:235                      :4345.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
+torch.nn.modules.module _call_impl:734            :6539.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+torch.tensor <genexpr>:24                         :6539.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torchvision.transforms.functional normalize:273   :6539.1 Mb         tensor = tensor.clone()
+threading __init__:791                            :6539.1 Mb         self._args = args
+threading start:852                               :6539.1 Mb             _start_new_thread(self._bootstrap, ())
+selectors __init__:211                            :6539.1 Mb         self._fd_to_key = {}
+multiprocessing.connection _recv_bytes:409        :6539.1 Mb         if maxsize is not None and size > maxsize:
+torchvision.transforms.functional normalize:276   :6539.1 Mb     mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
+models.stylegan2 forward:250                      :6521.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+torchvision.transforms.transforms forward:615     :4327.1 Mb         if torch.rand(1) < self.p:
+torch.tensor <genexpr>:24                         :4327.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+threading __init__:798                            :4327.1 Mb         self._tstate_lock = None
+torch.tensor wrapped:26                           :4327.1 Mb         try:
+multiprocessing.util debug:49                     :4327.1 Mb     if _logger:
+selectors register:238                            :4327.1 Mb         key = SelectorKey(fileobj, self._fileobj_lookup(fileobj), events, data)
+multiprocessing.connection _recv:386              :4327.1 Mb             buf.write(chunk)
+torch.overrides has_torch_function:1083           :4327.1 Mb     return _is_torch_function_enabled() and any(
+selectors _fileobj_to_fd:37                       :6521.1 Mb             fd = int(fileobj.fileno())
+torch.overrides <genexpr>:1084                    :6521.1 Mb         type(a) is not torch.Tensor and
+torch.overrides <genexpr>:1087                    :6521.1 Mb         for a in relevant_args
+torch.tensor <genexpr>:24                         :6521.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+threading __init__:222                            :6521.1 Mb         self.release = lock.release
+torchvision.transforms.functional_pil _is_pil_image:16:6521.1 Mb     if accimage is not None:
+multiprocessing.util __init__:187                 :6521.1 Mb         if (exitpriority is not None) and not isinstance(exitpriority,int):
+multiprocessing.queues get:109                    :6521.1 Mb                 self._sem.release()
+models.stylegan2 forward:235                      :6521.1 Mb             out = F.conv_transpose2d(inputs, weight, padding=0, stride=2, groups=batch)
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+multiprocessing.connection wait:920               :4327.1 Mb             while True:
+multiprocessing.util __init__:200                 :4327.1 Mb         self._key = (exitpriority, next(_finalizer_counter))
+torch.utils.data._utils.fetch <listcomp>:44       :4327.1 Mb             data = [self.dataset[idx] for idx in possibly_batched_index]
+torch.utils.data._utils.fetch <listcomp>:44       :4327.1 Mb             data = [self.dataset[idx] for idx in possibly_batched_index]
+dataset __getitem__:43                            :4327.1 Mb         return img
+_weakrefset add:82                                :4327.1 Mb         if self._pending_removals:
+torchvision.transforms.functional to_tensor:87    :4327.1 Mb     if pic.mode == 'I':
+torchvision.transforms.functional to_tensor:63    :4327.1 Mb     if not(F_pil._is_pil_image(pic) or _is_numpy(pic)):
+threading start:857                               :6649.1 Mb         self._started.wait()
+torchvision.transforms.transforms forward:226     :6649.1 Mb         return F.normalize(tensor, self.mean, self.std, self.inplace)
+torchvision.transforms.transforms forward:645     :6649.1 Mb         if torch.rand(1) < self.p:
+torchvision.transforms.transforms forward:645     :6649.1 Mb         if torch.rand(1) < self.p:
+importlib._bootstrap _handle_fromlist:1028        :6649.1 Mb             elif x == '*':
+selectors select:418                              :6649.1 Mb         for fd, event in fd_event_list:
+torch.utils.data._utils.worker _worker_loop:170   :6649.1 Mb             try:
+importlib._bootstrap _handle_fromlist:1020        :6649.1 Mb         for x in fromlist:
+models.stylegan2 forward:250                      :6649.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+selectors close:270                               :4327.1 Mb         self._map = None
+multiprocessing.queues _start_thread:173          :4327.1 Mb         if not self._joincancelled:
+torch.tensor wrapped:23                           :4327.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+multiprocessing.queues get:103                    :4327.1 Mb                     timeout = deadline - time.monotonic()
+torch.overrides has_torch_function:1087           :4327.1 Mb         for a in relevant_args
+torch.overrides has_torch_function:1087           :4327.1 Mb         for a in relevant_args
+torch.utils.data._utils.collate default_collate:55:4327.1 Mb         return torch.stack(batch, 0, out=out)
+torchvision.transforms.functional to_tensor:102   :4327.1 Mb         return img.float().div(255)
+multiprocessing.queues _start_thread:184          :8941.1 Mb             exitpriority=10
+torchvision.transforms.functional normalize:278   :8941.1 Mb     if (std == 0).any():
+selectors register:352                            :8941.1 Mb         key = super().register(fileobj, events, data)
+torch.nn.modules.module _call_impl:717            :8941.1 Mb                 _global_forward_pre_hooks.values(),
+torch.nn.modules.module _call_impl:717            :8941.1 Mb                 _global_forward_pre_hooks.values(),
+multiprocessing.connection _recv:387              :8941.1 Mb             remaining -= n
+threading __init__:786                            :8941.1 Mb         assert group is None, "group argument must be None for now"
+torchvision.transforms.functional normalize:282   :8941.1 Mb     if std.ndim == 1:
+models.stylegan2 forward:250                      :8941.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+multiprocessing.util __init__:203                 :4327.1 Mb         _finalizer_registry[self._key] = self
+torch.overrides has_torch_function:1087           :4327.1 Mb         for a in relevant_args
+multiprocessing.connection _check_closed:135      :4327.1 Mb         if self._handle is None:
+torch.nn.modules.module _call_impl:749            :4327.1 Mb         return result
+torch.tensor <genexpr>:24                         :4327.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+threading current_thread:1232                     :4327.1 Mb     try:
+torch.tensor <genexpr>:24                         :4327.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.connection _recv:378              :4327.1 Mb         while remaining > 0:
+torchvision.transforms.functional normalize:272   :6631.1 Mb     if not inplace:
+threading __enter__:241                           :6631.1 Mb         return self._lock.__enter__()
+importlib._bootstrap _handle_fromlist:1044        :6631.1 Mb     return module
+multiprocessing.connection _check_closed:135      :6631.1 Mb         if self._handle is None:
+torch.nn.modules.module _call_impl:727            :6631.1 Mb             result = self.forward(*input, **kwargs)
+multiprocessing.connection recv_bytes:216         :6631.1 Mb         buf = self._recv_bytes(maxlength)
+torch.overrides <genexpr>:1084                    :6631.1 Mb         type(a) is not torch.Tensor and
+threading __init__:789                            :6631.1 Mb         self._target = target
+models.stylegan2 forward:250                      :6631.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+models.stylegan2 forward:250                      :4327.1 Mb             out = F.conv2d(inputs, weight, padding=self.padding, groups=batch)
+torch.tensor <genexpr>:24                         :4327.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.tensor wrapped:23                           :4327.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+multiprocessing.connection _recv:387              :4327.1 Mb             remaining -= n
+torch.nn.modules.module _call_impl:730            :4327.1 Mb                 self._forward_hooks.values()):
+threading __init__:797                            :4327.1 Mb         self._ident = None
+selectors register:358                            :4327.1 Mb         try:
+multiprocessing.queues _start_thread:177          :4327.1 Mb                 exitpriority=-5
+torch.overrides <genexpr>:1084                    :4327.1 Mb         type(a) is not torch.Tensor and
+torch.utils.data._utils.collate <listcomp>:52     :6627.1 Mb             numel = sum([x.numel() for x in batch])
+dataset __getitem__:34                            :6627.1 Mb                 buffer = BytesIO(img_bytes)
+multiprocessing.connection recv_bytes:212         :6627.1 Mb         self._check_closed()
+torch.nn.modules.module _call_impl:730            :6627.1 Mb                 self._forward_hooks.values()):
+multiprocessing.queues _start_thread:170          :6627.1 Mb         self._thread.start()
+torch.utils.data._utils.worker is_alive:55        :6627.1 Mb             if not self.manager_dead:
+torch.utils.data._utils.worker _worker_loop:198   :6627.1 Mb                     data = fetcher.fetch(index)
+torchvision.transforms.functional to_tensor:63    :6627.1 Mb     if not(F_pil._is_pil_image(pic) or _is_numpy(pic)):
+torch.nn.modules.module __getattr__:769           :6627.1 Mb                 return _parameters[name]
+torch.nn.modules.module __getattr__:769           :4323.1 Mb                 return _parameters[name]
+torch.storage _new_shared:134                     :4323.1 Mb         elif get_sharing_strategy() == 'file_system':
+threading wait:553                                :4323.1 Mb             return signaled
+torchvision.transforms.functional to_tensor:87    :4323.1 Mb     if pic.mode == 'I':
+importlib._bootstrap _handle_fromlist:1019        :4323.1 Mb     if hasattr(module, '__path__'):
+torchvision.transforms.transforms __call__:66     :4323.1 Mb         for t in self.transforms:
+multiprocessing.connection poll:255               :4323.1 Mb         self._check_closed()
+multiprocessing.connection _recv:386              :4323.1 Mb             buf.write(chunk)
+torchvision.transforms.functional to_tensor:98    :4323.1 Mb     img = img.view(pic.size[1], pic.size[0], len(pic.getbands()))
+torchvision.transforms.functional to_tensor:96    :8933.1 Mb         img = torch.ByteTensor(torch.ByteStorage.from_buffer(pic.tobytes()))
+torch.utils.data._utils.collate default_collate:55:8933.1 Mb         return torch.stack(batch, 0, out=out)
+torchvision.transforms.functional to_tensor:102   :8933.1 Mb         return img.float().div(255)
+torch.tensor <genexpr>:24                         :8933.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.nn.modules.module _call_impl:718            :8933.1 Mb                 self._forward_pre_hooks.values()):
+multiprocessing.connection poll:257               :8933.1 Mb         return self._poll(timeout)
+multiprocessing.connection _recv_bytes:408        :8933.1 Mb         size, = struct.unpack("!i", buf.getvalue())
+multiprocessing.queues _start_thread:174          :8933.1 Mb             self._jointhread = Finalize(
+torch.nn.modules.module __getattr__:769           :8933.1 Mb                 return _parameters[name]
+multiprocessing.connection wait:915               :4323.1 Mb                 selector.register(obj, selectors.EVENT_READ)
+torch.nn.modules.module __getattr__:769           :4323.1 Mb                 return _parameters[name]
+multiprocessing.connection _recv:386              :4323.1 Mb             buf.write(chunk)
+multiprocessing.queues _start_thread:160          :4323.1 Mb         self._thread = threading.Thread(
+multiprocessing.util __init__:200                 :4323.1 Mb         self._key = (exitpriority, next(_finalizer_counter))
+torch.nn.modules.module _call_impl:718            :4323.1 Mb                 self._forward_pre_hooks.values()):
+torch.overrides has_torch_function:1084           :4323.1 Mb         type(a) is not torch.Tensor and
+torchvision.transforms.transforms forward:647     :4323.1 Mb         return img
+torchvision.transforms.functional normalize:272   :4323.1 Mb     if not inplace:
+multiprocessing.queues _start_thread:183          :6631.1 Mb             [self._buffer, self._notempty],
+torchvision.transforms.functional normalize:278   :6631.1 Mb     if (std == 0).any():
+torch.overrides <genexpr>:1087                    :6631.1 Mb         for a in relevant_args
+torch.nn.modules.module _call_impl:749            :6631.1 Mb         return result
+multiprocessing.queues _start_thread:165          :6631.1 Mb             name='QueueFeederThread'
+selectors _fileobj_to_fd:36                       :6631.1 Mb         try:
+torchvision.transforms.functional normalize:268   :6631.1 Mb     if tensor.ndim < 3:
+multiprocessing.queues get:109                    :6631.1 Mb                 self._sem.release()
+torch.nn.modules.module __getattr__:769           :6631.1 Mb                 return _parameters[name]
+torch.nn.modules.module __getattr__:769           :4325.1 Mb                 return _parameters[name]
+torch.nn.modules.module _call_impl:716            :4325.1 Mb         for hook in itertools.chain(
+multiprocessing.queues put:89                     :4325.1 Mb             self._notempty.notify()
+torch.overrides <genexpr>:1084                    :4325.1 Mb         type(a) is not torch.Tensor and
+threading daemon:1128                             :4325.1 Mb         assert self._initialized, "Thread.__init__() not called"
+multiprocessing.synchronize __exit__:98           :4325.1 Mb         return self._semlock.__exit__(*args)
+selectors register:355                            :4325.1 Mb             poller_events |= self._EVENT_READ
+torch.tensor <genexpr>:24                         :4325.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.tensor wrapped:24                           :4325.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+threading __init__:797                            :5487.1 Mb         self._ident = None
+torch.utils.data._utils.worker _worker_loop:193   :5487.1 Mb             if init_exception is not None:
+selectors register:358                            :5487.1 Mb         try:
+torch.overrides has_torch_function:1084           :5487.1 Mb         type(a) is not torch.Tensor and
+torch.tensor <genexpr>:24                         :5487.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.nn.modules.module _call_impl:724            :5487.1 Mb         if torch._C._get_tracing_state():
+threading _is_owned:262                           :5487.1 Mb             return True
+torch.tensor wrapped:26                           :5487.1 Mb         try:
+torch.nn.modules.module __getattr__:769           :5487.1 Mb                 return _parameters[name]
+torchvision.transforms.transforms __call__:66     :6593.1 Mb         for t in self.transforms:
+torchvision.transforms.functional_pil hflip:51    :6593.1 Mb     if not _is_pil_image(img):
+threading __init__:232                            :6593.1 Mb         except AttributeError:
+torch.overrides <genexpr>:1084                    :6593.1 Mb         type(a) is not torch.Tensor and
+torchvision.transforms.functional normalize:285   :6593.1 Mb     return tensor
+selectors select:418                              :6593.1 Mb         for fd, event in fd_event_list:
+multiprocessing.queues get:97                     :6593.1 Mb             if block:
+torchvision.transforms.transforms __call__:66     :6593.1 Mb         for t in self.transforms:
+torch.nn.modules.module __getattr__:769           :6593.1 Mb                 return _parameters[name]
+_weakrefset add:84                                :5487.1 Mb         self.data.add(ref(item, self._remove))
+dataset __getitem__:32                            :5487.1 Mb                     img_bytes = txn.get(key)
+torch.utils.data._utils.collate <listcomp>:52     :5487.1 Mb             numel = sum([x.numel() for x in batch])
+torchvision.transforms.functional to_tensor:63    :5487.1 Mb     if not(F_pil._is_pil_image(pic) or _is_numpy(pic)):
+torch.tensor <genexpr>:24                         :5487.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+selectors __init__:348                            :5487.1 Mb         super().__init__()
+multiprocessing.connection <listcomp>:923         :5487.1 Mb                     return [key.fileobj for (key, events) in ready]
+torch.nn.modules.module __getattr__:769           :5487.1 Mb                 return _parameters[name]
+torchvision.transforms.functional to_tensor:63    :5487.1 Mb     if not(F_pil._is_pil_image(pic) or _is_numpy(pic)):
+dataset __getitem__:35                            :6593.1 Mb                 img = Image.open(buffer)
+torchvision.transforms.functional_pil _is_pil_image:19:6593.1 Mb         return isinstance(img, Image.Image)
+torch.overrides has_torch_function:1084           :6593.1 Mb         type(a) is not torch.Tensor and
+selectors __exit__:203                            :6593.1 Mb         self.close()
+torch.storage _new_shared:131                     :6593.1 Mb         from torch.multiprocessing import get_sharing_strategy
+selectors __init__:213                            :6593.1 Mb         self._map = _SelectorMapping(self)
+torchvision.transforms.functional_pil _is_pil_image:19:6593.1 Mb         return isinstance(img, Image.Image)
+threading daemon:1135                             :6593.1 Mb         if self._started.is_set():
+torch.nn.modules.module __getattr__:769           :6593.1 Mb                 return _parameters[name]
+torchvision.transforms.functional to_tensor:98    :5491.1 Mb     img = img.view(pic.size[1], pic.size[0], len(pic.getbands()))
+torch.nn.modules.module __getattr__:769           :5491.1 Mb                 return _parameters[name]
+torch.nn.modules.module _call_impl:728            :5491.1 Mb         for hook in itertools.chain(
+selectors _fileobj_lookup:225                     :5491.1 Mb             return _fileobj_to_fd(fileobj)
+multiprocessing.connection recv_bytes:216         :5491.1 Mb         buf = self._recv_bytes(maxlength)
+threading start:850                               :5491.1 Mb             _limbo[self] = self
+torch.multiprocessing get_sharing_strategy:70     :5491.1 Mb     return _sharing_strategy
+torch.tensor wrapped:23                           :5493.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+torchvision.transforms.functional to_tensor:98    :5493.1 Mb     img = img.view(pic.size[1], pic.size[0], len(pic.getbands()))
+importlib._bootstrap _handle_fromlist:1044        :7687.1 Mb     return module
+torch.nn.modules.module _call_impl:734            :7687.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+selectors _fileobj_to_fd:37                       :7687.1 Mb             fd = int(fileobj.fileno())
+threading start:857                               :7687.1 Mb         self._started.wait()
+multiprocessing.connection _recv:376              :7687.1 Mb         handle = self._handle
+torchvision.transforms.functional to_tensor:101   :7687.1 Mb     if isinstance(img, torch.ByteTensor):
+torch.utils.data._utils.collate default_collate:55:7687.1 Mb         return torch.stack(batch, 0, out=out)
+torch.nn.modules.module __getattr__:769           :7685.1 Mb                 return _parameters[name]
+torchvision.transforms.functional to_tensor:102   :7687.1 Mb         return img.float().div(255)
+torchvision.transforms.transforms forward:226     :5495.1 Mb         return F.normalize(tensor, self.mean, self.std, self.inplace)
+selectors register:353                            :5495.1 Mb         poller_events = 0
+multiprocessing.queues _start_thread:173          :5495.1 Mb         if not self._joincancelled:
+multiprocessing.util debug:49                     :5495.1 Mb     if _logger:
+torch.nn.modules.module __getattr__:769           :5495.1 Mb                 return _parameters[name]
+multiprocessing.connection _recv:388              :5495.1 Mb         return buf
+torchvision.transforms.functional normalize:265   :5495.1 Mb     if not isinstance(tensor, torch.Tensor):
+torch.tensor wrapped:23                           :5495.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+torch.overrides <genexpr>:1084                    :5495.1 Mb         type(a) is not torch.Tensor and
+importlib._bootstrap _handle_fromlist:1044        :6593.1 Mb     return module
+torch.tensor wrapped:27                           :6593.1 Mb             return f(*args, **kwargs)
+selectors register:356                            :6593.1 Mb         if events & EVENT_WRITE:
+torchvision.transforms.functional normalize:272   :6593.1 Mb     if not inplace:
+multiprocessing.queues _start_thread:176          :6593.1 Mb                 [weakref.ref(self._thread)],
+multiprocessing.queues _start_thread:161          :6593.1 Mb             target=Queue._feed,
+multiprocessing.connection _recv_bytes:411        :6593.1 Mb         return self._recv(size)
+torchvision.transforms.functional normalize:273   :6593.1 Mb         tensor = tensor.clone()
+torch.nn.modules.module __getattr__:769           :6593.1 Mb                 return _parameters[name]
+torchvision.transforms.transforms __call__:67     :5495.1 Mb             img = t(img)
+multiprocessing.connection wait:921               :5495.1 Mb                 ready = selector.select(timeout)
+multiprocessing.util __init__:200                 :5495.1 Mb         self._key = (exitpriority, next(_finalizer_counter))
+multiprocessing.connection _recv:386              :5495.1 Mb             buf.write(chunk)
+importlib._bootstrap _handle_fromlist:1044        :5495.1 Mb     return module
+torch.tensor wrapped:24                           :5495.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+threading __init__:789                            :5495.1 Mb         self._target = target
+torch.nn.modules.module __getattr__:769           :5495.1 Mb                 return _parameters[name]
+torch.overrides <genexpr>:1084                    :5495.1 Mb         type(a) is not torch.Tensor and
+torch.tensor <genexpr>:24                         :6595.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.connection _recv:378              :6595.1 Mb         while remaining > 0:
+torch.tensor <genexpr>:24                         :6595.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+threading __init__:791                            :6595.1 Mb         self._args = args
+torch.overrides <genexpr>:1084                    :6595.1 Mb         type(a) is not torch.Tensor and
+torch.nn.modules.module __getattr__:769           :6595.1 Mb                 return _parameters[name]
+torch.nn.modules.module _call_impl:718            :6595.1 Mb                 self._forward_pre_hooks.values()):
+multiprocessing.queues _start_thread:181          :6595.1 Mb         self._close = Finalize(
+selectors select:412                              :6595.1 Mb             timeout = math.ceil(timeout * 1e3)
+multiprocessing.connection fileno:170             :6865.1 Mb         self._check_closed()
+torch.overrides <genexpr>:1084                    :6865.1 Mb         type(a) is not torch.Tensor and
+torch.nn.modules.module __getattr__:769           :6865.1 Mb                 return _parameters[name]
+torchvision.transforms.functional normalize:265   :6865.1 Mb     if not isinstance(tensor, torch.Tensor):
+threading notify:345                              :6865.1 Mb         if not self._is_owned():
+multiprocessing.queues get:113                    :6865.1 Mb         return _ForkingPickler.loads(res)
+torch.nn.modules.module _call_impl:728            :6865.1 Mb         for hook in itertools.chain(
+multiprocessing.queues _start_thread:175          :6865.1 Mb                 self._thread, Queue._finalize_join,
+torch.nn.modules.module _call_impl:749            :6865.1 Mb         return result
+dataset __getitem__:43                            :8083.1 Mb         return img
+torchvision.transforms.functional to_tensor:66    :8083.1 Mb     if _is_numpy(pic) and not _is_numpy_image(pic):
+torch.nn.modules.module _call_impl:727            :8083.1 Mb             result = self.forward(*input, **kwargs)
+multiprocessing.connection wait:922               :8083.1 Mb                 if ready:
+torch.utils.data._utils.worker is_alive:56        :8083.1 Mb                 self.manager_dead = os.getppid() != self.manager_pid
+torch.nn.modules.module _call_impl:729            :8083.1 Mb                 _global_forward_hooks.values(),
+selectors __init__:349                            :8083.1 Mb         self._selector = self._selector_cls()
+importlib._bootstrap _handle_fromlist:1044        :8083.1 Mb     return module
+torch.utils.data._utils.fetch <listcomp>:44       :6969.1 Mb             data = [self.dataset[idx] for idx in possibly_batched_index]
+torchvision.transforms.functional _is_numpy:44    :6969.1 Mb     return isinstance(img, np.ndarray)
+torchvision.transforms.transforms forward:645     :6969.1 Mb         if torch.rand(1) < self.p:
+multiprocessing.connection wait:923               :6969.1 Mb                     return [key.fileobj for (key, events) in ready]
+torch.utils.data._utils.worker is_alive:57        :6969.1 Mb             return not self.manager_dead
+torch.nn.modules.module _call_impl:730            :6969.1 Mb                 self._forward_hooks.values()):
+selectors __enter__:200                           :6969.1 Mb         return self
+torch.tensor wrapped:24                           :6969.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.utils.data._utils.fetch fetch:47            :8067.1 Mb         return self.collate_fn(data)
+torchvision.transforms.functional to_tensor:69    :8067.1 Mb     if isinstance(pic, np.ndarray):
+torch.tensor wrapped:23                           :8067.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+multiprocessing.connection <listcomp>:923         :8067.1 Mb                     return [key.fileobj for (key, events) in ready]
+torch.utils.data._utils.worker _worker_loop:170   :8067.1 Mb             try:
+torch.nn.modules.module _call_impl:734            :8067.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+multiprocessing.connection wait:914               :8067.1 Mb             for obj in object_list:
+torch.tensor <genexpr>:24                         :8067.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torchvision.transforms.functional to_tensor:87    :6969.1 Mb     if pic.mode == 'I':
+selectors __exit__:203                            :6969.1 Mb         self.close()
+importlib._bootstrap _handle_fromlist:1044        :6969.1 Mb     return module
+multiprocessing.queues get:92                     :6969.1 Mb         if block and timeout is None:
+torchvision.transforms.transforms __call__:66     :6969.1 Mb         for t in self.transforms:
+selectors register:352                            :6969.1 Mb         key = super().register(fileobj, events, data)
+torch.overrides has_torch_function:1083           :6969.1 Mb     return _is_torch_function_enabled() and any(
+torch.utils.data._utils.collate default_collate:47:6969.1 Mb     if isinstance(elem, torch.Tensor):
+torchvision.transforms.functional to_tensor:89    :8065.1 Mb     elif pic.mode == 'I;16':
+torch.overrides has_torch_function:1084           :9161.1 Mb         type(a) is not torch.Tensor and
+selectors register:235                            :9161.1 Mb         if (not events) or (events & ~(EVENT_READ | EVENT_WRITE)):
+torchvision.transforms.transforms __call__:67     :9161.1 Mb             img = t(img)
+multiprocessing.queues get:97                     :9161.1 Mb             if block:
+torch.utils.data._utils.collate default_collate:48:9161.1 Mb         out = None
+torchvision.transforms.functional to_tensor:91    :9161.1 Mb     elif pic.mode == 'F':
+selectors close:270                               :9161.1 Mb         self._map = None
+torch.tensor <genexpr>:24                         :9161.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.connection _poll:415              :8071.1 Mb         return bool(r)
+torch.tensor <genexpr>:24                         :8071.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.overrides <genexpr>:1084                    :8071.1 Mb         type(a) is not torch.Tensor and
+selectors _fileobj_lookup:224                     :8071.1 Mb         try:
+torchvision.transforms.functional to_tensor:63    :8071.1 Mb     if not(F_pil._is_pil_image(pic) or _is_numpy(pic)):
+multiprocessing.queues get:99                     :8071.1 Mb             if not self._rlock.acquire(block, timeout):
+torch.utils.data._utils.worker get_worker_info:109:8071.1 Mb     return _worker_info
+torchvision.transforms.functional to_tensor:96    :8071.1 Mb         img = torch.ByteTensor(torch.ByteStorage.from_buffer(pic.tobytes()))
+torchvision.transforms.functional_pil _is_pil_image:19:6963.1 Mb         return isinstance(img, Image.Image)
+torch.utils.data._utils.collate <listcomp>:52     :6963.1 Mb             numel = sum([x.numel() for x in batch])
+multiprocessing.queues get:102                    :6963.1 Mb                 if block:
+torch.utils.data._utils.collate <listcomp>:52     :8069.1 Mb             numel = sum([x.numel() for x in batch])
+torchvision.transforms.functional to_tensor:66    :8069.1 Mb     if _is_numpy(pic) and not _is_numpy_image(pic):
+multiprocessing.queues get:103                    :8069.1 Mb                     timeout = deadline - time.monotonic()
+torch.overrides <genexpr>:1087                    :9175.1 Mb         for a in relevant_args
+torch.tensor wrapped:26                           :9175.1 Mb         try:
+multiprocessing.connection fileno:170             :9175.1 Mb         self._check_closed()
+torch.utils.data._utils.collate default_collate:53:9175.1 Mb             storage = elem.storage()._new_shared(numel)
+torchvision.transforms.functional to_tensor:69    :9175.1 Mb     if isinstance(pic, np.ndarray):
+multiprocessing.connection poll:255               :9175.1 Mb         self._check_closed()
+multiprocessing.connection recv_bytes:214         :9175.1 Mb         if maxlength is not None and maxlength < 0:
+torchvision.transforms.functional to_tensor:102   :9175.1 Mb         return img.float().div(255)
+multiprocessing.connection _recv:378              :8069.1 Mb         while remaining > 0:
+torch.nn.modules.module _call_impl:724            :8069.1 Mb         if torch._C._get_tracing_state():
+torch.nn.modules.module _call_impl:749            :8053.1 Mb         return result
+torch.nn.modules.module _call_impl:728            :8053.1 Mb         for hook in itertools.chain(
+selectors register:245                            :8053.1 Mb         return key
+importlib._bootstrap _handle_fromlist:1020        :8053.1 Mb         for x in fromlist:
+selectors __init__:348                            :8053.1 Mb         super().__init__()
+torchvision.transforms.functional to_tensor:98    :8053.1 Mb     img = img.view(pic.size[1], pic.size[0], len(pic.getbands()))
+torchvision.transforms.transforms __call__:67     :9199.1 Mb             img = t(img)
+selectors __init__:213                            :9199.1 Mb         self._map = _SelectorMapping(self)
+selectors register:354                            :9199.1 Mb         if events & EVENT_READ:
+torch.storage _new_shared:132                     :9199.1 Mb         if cls.is_cuda:
+multiprocessing.connection _recv:381              :9199.1 Mb             if n == 0:
+torchvision.transforms.functional to_tensor:101   :9199.1 Mb     if isinstance(img, torch.ByteTensor):
+torchvision.transforms.functional normalize:265   :9199.1 Mb     if not isinstance(tensor, torch.Tensor):
+torch.nn.modules.module _call_impl:734            :9199.1 Mb         if (len(self._backward_hooks) > 0) or (len(_global_backward_hooks) > 0):
+selectors __init__:349                            :8093.1 Mb         self._selector = self._selector_cls()
+torchvision.transforms.functional normalize:272   :8093.1 Mb     if not inplace:
+multiprocessing.connection _recv:387              :8093.1 Mb             remaining -= n
+selectors register:356                            :8093.1 Mb         if events & EVENT_WRITE:
+torch.multiprocessing get_sharing_strategy:70     :8093.1 Mb     return _sharing_strategy
+torchvision.transforms.transforms __call__:66     :8093.1 Mb         for t in self.transforms:
+torchvision.transforms.transforms __call__:66     :8093.1 Mb         for t in self.transforms:
+torch.nn.modules.module _call_impl:718            :8093.1 Mb                 self._forward_pre_hooks.values()):
+selectors register:235                            :10303.1Mb         if (not events) or (events & ~(EVENT_READ | EVENT_WRITE)):
+multiprocessing.connection wait:917               :10303.1Mb             if timeout is not None:
+torch.utils.data._utils.worker _worker_loop:212   :10303.1Mb             data_queue.put((idx, data))
+torch.nn.modules.module _call_impl:724            :10303.1Mb         if torch._C._get_tracing_state():
+importlib._bootstrap _handle_fromlist:1019        :10303.1Mb     if hasattr(module, '__path__'):
+multiprocessing.connection _recv_bytes:411        :10303.1Mb         return self._recv(size)
+torch.nn.modules.module _call_impl:724            :10303.1Mb         if torch._C._get_tracing_state():
+torchvision.transforms.functional normalize:278   :10303.1Mb     if (std == 0).any():
+importlib._bootstrap _handle_fromlist:1019        :9141.1 Mb     if hasattr(module, '__path__'):
+torch.tensor wrapped:24                           :9141.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+multiprocessing.queues put:82                     :9141.1 Mb         if not self._sem.acquire(block, timeout):
+torchvision.transforms.transforms forward:615     :9141.1 Mb         if torch.rand(1) < self.p:
+torchvision.transforms.transforms forward:226     :9141.1 Mb         return F.normalize(tensor, self.mean, self.std, self.inplace)
+multiprocessing.connection wait:920               :9141.1 Mb             while True:
+multiprocessing.connection _recv:376              :9141.1 Mb         handle = self._handle
+selectors _fileobj_lookup:225                     :9141.1 Mb             return _fileobj_to_fd(fileobj)
+torch.tensor wrapped:23                           :6961.1 Mb         from torch.overrides import has_torch_function, handle_torch_function
+torchvision.transforms.functional normalize:265   :6961.1 Mb     if not isinstance(tensor, torch.Tensor):
+multiprocessing.connection wait:921               :6961.1 Mb                 ready = selector.select(timeout)
+multiprocessing.connection _recv:377              :6961.1 Mb         remaining = size
+selectors _fileobj_to_fd:33                       :6961.1 Mb     if isinstance(fileobj, int):
+torch.tensor wrapped:24                           :6961.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.tensor <genexpr>:24                         :6961.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+threading __enter__:241                           :6961.1 Mb         return self._lock.__enter__()
+torch.overrides <genexpr>:1084                    :7475.1 Mb         type(a) is not torch.Tensor and
+threading notify:348                              :7475.1 Mb         waiters_to_notify = _deque(_islice(all_waiters, n))
+torch.overrides <genexpr>:1084                    :7475.1 Mb         type(a) is not torch.Tensor and
+selectors register:244                            :7475.1 Mb         self._fd_to_key[key.fd] = key
+torch.overrides <genexpr>:1084                    :7475.1 Mb         type(a) is not torch.Tensor and
+selectors select:420                              :7475.1 Mb             if event & ~self._EVENT_READ:
+multiprocessing.connection recv_bytes:217         :7475.1 Mb         if buf is None:
+importlib._bootstrap _handle_fromlist:1019        :7475.1 Mb     if hasattr(module, '__path__'):
+torch.tensor wrapped:24                           :6897.1 Mb         if not all(type(t) is Tensor for t in args) and has_torch_function(args):
+torch.tensor wrapped:26                           :6897.1 Mb         try:
+threading notify:352                              :6897.1 Mb             waiter.release()
+torch.overrides <genexpr>:1087                    :6897.1 Mb         for a in relevant_args
+selectors register:354                            :6897.1 Mb         if events & EVENT_READ:
+selectors select:425                              :6897.1 Mb             key = self._key_from_fd(fd)
+torchvision.transforms.transforms forward:616     :6897.1 Mb             return F.hflip(img)
+multiprocessing.queues get:111                    :6897.1 Mb                 self._rlock.release()
+multiprocessing.queues get:104                    :7923.1 Mb                     if not self._poll(timeout):
+torchvision.transforms.functional to_tensor:66    :7923.1 Mb     if _is_numpy(pic) and not _is_numpy_image(pic):
+dataset __getitem__:27                            :7923.1 Mb         while True:
+torchvision.transforms.functional to_tensor:63    :7923.1 Mb     if not(F_pil._is_pil_image(pic) or _is_numpy(pic)):
+torch.nn.modules.module _call_impl:730            :7923.1 Mb                 self._forward_hooks.values()):
+multiprocessing.connection recv_bytes:214         :7923.1 Mb         if maxlength is not None and maxlength < 0:
+selectors select:423                              :7923.1 Mb                 events |= EVENT_READ
+dataset __getitem__:32                            :7923.1 Mb                     img_bytes = txn.get(key)
+multiprocessing.connection poll:257               :6769.1 Mb         return self._poll(timeout)
+torchvision.transforms.functional to_tensor:89    :6769.1 Mb     elif pic.mode == 'I;16':
+dataset __getitem__:34                            :6769.1 Mb                 buffer = BytesIO(img_bytes)
+torchvision.transforms.functional to_tensor:69    :6769.1 Mb     if isinstance(pic, np.ndarray):
+dataset __getitem__:43                            :6769.1 Mb         return img
+multiprocessing.connection _recv:377              :6769.1 Mb         remaining = size
+torchvision.transforms.transforms __call__:66     :6769.1 Mb         for t in self.transforms:
+selectors select:427                              :6769.1 Mb                 ready.append((key, events & key.events))
+torch.overrides has_torch_function:1084           :7043.1 Mb         type(a) is not torch.Tensor and
+torch.overrides <genexpr>:1084                    :7043.1 Mb         type(a) is not torch.Tensor and
+torch.nn.modules.module _call_impl:730            :7043.1 Mb                 self._forward_hooks.values()):
+threading notify:351                              :7043.1 Mb         for waiter in waiters_to_notify:
+torch.utils.data._utils.collate default_collate:48:7319.1 Mb         out = None
+multiprocessing.queues get:98                     :7765.1 Mb                 deadline = time.monotonic() + timeout
+torchvision.transforms.functional normalize:283   :7765.1 Mb         std = std.view(-1, 1, 1)
+torch.utils.data._utils.collate default_collate:49:7765.1 Mb         if torch.utils.data.get_worker_info() is not None:
+torch.autograd backward:132                       :7765.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+torch.nn.modules.module _call_impl:728            :7765.1 Mb         for hook in itertools.chain(
+selectors select:415                              :7765.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7765.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7765.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7765.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:422                              :7467.1 Mb             if event & ~self._EVENT_WRITE:
+multiprocessing.queues get:99                     :6205.1 Mb             if not self._rlock.acquire(block, timeout):
+torch.utils.data._utils.collate default_collate:48:6205.1 Mb         out = None
+selectors register:238                            :6205.1 Mb         key = SelectorKey(fileobj, self._fileobj_lookup(fileobj), events, data)
+selectors select:423                              :6205.1 Mb                 events |= EVENT_READ
+multiprocessing.queues get:101                    :5043.1 Mb             try:
+selectors _fileobj_lookup:224                     :2849.1 Mb         try:
+torch.utils.data._utils.collate default_collate:49:2849.1 Mb         if torch.utils.data.get_worker_info() is not None:
+selectors select:425                              :2849.1 Mb             key = self._key_from_fd(fd)
+multiprocessing.queues get:102                    :2843.1 Mb                 if block:
+torch.nn.modules.module __getattr__:769           :2831.1 Mb                 return _parameters[name]
+op.fused_act forward:56                           :3343.1 Mb         out = fused.fused_bias_act(input, bias, empty, 3, 0, negative_slope, scale)
+multiprocessing.connection fileno:170             :3343.1 Mb         self._check_closed()
+torch.utils.data._utils.collate <listcomp>:52     :3343.1 Mb             numel = sum([x.numel() for x in batch])
+selectors select:418                              :3343.1 Mb         for fd, event in fd_event_list:
+multiprocessing.connection poll:256               :3343.1 Mb         self._check_readable()
+op.upfirdn2d forward:119                          :3727.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
+multiprocessing.connection <listcomp>:923         :3727.1 Mb                     return [key.fileobj for (key, events) in ready]
+selectors _fileobj_to_fd:43                       :3727.1 Mb     return fd
+importlib._bootstrap _handle_fromlist:1020        :3727.1 Mb         for x in fromlist:
+multiprocessing.connection wait:913               :3727.1 Mb         with _WaitSelector() as selector:
+op.upfirdn2d forward:119                          :4113.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
+selectors __init__:64                             :4113.1 Mb         self._selector = selector
+selectors register:353                            :4113.1 Mb         poller_events = 0
+importlib._bootstrap _handle_fromlist:1020        :4113.1 Mb         for x in fromlist:
+multiprocessing.connection _poll:415              :4113.1 Mb         return bool(r)
+op.upfirdn2d forward:119                          :4435.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
+multiprocessing.connection recv_bytes:214         :4435.1 Mb         if maxlength is not None and maxlength < 0:
+selectors register:235                            :4435.1 Mb         if (not events) or (events & ~(EVENT_READ | EVENT_WRITE)):
+torch.utils.data._utils.collate default_collate:54:4435.1 Mb             out = elem.new(storage)
+selectors register:363                            :4435.1 Mb         return key
+selectors select:415                              :4531.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.nn.modules.module __getattr__:769           :4705.1 Mb                 return _parameters[name]
+multiprocessing.connection recv_bytes:219         :4705.1 Mb         return buf.getvalue()
+selectors select:407                              :4705.1 Mb         elif timeout <= 0:
+torch.utils.data._utils.worker _worker_loop:170   :4705.1 Mb             try:
+multiprocessing.connection _check_readable:139    :6093.1 Mb         if not self._readable:
+multiprocessing.synchronize __enter__:95          :6349.1 Mb         return self._semlock.__enter__()
+multiprocessing.queues get:104                    :6349.1 Mb                     if not self._poll(timeout):
+multiprocessing.connection poll:257               :6605.1 Mb         return self._poll(timeout)
+torch.autograd grad:204                           :6093.1 Mb         inputs, allow_unused)
+dataset __getitem__:29                            :6629.1 Mb                 with self.env.begin(write=False) as txn:
+selectors __enter__:200                           :6629.1 Mb         return self
+torch.overrides has_torch_function:1084           :9189.1 Mb         type(a) is not torch.Tensor and
+torch.utils.data._utils.worker is_alive:57        :8909.1 Mb             return not self.manager_dead
+selectors select:415                              :8653.1 Mb             fd_event_list = self._selector.poll(timeout)
+multiprocessing.connection poll:255               :7501.1 Mb         self._check_closed()
+selectors _fileobj_to_fd:37                       :7501.1 Mb             fd = int(fileobj.fileno())
+selectors select:415                              :7501.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.utils.data._utils.worker _worker_loop:170   :6953.1 Mb             try:
+multiprocessing.connection wait:917               :6953.1 Mb             if timeout is not None:
+selectors __init__:348                            :5801.1 Mb         super().__init__()
+selectors register:235                            :6121.1 Mb         if (not events) or (events & ~(EVENT_READ | EVENT_WRITE)):
+selectors _fileobj_to_fd:41                       :5863.1 Mb     if fd < 0:
+selectors register:353                            :5223.1 Mb         poller_events = 0
+selectors register:355                            :5511.1 Mb             poller_events |= self._EVENT_READ
+multiprocessing.connection wait:920               :4941.1 Mb             while True:
+selectors select:414                              :6983.1 Mb         try:
+selectors select:415                              :5947.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :5947.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.autograd grad:204                           :6973.1 Mb         inputs, allow_unused)
+multiprocessing.connection wait:915               :6973.1 Mb                 selector.register(obj, selectors.EVENT_READ)
+multiprocessing.synchronize __enter__:230         :6973.1 Mb         return self._lock.__enter__()
+selectors register:352                            :7487.1 Mb         key = super().register(fileobj, events, data)
+multiprocessing.synchronize __enter__:95          :7487.1 Mb         return self._semlock.__enter__()
+torch.autograd backward:132                       :7487.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+selectors select:415                              :7487.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7487.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7487.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7487.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7487.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :3815.1 Mb             fd_event_list = self._selector.poll(timeout)
+multiprocessing.connection wait:925               :3435.1 Mb                     if timeout is not None:
+selectors __exit__:203                            :5757.1 Mb         self.close()
+selectors select:415                              :5559.1 Mb             fd_event_list = self._selector.poll(timeout)
+multiprocessing.connection wait:913               :5431.1 Mb         with _WaitSelector() as selector:
+selectors __init__:211                            :3109.1 Mb         self._fd_to_key = {}
+selectors close:269                               :3109.1 Mb         self._fd_to_key.clear()
+selectors __init__:349                            :5303.1 Mb         self._selector = self._selector_cls()
+multiprocessing.queues get:105                    :5303.1 Mb                         raise Empty
+selectors select:415                              :5303.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.utils.data._utils.worker _worker_loop:171   :3043.1 Mb                 r = index_queue.get(timeout=MP_STATUS_CHECK_INTERVAL)
+selectors __init__:211                            :3043.1 Mb         self._fd_to_key = {}
+multiprocessing.connection wait:914               :3043.1 Mb             for obj in object_list:
+multiprocessing.queues get:97                     :5173.1 Mb             if block:
+selectors __init__:64                             :5173.1 Mb         self._selector = selector
+multiprocessing.connection wait:918               :5173.1 Mb                 deadline = time.monotonic() + timeout
+selectors register:352                            :2979.1 Mb         key = super().register(fileobj, events, data)
+selectors register:235                            :5173.1 Mb         if (not events) or (events & ~(EVENT_READ | EVENT_WRITE)):
+multiprocessing.connection poll:257               :2981.1 Mb         return self._poll(timeout)
+selectors _fileobj_to_fd:36                       :2981.1 Mb         try:
+multiprocessing.connection wait:913               :7361.1 Mb         with _WaitSelector() as selector:
+multiprocessing.connection fileno:170             :7361.1 Mb         self._check_closed()
+multiprocessing.connection wait:914               :2945.1 Mb             for obj in object_list:
+selectors register:244                            :2945.1 Mb         self._fd_to_key[key.fd] = key
+selectors register:352                            :5077.1 Mb         key = super().register(fileobj, events, data)
+selectors register:353                            :5077.1 Mb         poller_events = 0
+multiprocessing.connection fileno:170             :2839.1 Mb         self._check_closed()
+multiprocessing.connection wait:917               :2839.1 Mb             if timeout is not None:
+selectors select:415                              :2787.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:418                              :4973.1 Mb         for fd, event in fd_event_list:
+multiprocessing.connection fileno:171             :4973.1 Mb         return self._handle
+multiprocessing.connection wait:920               :4973.1 Mb             while True:
+torch.autograd backward:132                       :4973.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+op.fused_act forward:56                           :5255.1 Mb         out = fused.fused_bias_act(input, bias, empty, 3, 0, negative_slope, scale)
+op.upfirdn2d forward:119                          :5513.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
+models.stylegan2 forward:633                      :5897.1 Mb             out = (out + skip) / math.sqrt(2)
+op.upfirdn2d forward:119                          :6155.1 Mb             input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
+torch.nn.modules.module __getattr__:769           :6425.1 Mb                 return _parameters[name]
+selectors select:415                              :6533.1 Mb             fd_event_list = self._selector.poll(timeout)
+multiprocessing.connection wait:926               :7269.1 Mb                         timeout = deadline - time.monotonic()
+multiprocessing.connection wait:927               :7527.1 Mb                         if timeout < 0:
+torch.autograd backward:132                       :7527.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+selectors select:415                              :7527.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7527.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7527.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7527.1 Mb             fd_event_list = self._selector.poll(timeout)
+multiprocessing.queues get:97                     :7819.1 Mb             if block:
+torch.overrides <genexpr>:1084                    :7819.1 Mb         type(a) is not torch.Tensor and
+torch.autograd backward:132                       :7819.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+selectors select:415                              :7819.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7819.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7819.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7819.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7819.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7819.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors __init__:211                            :8371.1 Mb         self._fd_to_key = {}
+multiprocessing.connection _check_readable:139    :8371.1 Mb         if not self._readable:
+torch.autograd backward:132                       :8371.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+selectors select:415                              :8371.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8371.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8371.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8371.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8371.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8371.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.nn.functional grid_sample:3391              :9037.1 Mb     return torch.grid_sampler(input, grid, mode_enum, padding_mode_enum, align_corners)
+torch.nn.modules.module _call_impl:717            :9037.1 Mb                 _global_forward_pre_hooks.values(),
+selectors select:415                              :9037.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9037.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9037.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9037.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9037.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9037.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9037.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.autograd backward:132                       :9735.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+selectors select:415                              :9735.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9735.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9735.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9735.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9735.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9735.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9735.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :9735.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10475.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10475.1Mb             fd_event_list = self._selector.poll(timeout)
+torch.autograd backward:132                       :10475.1Mb         allow_unreachable=True)  # allow_unreachable flag
+selectors select:415                              :10475.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10475.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10475.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10475.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10475.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :10475.1Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:413                              :10217.1Mb         ready = []
+selectors select:414                              :9831.1 Mb         try:
+torch.autograd backward:132                       :7805.1 Mb         allow_unreachable=True)  # allow_unreachable flag
+selectors select:415                              :7815.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7815.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7815.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7815.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7815.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7815.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7815.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :7815.1 Mb             fd_event_list = self._selector.poll(timeout)
+torch.nn.functional grid_sample:3391              :8641.1 Mb     return torch.grid_sampler(input, grid, mode_enum, padding_mode_enum, align_corners)
+selectors register:359                            :8641.1 Mb             self._selector.register(key.fd, poller_events)
+torch.overrides <genexpr>:1087                    :8641.1 Mb         for a in relevant_args
+selectors select:415                              :8641.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8641.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8641.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8641.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8641.1 Mb             fd_event_list = self._selector.poll(timeout)
+selectors select:415                              :8641.1 Mb             fd_event_list = self._selector.poll(timeout)
