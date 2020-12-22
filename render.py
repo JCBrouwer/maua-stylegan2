@@ -152,7 +152,7 @@ def render(
                 mod = getattr(mod, attr)
             setattr(mod, param_attrs[-1], th.nn.Parameter(rewritten_weight))
 
-        truncation_batch = truncation[n : n + batch_size] if not isinstance(truncation, float) else truncation
+        truncation_batch = truncation[n : n + batch_size].cuda(non_blocking=True) if not isinstance(truncation, float) else truncation
 
         # forward through the generator
         outputs, _ = generator(
