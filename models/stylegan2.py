@@ -527,12 +527,9 @@ class Generator(nn.Module):
             if not randomize_noise and noise_scale is None:
                 noise[ns] = getattr(self.noises, f"noise_{ns}")
 
-        if not truncation == 1:
-            if self.truncation_latent is None:
-                self.truncation_latent = (
-                    truncation_latent if truncation_latent is not None else self.mean_latent(2 ** 14)
-                )
-            latent = self.truncation_latent + truncation * (latent - self.truncation_latent)
+        if self.truncation_latent is None:
+            self.truncation_latent = truncation_latent if truncation_latent is not None else self.mean_latent(2 ** 14)
+        latent = self.truncation_latent[None, ...] + truncation[:, None, None] * (latent - self.truncation_latent)
 
         activation_map_list = []
 
