@@ -175,7 +175,7 @@ def generate(
         print("generating truncation...")
         truncation = get_truncation(args=args)
     else:
-        truncation = float(truncation)
+        truncation = th.FloatTensor([truncation])
 
     # ====================================================================================
     # ==== render the given (latent, noise, bends, rewrites, truncation) interpolation ===
