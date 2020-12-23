@@ -529,7 +529,7 @@ class Generator(nn.Module):
 
         if self.truncation_latent is None:
             self.truncation_latent = truncation_latent if truncation_latent is not None else self.mean_latent(2 ** 14)
-        latent = self.truncation_latent[None, ...] + truncation[:, None, None] * (latent - self.truncation_latent)
+        latent = self.truncation_latent[None, ...] + truncation[:, None, None] * (latent - self.truncation_latent[None, ...])
 
         activation_map_list = []
 
