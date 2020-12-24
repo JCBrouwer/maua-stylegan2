@@ -96,8 +96,10 @@ def generate(
     time_taken = time.time()
     th.set_grad_enabled(False)
 
-    if duration is None:
-        duration = rosa.get_duration(filename=audio_file)
+    audio_dur = rosa.get_duration(filename=audio_file)
+    if duration is None or audio_dur < duration:
+        duration = audio_dur
+
     n_frames = int(round(duration * fps))
     args.duration = duration
     args.n_frames = n_frames
