@@ -122,8 +122,6 @@ def render(
 
     if not isinstance(truncation, float):
         truncation = truncation.float().contiguous().pin_memory()
-    else:
-        truncation = th.cuda.FloatTensor([truncation])
 
     for n in range(0, len(latents), batch_size):
         # load batches of data onto the GPU
@@ -155,7 +153,9 @@ def render(
             setattr(mod, param_attrs[-1], th.nn.Parameter(rewritten_weight))
 
         truncation_batch = (
-            truncation[n : n + batch_size].cuda(non_blocking=True) if not isinstance(truncation, float) else truncation
+            truncation[n : n + batch_size].cuda(non_blocking=True)
+            if not isinstance(truncation, float)
+            else th.cuda.FloatTensor([truncation])
         )
 
         # forward through the generator
