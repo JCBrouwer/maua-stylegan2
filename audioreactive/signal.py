@@ -326,7 +326,7 @@ def gaussian_filter(x, sigma, causal=None):
     while len(x.shape) < 3:
         x = x[:, None]
 
-    radius = int(sigma * 4 * SMF)
+    radius = min(int(sigma * 4 * SMF), int(len(x) / 2) - 1)  # prevent padding errors on short sequences
     channels = x.shape[1]
 
     kernel = th.arange(-radius, radius + 1, dtype=th.float32, device=x.device)

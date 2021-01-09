@@ -378,6 +378,7 @@ class Generator(nn.Module):
         checkpoint=None,
         output_size=None,
         min_rgb_size=4,
+        base_res_factor=1,
     ):
         super().__init__()
 
@@ -457,10 +458,17 @@ class Generator(nn.Module):
         if checkpoint is not None:
             self.load_state_dict(th.load(checkpoint)["g_ema"])
 
-        for layer_idx in range(self.num_layers):
-            res = (layer_idx + 5) // 2
-            shape = [1, 1, 2 ** res, 2 ** res * (2 if output_size == 1920 else 1)]
-            setattr(self.noises, f"noise_{layer_idx}", th.randn(*shape))
+        if size != output_size or base_res_factor != 1:
+            for layer_idx in range(self.num_layers):
+                res = (layer_idx + 5) // 2
+                shape = [
+                    1,
+                    1,
+                    int(base_res_factor * 2 ** res * (2 if output_size == 1080 else 1)),
+                    int(base_res_factor * 2 ** res * (2 if output_size == 1920 else 1)),
+                ]
+                print(shape)
+                setattr(self.noises, f"noise_{layer_idx}", th.randn(*shape))
 
     def make_noise(self):
         device = self.input.input.device
@@ -488,7 +496,7 @@ class Generator(nn.Module):
         return_latents=False,
         return_activation_maps=False,
         inject_index=None,
-        truncation=1,
+        truncation=th.cuda.FloatTensor([1]),
         truncation_latent=None,
         input_is_latent=False,
         noise=None,
@@ -529,7 +537,9 @@ class Generator(nn.Module):
 
         if self.truncation_latent is None:
             self.truncation_latent = truncation_latent if truncation_latent is not None else self.mean_latent(2 ** 14)
-        latent = self.truncation_latent[None, ...] + truncation[:, None, None] * (latent - self.truncation_latent[None, ...])
+        latent = self.truncation_latent[None, ...] + truncation.to(latent.device)[:, None, None] * (
+            latent - self.truncation_latent[None, ...]
+        )
 
         activation_map_list = []
 
