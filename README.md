@@ -164,6 +164,7 @@ generate_audiovisual.py
   --dataparallel                           # whether to use data parallel rendering
   --stylegan1                              # if the model checkpoint is StyleGAN1
   --G_res G_RES                            # training resolution of the generator
+  --base_res_factor BASE_RES_FACTOR        # factor to increase generator noise maps by (useful when e.g. doubling 512px net to 1024px)
   --noconst                                # whether the generator was trained without a constant input layer
   --latent_dim LATENT_DIM                  # latent vector size of the generator
   --n_mlp N_MLP                            # number of mapping network layers

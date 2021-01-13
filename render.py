@@ -44,7 +44,16 @@ def render(
             jobs_in.task_done()
 
     # start background ffmpeg process that listens on stdin for frame data
-    output_size = "1024x1024" if out_size == 1024 else ("512x512" if out_size == 512 else "1920x1080")
+    if out_size == 512:
+        output_size = "512x512"
+    elif out_size == 1024:
+        output_size = "1024x1024"
+    elif out_size == 1920:
+        output_size = "1920x1080"
+    elif out_size == 1080:
+        output_size = "1080x1920"
+    else:
+        raise Exception("The only output sizes currently supported are: 512, 1024, 1080, or 1920")
     if audio_file is not None:
         audio = ffmpeg.input(audio_file, ss=offset, t=duration, guess_layout_max=0)
         video = (
@@ -54,6 +63,7 @@ def render(
                 output_file,
                 framerate=len(latents) / duration,
                 vcodec="libx264",
+                pix_fmt="yuv420p",
                 preset=ffmpeg_preset,
                 audio_bitrate="320K",
                 ac=2,
@@ -66,7 +76,14 @@ def render(
     else:
         video = (
             ffmpeg.input("pipe:", format="rawvideo", pix_fmt="rgb24", framerate=len(latents) / duration, s=output_size)
-            .output(output_file, framerate=len(latents) / duration, vcodec="libx264", preset="slow", v="warning",)
+            .output(
+                output_file,
+                framerate=len(latents) / duration,
+                vcodec="libx264",
+                pix_fmt="yuv420p",
+                preset=ffmpeg_preset,
+                v="warning",
+            )
             .global_args("-hide_banner")
             .overwrite_output()
             .run_async(pipe_stdin=True)
@@ -81,10 +98,15 @@ def render(
                 img = img[:, 112:-112, :]
                 im = PIL.Image.fromarray(img)
                 img = np.array(im.resize((1920, 1080), PIL.Image.BILINEAR))
+            elif img.shape[0] == 2048:
+                img = img[112:-112, :, :]
+                im = PIL.Image.fromarray(img)
+                img = np.array(im.resize((1080, 1920), PIL.Image.BILINEAR))
             assert (
                 img.shape[1] == w and img.shape[0] == h
             ), f"""generator's output image size does not match specified output size: \n
                 got: {img.shape[1]}x{img.shape[0]}\t\tshould be {output_size}"""
+            # print(img.shape)
             video.stdin.write(img.tobytes())
             jobs_in.task_done()
         video.stdin.close()
@@ -144,7 +166,11 @@ def render(
                 mod = getattr(mod, attr)
             setattr(mod, param_attrs[-1], th.nn.Parameter(rewritten_weight))
 
-        truncation_batch = truncation[n : n + batch_size] if not isinstance(truncation, float) else truncation
+        truncation_batch = (
+            truncation[n : n + batch_size].cuda(non_blocking=True)
+            if not isinstance(truncation, float)
+            else th.cuda.FloatTensor([truncation])
+        )
 
         # forward through the generator
         outputs, _ = generator(

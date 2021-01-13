@@ -326,6 +326,7 @@ def gaussian_filter(x, sigma, causal=None):
     while len(x.shape) < 3:
         x = x[:, None]
 
+    # radius =  min(int(sigma * 4 * SMF), int(len(x) / 2) - 1)  # prevent padding errors on short sequences
     radius = int(sigma * 4 * SMF)
     channels = x.shape[1]
 

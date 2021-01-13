@@ -65,14 +65,16 @@ def slerp_loops(latent_selection, n_frames, n_loops, smoothing=1, loop=True):
     for n in range(len(latent_selection)):
         for val in np.linspace(0.0, 1.0, int(n_frames // max(1, n_loops) // len(latent_selection))):
             base_latents.append(
-                slerp(
-                    val,
-                    latent_selection[n % len(latent_selection)][0],
-                    latent_selection[(n + 1) % len(latent_selection)][0],
+                th.from_numpy(
+                    slerp(
+                        val,
+                        latent_selection[n % len(latent_selection)][0],
+                        latent_selection[(n + 1) % len(latent_selection)][0],
+                    )
                 )
             )
     base_latents = th.stack(base_latents)
-    base_latents = gaussian_filter(base_latents, smoothing * smf)
+    base_latents = gaussian_filter(base_latents, smoothing)
     base_latents = th.cat([base_latents] * int(n_frames / len(base_latents)), axis=0)
     base_latents = th.cat([base_latents[:, None, :]] * 18, axis=1)
     if n_frames - len(base_latents) != 0:

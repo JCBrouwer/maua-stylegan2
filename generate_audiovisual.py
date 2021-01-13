@@ -33,7 +33,9 @@ def get_noise_range(out_size, generator_resolution, is_stylegan1):
     return range_min, range_max, side_fn
 
 
-def load_generator(ckpt, is_stylegan1, G_res, out_size, noconst, latent_dim, n_mlp, channel_multiplier, dataparallel):
+def load_generator(
+    ckpt, is_stylegan1, G_res, out_size, noconst, latent_dim, n_mlp, channel_multiplier, dataparallel, base_res_factor
+):
     """Loads a StyleGAN 1 or 2 generator"""
     if is_stylegan1:
         generator = G_style(output_size=out_size, checkpoint=ckpt).cuda()
@@ -46,6 +48,7 @@ def load_generator(ckpt, is_stylegan1, G_res, out_size, noconst, latent_dim, n_m
             constant_input=not noconst,
             checkpoint=ckpt,
             output_size=out_size,
+            base_res_factor=base_res_factor,
         ).cuda()
     if dataparallel:
         generator = th.nn.DataParallel(generator)
@@ -80,6 +83,7 @@ def generate(
     channel_multiplier=2,
     randomize_noise=False,
     ffmpeg_preset="slow",
+    base_res_factor=1,
     args=None,
 ):
     # if args is empty (i.e. generate() called directly instead of through __main__)
@@ -96,8 +100,10 @@ def generate(
     time_taken = time.time()
     th.set_grad_enabled(False)
 
-    if duration is None:
-        duration = rosa.get_duration(filename=audio_file)
+    audio_dur = rosa.get_duration(filename=audio_file)
+    if duration is None or audio_dur < duration:
+        duration = audio_dur
+
     n_frames = int(round(duration * fps))
     args.duration = duration
     args.n_frames = n_frames
@@ -141,7 +147,7 @@ def generate(
     noise = []
     range_min, range_max, exponent = get_noise_range(out_size, G_res, stylegan1)
     for scale in range(range_min, range_max):
-        h = 2 ** exponent(scale)
+        h = (2 if out_size == 1080 else 1) * 2 ** exponent(scale)
         w = (2 if out_size == 1920 else 1) * 2 ** exponent(scale)
 
         noise.append(get_noise(height=h, width=w, scale=scale - range_min, num_scales=range_max - range_min, args=args))
@@ -193,6 +199,7 @@ def generate(
         n_mlp=n_mlp,
         channel_multiplier=channel_multiplier,
         dataparallel=dataparallel,
+        base_res_factor=base_res_factor,
     )
 
     print(f"\npreprocessing took {time.time() - time_taken:.2f}s\n")
@@ -243,6 +250,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_mlp", type=int, default=8)
     parser.add_argument("--channel_multiplier", type=int, default=2)
     parser.add_argument("--randomize_noise", action="store_true")
+    parser.add_argument("--base_res_factor", type=float, default=1)
     parser.add_argument("--ffmpeg_preset", type=str, default="slow")
     args = parser.parse_args()
 
@@ -266,7 +274,7 @@ if __name__ == "__main__":
                 exit(1)
 
     # override with args from the OVERRIDE dict in the specified file
-    arg_dict = vars(args)
+    arg_dict = vars(args).copy()
     try:
         file = __import__(".".join(modnames[:-1]), fromlist=[modnames[-1]]).__dict__[modnames[-1]]
         for arg, val in getattr(file, "OVERRIDE").items():
