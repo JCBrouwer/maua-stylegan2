@@ -1,5 +1,6 @@
 import argparse
 import gc
+import os
 import random
 import time
 import traceback
@@ -67,7 +68,7 @@ def generate(
     output_dir="./output",
     audioreactive_file="audioreactive/examples/default.py",
     offset=0,
-    duration=None,
+    duration=-1,
     latent_file=None,
     shuffle_latents=False,
     G_res=1024,
@@ -84,6 +85,7 @@ def generate(
     randomize_noise=False,
     ffmpeg_preset="slow",
     base_res_factor=1,
+    output_file=None,
     args=None,
 ):
     # if args is empty (i.e. generate() called directly instead of through __main__)
@@ -101,16 +103,22 @@ def generate(
     th.set_grad_enabled(False)
 
     audio_dur = rosa.get_duration(filename=audio_file)
-    if duration is None or audio_dur < duration:
+    if duration is -1 or audio_dur < duration:
         duration = audio_dur
 
     n_frames = int(round(duration * fps))
     args.duration = duration
     args.n_frames = n_frames
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="PySoundFile failed. Trying audioread instead.")
-        audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
+    if not os.path.exists(f"{audio_file}.npy"):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="PySoundFile failed. Trying audioread instead.")
+            audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
+        print(sr)
+        np.save(f"{audio_file}.npy", audio)
+    else:
+        audio = np.load(f"{audio_file}.npy")
+        sr = 22050
     args.audio = audio
     args.sr = sr
 
@@ -154,6 +162,8 @@ def generate(
 
         if noise[-1] is not None:
             print(list(noise[-1].shape), f"amplitude={noise[-1].std()}")
+        gc.collect()
+        th.cuda.empty_cache()
     print()
 
     # ====================================================================================
@@ -205,9 +215,10 @@ def generate(
     print(f"\npreprocessing took {time.time() - time_taken:.2f}s\n")
 
     print(f"rendering {n_frames} frames...")
-    checkpoint_title = ckpt.split("/")[-1].split(".")[0].lower()
-    track_title = audio_file.split("/")[-1].split(".")[0].lower()
-    title = f"{output_dir}/{track_title}_{checkpoint_title}_{uuid.uuid4().hex[:8]}.mp4"
+    if output_file is None:
+        checkpoint_title = ckpt.split("/")[-1].split(".")[0].lower()
+        track_title = audio_file.split("/")[-1].split(".")[0].lower()
+        output_file = f"{output_dir}/{track_title}_{checkpoint_title}_{uuid.uuid4().hex[:8]}.mp4"
     render.render(
         generator=generator,
         latents=latents,
@@ -220,7 +231,7 @@ def generate(
         bends=bends,
         rewrites=rewrites,
         out_size=out_size,
-        output_file=title,
+        output_file=output_file,
         randomize_noise=randomize_noise,
         ffmpeg_preset=ffmpeg_preset,
     )
@@ -235,7 +246,7 @@ if __name__ == "__main__":
     parser.add_argument("--audioreactive_file", type=str, default="audioreactive/examples/default.py")
     parser.add_argument("--output_dir", type=str, default="./output")
     parser.add_argument("--offset", type=float, default=0)
-    parser.add_argument("--duration", default=None)
+    parser.add_argument("--duration", type=float, default=-1)
     parser.add_argument("--latent_file", type=str, default=None)
     parser.add_argument("--shuffle_latents", action="store_true")
     parser.add_argument("--G_res", type=int, default=1024)
@@ -252,6 +263,7 @@ if __name__ == "__main__":
     parser.add_argument("--randomize_noise", action="store_true")
     parser.add_argument("--base_res_factor", type=float, default=1)
     parser.add_argument("--ffmpeg_preset", type=str, default="slow")
+    parser.add_argument("--output_file", type=str, default=None)
     args = parser.parse_args()
 
     # transform file path to python module string

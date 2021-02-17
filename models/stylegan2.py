@@ -467,7 +467,6 @@ class Generator(nn.Module):
                     int(base_res_factor * 2 ** res * (2 if output_size == 1080 else 1)),
                     int(base_res_factor * 2 ** res * (2 if output_size == 1920 else 1)),
                 ]
-                print(shape)
                 setattr(self.noises, f"noise_{layer_idx}", th.randn(*shape))
 
     def make_noise(self):
@@ -496,7 +495,7 @@ class Generator(nn.Module):
         return_latents=False,
         return_activation_maps=False,
         inject_index=None,
-        truncation=th.cuda.FloatTensor([1]),
+        truncation=1.0,
         truncation_latent=None,
         input_is_latent=False,
         noise=None,
@@ -535,6 +534,8 @@ class Generator(nn.Module):
             if not randomize_noise and noise_scale is None:
                 noise[ns] = getattr(self.noises, f"noise_{ns}")
 
+        if isinstance(truncation, float):
+            truncation = th.cuda.FloatTensor([truncation])
         if self.truncation_latent is None:
             self.truncation_latent = truncation_latent if truncation_latent is not None else self.mean_latent(2 ** 14)
         latent = self.truncation_latent[None, ...] + truncation.to(latent.device)[:, None, None] * (

@@ -236,7 +236,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--ckpt", type=str)
 parser.add_argument("--res", type=int, default=1024)
 parser.add_argument("--output_dir", type=str, default="./workspace/")
-parser.add_argument("--truncation", type=int, default=1.5)
+parser.add_argument("--truncation", type=float, default=1.5)
 parser.add_argument("--noconst", action="store_false")
 
 args = parser.parse_args()

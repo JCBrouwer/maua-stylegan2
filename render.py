@@ -54,6 +54,7 @@ def render(
         output_size = "1080x1920"
     else:
         raise Exception("The only output sizes currently supported are: 512, 1024, 1080, or 1920")
+
     if audio_file is not None:
         audio = ffmpeg.input(audio_file, ss=offset, t=duration, guess_layout_max=0)
         video = (
@@ -106,7 +107,6 @@ def render(
                 img.shape[1] == w and img.shape[0] == h
             ), f"""generator's output image size does not match specified output size: \n
                 got: {img.shape[1]}x{img.shape[0]}\t\tshould be {output_size}"""
-            # print(img.shape)
             video.stdin.write(img.tobytes())
             jobs_in.task_done()
         video.stdin.close()
@@ -137,6 +137,8 @@ def render(
     if not isinstance(truncation, float):
         truncation = truncation.float().contiguous().pin_memory()
 
+    splitter.start()
+    renderer.start()
     for n in range(0, len(latents), batch_size):
         # load batches of data onto the GPU
         latent_batch = latents[n : n + batch_size].cuda(non_blocking=True)
@@ -166,11 +168,10 @@ def render(
                 mod = getattr(mod, attr)
             setattr(mod, param_attrs[-1], th.nn.Parameter(rewritten_weight))
 
-        truncation_batch = (
-            truncation[n : n + batch_size].cuda(non_blocking=True)
-            if not isinstance(truncation, float)
-            else th.cuda.FloatTensor([truncation])
-        )
+        if not isinstance(truncation, float):
+            truncation_batch = truncation[n : n + batch_size].cuda(non_blocking=True)
+        else:
+            truncation_batch = truncation
 
         # forward through the generator
         outputs, _ = generator(
@@ -184,10 +185,6 @@ def render(
 
         # send output to be split into frames and rendered one by one
         split_queue.put(outputs)
-
-        if n == 0:
-            splitter.start()
-            renderer.start()
 
     splitter.join()
     renderer.join()

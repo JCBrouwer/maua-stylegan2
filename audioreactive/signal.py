@@ -88,7 +88,7 @@ def rms(y, sr, n_frames, fmin=20, fmax=8000, smooth=180, clip=50, power=6):
     rms = rosa.feature.rms(S=np.abs(rosa.stft(y=y_filt, hop_length=512)))[0]
     rms = np.clip(signal.resample(rms, n_frames), rms.min(), rms.max())
     rms = th.from_numpy(rms).float()
-    rms = gaussian_filter(rms, smooth, causal=0.2)
+    rms = gaussian_filter(rms, smooth, causal=0.05)
     rms = percentile_clip(rms, clip)
     rms = rms ** power
     return rms
