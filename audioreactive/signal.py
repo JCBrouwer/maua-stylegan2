@@ -10,7 +10,7 @@ import sklearn.cluster
 import torch as th
 import torch.nn.functional as F
 
-SMF = None  # this is set by generate_audiovisual.py based on rendering fps
+SMF = 24 / 30  # this is set by generate_audiovisual.py based on rendering fps
 
 
 def set_SMF(smf):
