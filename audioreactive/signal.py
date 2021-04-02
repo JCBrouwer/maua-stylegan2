@@ -10,7 +10,7 @@ import sklearn.cluster
 import torch as th
 import torch.nn.functional as F
 
-SMF = None  # this is set by generate_audiovisual.py based on rendering fps
+SMF = 1  # this is set by generate_audiovisual.py based on rendering fps
 
 
 def set_SMF(smf):
@@ -312,7 +312,7 @@ def expand(signal, threshold, ratio, invert=False):
 
 
 def gaussian_filter(x, sigma, causal=None):
-    """Smooth 3 or 4 dimensional tensors along time (first) axis with gaussian kernel.
+    """Smooth tensors along time (first) axis with gaussian kernel.
 
     Args:
         x (th.tensor): Tensor to be smoothed
@@ -323,11 +323,11 @@ def gaussian_filter(x, sigma, causal=None):
         th.tensor: Smoothed tensor
     """
     dim = len(x.shape)
+    n_frames = x.shape[0]
     while len(x.shape) < 3:
         x = x[:, None]
 
-    # radius =  min(int(sigma * 4 * SMF), int(len(x) / 2) - 1)  # prevent padding errors on short sequences
-    radius = int(sigma * 4 * SMF)
+    radius = min(int(sigma * 4 * SMF), 3 * len(x))
     channels = x.shape[1]
 
     kernel = th.arange(-radius, radius + 1, dtype=th.float32, device=x.device)
@@ -342,7 +342,15 @@ def gaussian_filter(x, sigma, causal=None):
         x = x.view(t, c, h * w)
     x = x.transpose(0, 2)
 
-    x = F.pad(x, (radius, radius), mode="circular")
+    if radius > n_frames:  # prevent padding errors on short sequences
+        x = F.pad(x, (n_frames, n_frames), mode="circular")
+        print(
+            f"WARNING: Gaussian filter radius ({int(sigma * 4 * SMF)}) is larger than number of frames ({n_frames}).\n\t Filter size has been lowered to ({radius}). You might want to consider lowering sigma ({sigma})."
+        )
+        x = F.pad(x, (radius - n_frames, radius - n_frames), mode="constant")
+    else:
+        x = F.pad(x, (radius, radius), mode="circular")
+
     x = F.conv1d(x, weight=kernel, groups=channels)
 
     x = x.transpose(0, 2)

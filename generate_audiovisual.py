@@ -103,7 +103,7 @@ def generate(
     th.set_grad_enabled(False)
 
     audio_dur = rosa.get_duration(filename=audio_file)
-    if duration is -1 or audio_dur < duration:
+    if duration == -1 or audio_dur < duration:
         duration = audio_dur
 
     n_frames = int(round(duration * fps))
@@ -114,7 +114,6 @@ def generate(
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message="PySoundFile failed. Trying audioread instead.")
             audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
-        print(sr)
         np.save(f"{audio_file}.npy", audio)
     else:
         audio = np.load(f"{audio_file}.npy")
