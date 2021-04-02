@@ -1,3 +1,4 @@
+wandb
 wandb/
 *.lmdb/
 *.pkl
