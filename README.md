@@ -23,7 +23,7 @@ The rest of the code is experimental, probably broken, and unsupported.
 
 ## Installation
 
-```
+```bash
 git clone https://github.com/JCBrouwer/maua-stylegan2
 cd maua-stylegan2
 pip install -r requirements.txt
@@ -34,11 +34,11 @@ Alternatively, check out this [Colab Notebook](https://colab.research.google.com
 ## Generating audio-reactive interpolations
 
 The simplest way to get started is to try either (in shell):
-```
+```bash
 python generate_audiovisual.py --ckpt "/path/to/model.pt" --audio_file "/path/to/audio.wav"
 ```
 or (in e.g. a jupyter notebook):
-```
+```python
 from generate_audiovisual import generate
 generate("/path/to/model.pt", "/path/to/audio.wav")
 ```
@@ -47,7 +47,7 @@ This will use the default audio-reactive settings (which aren't great).
 
 To customize the generated interpolation, more functions can be defined to generate latents, noise, network bends, model rewrites, and truncation.
 
-```
+```python
 import audioreactive as ar
 from generate_audiovisual import generate
 
@@ -70,7 +70,7 @@ generate(ckpt="/path/to/model.pt", audio_file="/path/to/audio.wav", initialize=i
 
 When running from command line, the `generate()` call at the end can be left out and the interpolation can be generated with:
 
-```
+```bash
 python generate_audiovisual.py --ckpt "/path/to/model.pt" --audio_file "/path/to/audio.wav" --audioreactive_file "/path/to/the/code_above.py"
 ```
 
@@ -88,7 +88,7 @@ Each of the functions is called with all of the arguments from the command line 
 - n_frames: total number of interpolation frames
 - duration: length of audio in seconds
 
-```
+```python
 def initialize(args):
     # intialize values used in multiple of the following functions here
     # e.g. onsets, chroma, RMS, segmentations, bpms, etc.
@@ -146,7 +146,7 @@ def get_truncation(args):
 ```
 
 The arguments to `generate_audiovisual.py` are as follows. The first two are required, and the remaining are optional.
-```
+```bash
 generate_audiovisual.py
   --ckpt CKPT                              # path to model checkpoint
   --audio_file AUDIO_FILE                  # path to audio file to react to
