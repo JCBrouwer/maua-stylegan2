@@ -26,7 +26,7 @@ The rest of the code is experimental, probably broken, and unsupported.
 ```
 git clone https://github.com/JCBrouwer/maua-stylegan2
 cd maua-stylegan2
-conda env create -f env.yml
+pip install -r requirements.txt
 ```
 
 Alternatively, check out this [Colab Notebook](https://colab.research.google.com/drive/1Ig1EXfmBC01qik11Q32P0ZffFtNipiBR)

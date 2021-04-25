@@ -1,0 +1,10 @@
+torch
+torchvision
+numpy
+librosa
+cython
+madmom
+tqdm
+kornia
+matplotlib
+ffmpeg-python
