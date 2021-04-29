@@ -34,7 +34,7 @@ def render(
     def split_batches(jobs_in, jobs_out):
         while True:
             try:
-                imgs = jobs_in.get(timeout=10)
+                imgs = jobs_in.get(timeout=60)
             except queue.Empty:
                 return
             imgs = (imgs.clamp_(-1, 1) + 1) * 127.5
@@ -94,7 +94,7 @@ def render(
     def make_video(jobs_in):
         w, h = [int(dim) for dim in output_size.split("x")]
         for _ in tqdm(range(len(latents)), position=0, leave=True, ncols=80):
-            img = jobs_in.get(timeout=10)
+            img = jobs_in.get(timeout=60)
             if img.shape[1] == 2048:
                 img = img[:, 112:-112, :]
                 im = PIL.Image.fromarray(img)
