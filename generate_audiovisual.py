@@ -74,6 +74,7 @@ def generate(
     G_res=1024,
     out_size=1024,
     fps=30,
+    latent_count=12,
     batch=8,
     dataparallel=False,
     truncation=1.0,
@@ -134,7 +135,7 @@ def generate(
     if latent_file is not None:
         latent_selection = ar.load_latents(latent_file)
     else:
-        latent_selection = ar.generate_latents(12, ckpt, G_res, noconst, latent_dim, n_mlp, channel_multiplier)
+        latent_selection = ar.generate_latents(args.latent_count, ckpt, G_res, noconst, latent_dim, n_mlp, channel_multiplier)
     if shuffle_latents:
         random_indices = random.sample(range(len(latent_selection)), len(latent_selection))
         latent_selection = latent_selection[random_indices]
@@ -245,12 +246,13 @@ if __name__ == "__main__":
     parser.add_argument("--audioreactive_file", type=str, default="audioreactive/examples/default.py")
     parser.add_argument("--output_dir", type=str, default="./output")
     parser.add_argument("--offset", type=float, default=0)
-    parser.add_argument("--duration", type=float, default=-1)
+    parser.add_argument("--duration", type=float, default=-1, help="length of rendered video in seconds")
     parser.add_argument("--latent_file", type=str, default=None)
     parser.add_argument("--shuffle_latents", action="store_true")
     parser.add_argument("--G_res", type=int, default=1024)
-    parser.add_argument("--out_size", type=int, default=1024)
+    parser.add_argument("--out_size", type=int, default=1024, help="rendered video size. Options: 512, 1024, 1920")
     parser.add_argument("--fps", type=int, default=30)
+    parser.add_argument("--latent_count", type=int, default=12)
     parser.add_argument("--batch", type=int, default=8)
     parser.add_argument("--dataparallel", action="store_true")
     parser.add_argument("--truncation", type=float, default=1.0)
@@ -264,6 +266,9 @@ if __name__ == "__main__":
     parser.add_argument("--ffmpeg_preset", type=str, default="slow")
     parser.add_argument("--output_file", type=str, default=None)
     args = parser.parse_args()
+    
+    #ensure output_dir exists
+    os.makedirs(args.output_dir,exist_ok = True)
 
     # transform file path to python module string
     modnames = args.audioreactive_file.replace(".py", "").replace("/", ".").split(".")
