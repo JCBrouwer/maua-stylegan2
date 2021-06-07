@@ -264,6 +264,9 @@ if __name__ == "__main__":
     parser.add_argument("--ffmpeg_preset", type=str, default="slow")
     parser.add_argument("--output_file", type=str, default=None)
     args = parser.parse_args()
+    
+    #ensure output_dir exists
+    os.makedirs(args.output_dir,exist_ok = True)
 
     # transform file path to python module string
     modnames = args.audioreactive_file.replace(".py", "").replace("/", ".").split(".")
