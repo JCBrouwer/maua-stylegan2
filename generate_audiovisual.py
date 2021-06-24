@@ -103,24 +103,14 @@ def generate(
     time_taken = time.time()
     th.set_grad_enabled(False)
 
-    audio_dur = rosa.get_duration(filename=audio_file)
-    if duration == -1 or audio_dur < duration:
-        duration = audio_dur
+    audio, sr, duration = ar.load_audio(audio_file, offset, duration)
+
+    args.audio = audio
+    args.sr = sr
 
     n_frames = int(round(duration * fps))
     args.duration = duration
     args.n_frames = n_frames
-
-    if not os.path.exists(f"{audio_file}.npy"):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="PySoundFile failed. Trying audioread instead.")
-            audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
-        np.save(f"{audio_file}.npy", audio)
-    else:
-        audio = np.load(f"{audio_file}.npy")
-        sr = 22050
-    args.audio = audio
-    args.sr = sr
 
     if initialize is not None:
         args = initialize(args)
@@ -135,7 +125,9 @@ def generate(
     if latent_file is not None:
         latent_selection = ar.load_latents(latent_file)
     else:
-        latent_selection = ar.generate_latents(args.latent_count, ckpt, G_res, noconst, latent_dim, n_mlp, channel_multiplier)
+        latent_selection = ar.generate_latents(
+            args.latent_count, ckpt, G_res, noconst, latent_dim, n_mlp, channel_multiplier
+        )
     if shuffle_latents:
         random_indices = random.sample(range(len(latent_selection)), len(latent_selection))
         latent_selection = latent_selection[random_indices]
@@ -266,9 +258,9 @@ if __name__ == "__main__":
     parser.add_argument("--ffmpeg_preset", type=str, default="slow")
     parser.add_argument("--output_file", type=str, default=None)
     args = parser.parse_args()
-    
-    #ensure output_dir exists
-    os.makedirs(args.output_dir,exist_ok = True)
+
+    # ensure output_dir exists
+    os.makedirs(args.output_dir, exist_ok=True)
 
     # transform file path to python module string
     modnames = args.audioreactive_file.replace(".py", "").replace("/", ".").split(".")

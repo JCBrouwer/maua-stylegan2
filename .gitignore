@@ -1,3 +1,4 @@
+pretrained_models/
 wandb
 wandb/
 *.lmdb/

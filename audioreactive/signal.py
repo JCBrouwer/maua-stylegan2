@@ -1,3 +1,8 @@
+import os
+import warnings
+from pathlib import Path
+
+import joblib
 import librosa as rosa
 import librosa.display
 import madmom as mm
@@ -361,3 +366,40 @@ def gaussian_filter(x, sigma, causal=None):
         x = x.squeeze()
 
     return x
+
+
+def load_audio(audio_file, offset=0, duration=-1, cache=True):
+    """Handles loading of audio files. Automatically caches to .npy files to increase loading speed.
+
+    Args:
+        audio_file (str): Path to audio file to load
+        offset (float, optional): Time (in seconds) to start from. Defaults to 0.
+        duration (float, optional): Length of time to load in. Defaults to -1 (full duration).
+        cache (bool): Whether to cache the raw audio file or not
+
+    Returns:
+        audio   : audio signal
+        sr      : sample rate of audio
+        duration: duration of audio in seconds
+    """
+    audio_dur = rosa.get_duration(filename=audio_file)
+    if duration == -1 or audio_dur < duration:
+        duration = audio_dur
+        if offset != 0:
+            duration -= offset
+
+    cache_file = (
+        f"workspace/{Path(audio_file).stem}"
+        + ("" if duration == -1 else f"_length{duration}")
+        + ("" if offset == 0 else f"_start{offset}")
+        + ".npy"
+    )
+    if cache and not os.path.exists(cache_file):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="PySoundFile failed. Trying audioread instead.")
+            audio, sr = rosa.load(audio_file, offset=offset, duration=duration)
+        joblib.dump((audio, sr), cache_file)
+    else:
+        audio, sr = joblib.load(cache_file)
+
+    return audio, sr, duration

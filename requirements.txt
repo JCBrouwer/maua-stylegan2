@@ -8,3 +8,4 @@ tqdm
 kornia
 matplotlib
 ffmpeg-python
+joblib
