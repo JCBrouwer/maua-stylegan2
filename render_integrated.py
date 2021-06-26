@@ -16,14 +16,7 @@ np.set_printoptions(precision=3)
 
 
 def zero_lag_ema(
-    close,
-    ec_var,
-    ema_var,
-    length=20.0,
-    length_multiplier=1.0,
-    gain_limit=500.0,
-    gain_precision=100.0,
-    dtype=th.float32,
+    close, ec_var, ema_var, length=20.0, length_multiplier=1.0, gain_limit=500.0, gain_precision=100.0, dtype=th.float32
 ):
     alpha = 2.0 / ((length * length_multiplier) + 1.0)
     ec_1 = close if ec_var == 0 else ec_var
@@ -121,10 +114,7 @@ if __name__ == "__main__":
         tempo_processor = TempoEstimationProcessor(method="dbn", fps=fps, online=True)
         processor = ParallelProcessor([onset_processor, SequentialProcessor([onset_processor, tempo_processor])])
         process_online(
-            processor=IOProcessor(processor, enqueue),
-            infile=open(audio_file, "rb"),
-            outfile=sys.stdout.buffer,
-            fps=fps,
+            processor=IOProcessor(processor, enqueue), infile=open(audio_file, "rb"), outfile=sys.stdout.buffer, fps=fps
         )
 
     audio_queue = queue.Queue()

@@ -1,7 +1,13 @@
 import librosa as rosa
 import librosa.display
+import matplotlib
+
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 import numpy as np
+
+from .signal import raw_chroma
 
 # ====================================================================================
 # ==================================== utilities =====================================

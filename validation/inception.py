@@ -248,18 +248,12 @@ class FIDInceptionE_1(models.inception.InceptionE):
         branch1x1 = self.branch1x1(x)
 
         branch3x3 = self.branch3x3_1(x)
-        branch3x3 = [
-            self.branch3x3_2a(branch3x3),
-            self.branch3x3_2b(branch3x3),
-        ]
+        branch3x3 = [self.branch3x3_2a(branch3x3), self.branch3x3_2b(branch3x3)]
         branch3x3 = torch.cat(branch3x3, 1)
 
         branch3x3dbl = self.branch3x3dbl_1(x)
         branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
-        branch3x3dbl = [
-            self.branch3x3dbl_3a(branch3x3dbl),
-            self.branch3x3dbl_3b(branch3x3dbl),
-        ]
+        branch3x3dbl = [self.branch3x3dbl_3a(branch3x3dbl), self.branch3x3dbl_3b(branch3x3dbl)]
         branch3x3dbl = torch.cat(branch3x3dbl, 1)
 
         # Patch: Tensorflow's average pool does not use the padded zero's in
@@ -281,18 +275,12 @@ class FIDInceptionE_2(models.inception.InceptionE):
         branch1x1 = self.branch1x1(x)
 
         branch3x3 = self.branch3x3_1(x)
-        branch3x3 = [
-            self.branch3x3_2a(branch3x3),
-            self.branch3x3_2b(branch3x3),
-        ]
+        branch3x3 = [self.branch3x3_2a(branch3x3), self.branch3x3_2b(branch3x3)]
         branch3x3 = torch.cat(branch3x3, 1)
 
         branch3x3dbl = self.branch3x3dbl_1(x)
         branch3x3dbl = self.branch3x3dbl_2(branch3x3dbl)
-        branch3x3dbl = [
-            self.branch3x3dbl_3a(branch3x3dbl),
-            self.branch3x3dbl_3b(branch3x3dbl),
-        ]
+        branch3x3dbl = [self.branch3x3dbl_3a(branch3x3dbl), self.branch3x3dbl_3b(branch3x3dbl)]
         branch3x3dbl = torch.cat(branch3x3dbl, 1)
 
         # Patch: The FID Inception model uses max pooling instead of average

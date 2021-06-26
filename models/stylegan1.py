@@ -12,9 +12,7 @@ import torch.nn.functional as F
 class MyLinear(nn.Module):
     """Linear layer with equalized learning rate and custom learning rate multiplier."""
 
-    def __init__(
-        self, input_size, output_size, gain=2 ** (0.5), use_wscale=False, lrmul=1, bias=True,
-    ):
+    def __init__(self, input_size, output_size, gain=2 ** (0.5), use_wscale=False, lrmul=1, bias=True):
         super().__init__()
         he_std = gain * input_size ** (-0.5)  # He init
         # Equalized learning rate and custom learning rate multiplier.
@@ -162,7 +160,7 @@ class BlurLayer(nn.Module):
     def forward(self, x):
         # expand kernel channels
         kernel = self.kernel.expand(x.size(1), -1, -1, -1)
-        x = F.conv2d(x, kernel, stride=self.stride, padding=int((self.kernel.size(2) - 1) / 2), groups=x.size(1),)
+        x = F.conv2d(x, kernel, stride=self.stride, padding=int((self.kernel.size(2) - 1) / 2), groups=x.size(1))
         return x
 
 
@@ -195,21 +193,21 @@ class G_mapping(nn.Sequential):
         ]
         layers = [
             ("pixel_norm", PixelNormLayer()),
-            ("dense0", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale),),
+            ("dense0", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale)),
             ("dense0_act", act),
-            ("dense1", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale),),
+            ("dense1", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale)),
             ("dense1_act", act),
-            ("dense2", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale),),
+            ("dense2", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale)),
             ("dense2_act", act),
-            ("dense3", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale),),
+            ("dense3", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale)),
             ("dense3_act", act),
-            ("dense4", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale),),
+            ("dense4", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale)),
             ("dense4_act", act),
-            ("dense5", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale),),
+            ("dense5", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale)),
             ("dense5_act", act),
-            ("dense6", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale),),
+            ("dense6", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale)),
             ("dense6_act", act),
-            ("dense7", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale),),
+            ("dense7", MyLinear(512, 512, gain=gain, lrmul=0.01, use_wscale=use_wscale)),
             ("dense7_act", act),
         ]
         super().__init__(OrderedDict(layers))
@@ -341,11 +339,11 @@ class InputBlock(nn.Module):
                 dlatent_size, nf * 16, gain=gain / 4, use_wscale=use_wscale
             )  # tweak gain to match the official implementation of Progressing GAN
         self.epi1 = LayerEpilogue(
-            nf, dlatent_size, use_wscale, use_noise, use_pixel_norm, use_instance_norm, use_styles, activation_layer,
+            nf, dlatent_size, use_wscale, use_noise, use_pixel_norm, use_instance_norm, use_styles, activation_layer
         )
         self.conv = MyConv2d(nf, nf, 3, gain=gain, use_wscale=use_wscale)
         self.epi2 = LayerEpilogue(
-            nf, dlatent_size, use_wscale, use_noise, use_pixel_norm, use_instance_norm, use_styles, activation_layer,
+            nf, dlatent_size, use_wscale, use_noise, use_pixel_norm, use_instance_norm, use_styles, activation_layer
         )
 
     def forward(self, dlatents_in_range, noise):
@@ -383,7 +381,7 @@ class GSynthesisBlock(nn.Module):
         else:
             blur = None
         self.conv0_up = MyConv2d(
-            in_channels, out_channels, kernel_size=3, gain=gain, use_wscale=use_wscale, intermediate=blur, upscale=True,
+            in_channels, out_channels, kernel_size=3, gain=gain, use_wscale=use_wscale, intermediate=blur, upscale=True
         )
         self.epi1 = LayerEpilogue(
             out_channels,
@@ -445,7 +443,7 @@ class G_synthesis(nn.Module):
         resolution_log2 = int(np.log2(resolution))
         assert resolution == 2 ** resolution_log2 and resolution >= 4
 
-        act, gain = {"relu": (th.relu, np.sqrt(2)), "lrelu": (nn.LeakyReLU(negative_slope=0.2), np.sqrt(2)),}[
+        act, gain = {"relu": (th.relu, np.sqrt(2)), "lrelu": (nn.LeakyReLU(negative_slope=0.2), np.sqrt(2))}[
             nonlinearity
         ]
         blocks = []
@@ -545,7 +543,7 @@ class G_style(nn.Sequential):
         const = getattr(self.g_synthesis.blocks, "4x4").const
         if network_resolution != 1024:
             means = th.zeros(size=(1, 512, int(4 * 1024 / network_resolution), int(4 * 1024 / network_resolution)))
-            const = th.normal(mean=means, std=th.ones_like(means) * const.std(),)
+            const = th.normal(mean=means, std=th.ones_like(means) * const.std())
 
         _, _, ch, cw = const.shape
         if output_size == 1920:

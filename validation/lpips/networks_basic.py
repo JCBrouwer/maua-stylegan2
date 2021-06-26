@@ -113,10 +113,8 @@ class NetLinLayer(nn.Module):
     def __init__(self, chn_in, chn_out=1, use_dropout=False):
         super(NetLinLayer, self).__init__()
 
-        layers = [nn.Dropout(),] if (use_dropout) else []
-        layers += [
-            nn.Conv2d(chn_in, chn_out, 1, stride=1, padding=0, bias=False),
-        ]
+        layers = [nn.Dropout()] if (use_dropout) else []
+        layers += [nn.Conv2d(chn_in, chn_out, 1, stride=1, padding=0, bias=False)]
         self.model = nn.Sequential(*layers)
 
 
@@ -126,25 +124,13 @@ class Dist2LogitLayer(nn.Module):
     def __init__(self, chn_mid=32, use_sigmoid=True):
         super(Dist2LogitLayer, self).__init__()
 
-        layers = [
-            nn.Conv2d(5, chn_mid, 1, stride=1, padding=0, bias=True),
-        ]
-        layers += [
-            nn.LeakyReLU(0.2, True),
-        ]
-        layers += [
-            nn.Conv2d(chn_mid, chn_mid, 1, stride=1, padding=0, bias=True),
-        ]
-        layers += [
-            nn.LeakyReLU(0.2, True),
-        ]
-        layers += [
-            nn.Conv2d(chn_mid, 1, 1, stride=1, padding=0, bias=True),
-        ]
+        layers = [nn.Conv2d(5, chn_mid, 1, stride=1, padding=0, bias=True)]
+        layers += [nn.LeakyReLU(0.2, True)]
+        layers += [nn.Conv2d(chn_mid, chn_mid, 1, stride=1, padding=0, bias=True)]
+        layers += [nn.LeakyReLU(0.2, True)]
+        layers += [nn.Conv2d(chn_mid, 1, 1, stride=1, padding=0, bias=True)]
         if use_sigmoid:
-            layers += [
-                nn.Sigmoid(),
-            ]
+            layers += [nn.Sigmoid()]
         self.model = nn.Sequential(*layers)
 
     def forward(self, d0, d1, eps=0.1):
@@ -220,4 +206,3 @@ def print_network(net):
         num_params += param.numel()
     print("Network", net)
     print("Total number of parameters: %d" % num_params)
-

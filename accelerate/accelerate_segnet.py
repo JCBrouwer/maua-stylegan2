@@ -87,9 +87,7 @@ def uniform(x, t=2):
 
 
 def train(learning_rate, lambda_mse):
-    print(
-        f"learning_rate={learning_rate:.4f}", f"lambda_mse={lambda_mse:.4f}",
-    )
+    print(f"learning_rate={learning_rate:.4f}", f"lambda_mse={lambda_mse:.4f}")
 
     transform = transforms.Compose(
         [
@@ -104,7 +102,7 @@ def train(learning_rate, lambda_mse):
     name = os.path.splitext(os.path.basename(data_path))[0]
     dataset = MultiResolutionDataset(data_path, transform, 256)
     dataloader = data.DataLoader(
-        dataset, batch_size=batch_size, sampler=data.RandomSampler(dataset), num_workers=12, drop_last=True,
+        dataset, batch_size=batch_size, sampler=data.RandomSampler(dataset), num_workers=12, drop_last=True
     )
     loader = sample_data(dataloader)
     sample_imgs = next(loader)[:24]
@@ -227,4 +225,3 @@ if __name__ == "__main__":
         # args.lambda_unif,
         # args.unif_t,
     )
-

@@ -109,7 +109,7 @@ class EqualConv2d(nn.Module):
             self.bias = None
 
     def forward(self, inputs):
-        out = F.conv2d(inputs, self.weight * self.scale, bias=self.bias, stride=self.stride, padding=self.padding,)
+        out = F.conv2d(inputs, self.weight * self.scale, bias=self.bias, stride=self.stride, padding=self.padding)
 
         return out
 
@@ -456,7 +456,11 @@ class Generator(nn.Module):
         self.truncation_latent = None
 
         if checkpoint is not None:
-            self.load_state_dict(th.load(checkpoint)["g_ema"])
+            ckpt_dict = th.load(checkpoint)
+            if "g_ema" in ckpt_dict:
+                self.load_state_dict(ckpt_dict["g_ema"])
+            else:
+                self.load_state_dict(ckpt_dict)
 
         if size != output_size or base_res_factor != 1:
             for layer_idx in range(self.num_layers):
@@ -578,14 +582,7 @@ class Generator(nn.Module):
 
 class ConvLayer(nn.Sequential):
     def __init__(
-        self,
-        in_channel,
-        out_channel,
-        kernel_size,
-        downsample=False,
-        blur_kernel=[1, 3, 3, 1],
-        bias=True,
-        activate=True,
+        self, in_channel, out_channel, kernel_size, downsample=False, blur_kernel=[1, 3, 3, 1], bias=True, activate=True
     ):
         layers = []
 
@@ -606,7 +603,7 @@ class ConvLayer(nn.Sequential):
 
         layers.append(
             EqualConv2d(
-                in_channel, out_channel, kernel_size, padding=self.padding, stride=stride, bias=bias and not activate,
+                in_channel, out_channel, kernel_size, padding=self.padding, stride=stride, bias=bias and not activate
             )
         )
 
@@ -679,7 +676,7 @@ class Discriminator(nn.Module):
 
         self.final_conv = ConvLayer(in_channel + 1, channels[4], 3)
         self.final_linear = nn.Sequential(
-            EqualLinear(channels[4] * 4 * 4, channels[4], activation="fused_lrelu"), EqualLinear(channels[4], 1),
+            EqualLinear(channels[4] * 4 * 4, channels[4], activation="fused_lrelu"), EqualLinear(channels[4], 1)
         )
 
     def forward(self, inputs):

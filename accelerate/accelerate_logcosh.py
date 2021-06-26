@@ -131,7 +131,7 @@ def train(latent_dim, learning_rate, number_filters, vae_alpha, vae_beta, kl_div
             hidden_dims = [min(int(number_filters) * 2 ** i, latent_dim) for i in range(5)] + [latent_dim]
             vae, vae_optim = None, None
             vae = LogCoshVAE(
-                3, latent_dim, hidden_dims=hidden_dims, alpha=vae_alpha, beta=vae_beta, kld_weight=kl_divergence_weight,
+                3, latent_dim, hidden_dims=hidden_dims, alpha=vae_alpha, beta=vae_beta, kld_weight=kl_divergence_weight
             ).to(device)
             vae.train()
             vae_optim = th.optim.Adam(vae.parameters(), lr=learning_rate)
@@ -173,12 +173,12 @@ def train(latent_dim, learning_rate, number_filters, vae_alpha, vae_beta, kl_div
                         vae.eval()
 
                         sample, _, _ = vae(sample_imgs.to(device))
-                        grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1),)
+                        grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1))
                         del sample
                         wandb.log({"Reconstructed Images VAE": [wandb.Image(grid, caption=f"Step {i}")]})
 
                         sample = vae.decode(sample_z.to(device))
-                        grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1),)
+                        grid = utils.make_grid(sample, nrow=6, normalize=True, range=(-1, 1))
                         del sample
                         wandb.log({"Generated Images VAE": [wandb.Image(grid, caption=f"Step {i}")]})
 
@@ -244,6 +244,5 @@ parser.add_argument("--kl_divergence_weight", type=float, default=1.0)
 args = parser.parse_args()
 
 train(
-    args.latent_dim, args.learning_rate, args.number_filters, args.vae_alpha, args.vae_beta, args.kl_divergence_weight,
+    args.latent_dim, args.learning_rate, args.number_filters, args.vae_alpha, args.vae_beta, args.kl_divergence_weight
 )
-

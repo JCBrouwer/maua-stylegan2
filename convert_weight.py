@@ -110,15 +110,9 @@ def discriminator_fill_statedict(statedict, vars, size):
 
     for i in range(log_size - 2, 0, -1):
         reso = 4 * 2 ** i
-        update(
-            statedict, convert_conv(vars, f"{reso}x{reso}/Conv0", f"convs.{conv_i}.conv1"),
-        )
-        update(
-            statedict, convert_conv(vars, f"{reso}x{reso}/Conv1_down", f"convs.{conv_i}.conv2", start=1),
-        )
-        update(
-            statedict, convert_conv(vars, f"{reso}x{reso}/Skip", f"convs.{conv_i}.skip", start=1, bias=False),
-        )
+        update(statedict, convert_conv(vars, f"{reso}x{reso}/Conv0", f"convs.{conv_i}.conv1"))
+        update(statedict, convert_conv(vars, f"{reso}x{reso}/Conv1_down", f"convs.{conv_i}.conv2", start=1))
+        update(statedict, convert_conv(vars, f"{reso}x{reso}/Skip", f"convs.{conv_i}.skip", start=1, bias=False))
         conv_i += 1
 
     update(statedict, convert_conv(vars, f"4x4/Conv", "final_conv"))
@@ -134,17 +128,13 @@ def fill_statedict(state_dict, vars, size):
     for i in range(8):
         update(state_dict, convert_dense(vars, f"G_mapping/Dense{i}", f"style.{i + 1}"))
 
-    update(
-        state_dict, {"input.input": torch.from_numpy(vars["G_synthesis/4x4/Const/const"].value().eval())},
-    )
+    update(state_dict, {"input.input": torch.from_numpy(vars["G_synthesis/4x4/Const/const"].value().eval())})
 
     update(state_dict, convert_torgb(vars, "G_synthesis/4x4/ToRGB", "to_rgb1"))
 
     for i in range(log_size - 2):
         reso = 4 * 2 ** (i + 1)
-        update(
-            state_dict, convert_torgb(vars, f"G_synthesis/{reso}x{reso}/ToRGB", f"to_rgbs.{i}"),
-        )
+        update(state_dict, convert_torgb(vars, f"G_synthesis/{reso}x{reso}/ToRGB", f"to_rgbs.{i}"))
 
     update(state_dict, convert_modconv(vars, "G_synthesis/4x4/Conv", "conv1"))
 
@@ -152,18 +142,12 @@ def fill_statedict(state_dict, vars, size):
 
     for i in range(log_size - 2):
         reso = 4 * 2 ** (i + 1)
-        update(
-            state_dict, convert_modconv(vars, f"G_synthesis/{reso}x{reso}/Conv0_up", f"convs.{conv_i}", flip=True,),
-        )
-        update(
-            state_dict, convert_modconv(vars, f"G_synthesis/{reso}x{reso}/Conv1", f"convs.{conv_i + 1}"),
-        )
+        update(state_dict, convert_modconv(vars, f"G_synthesis/{reso}x{reso}/Conv0_up", f"convs.{conv_i}", flip=True))
+        update(state_dict, convert_modconv(vars, f"G_synthesis/{reso}x{reso}/Conv1", f"convs.{conv_i + 1}"))
         conv_i += 2
 
     for i in range(0, (log_size - 2) * 2 + 1):
-        update(
-            state_dict, {f"noises.noise_{i}": torch.from_numpy(vars[f"G_synthesis/noise{i}"].value().eval())},
-        )
+        update(state_dict, {f"noises.noise_{i}": torch.from_numpy(vars[f"G_synthesis/noise{i}"].value().eval())})
 
     return state_dict
 
@@ -225,7 +209,7 @@ if __name__ == "__main__":
     z = np.random.RandomState(0).randn(n_sample, 512).astype("float32")
 
     with torch.no_grad():
-        img_pt, _ = g([torch.from_numpy(z).to(device)], truncation=0.5, truncation_latent=latent_avg.to(device),)
+        img_pt, _ = g([torch.from_numpy(z).to(device)], truncation=0.5, truncation_latent=latent_avg.to(device))
 
     Gs_kwargs = dnnlib.EasyDict()
     Gs_kwargs.randomize_noise = False

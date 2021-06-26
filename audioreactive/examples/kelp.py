@@ -114,7 +114,7 @@ def get_bends(args):
     # repeat the intermediate features outwards on both sides (2:1 aspect ratio)
     # + add some noise to give the whole thing a little variation (disguises the repetition)
     transform = th.nn.Sequential(
-        th.nn.ReplicationPad2d((2, 2, 0, 0)), ar.AddNoise(0.025 * th.randn(size=(1, 1, 4, 8), device="cuda")),
+        th.nn.ReplicationPad2d((2, 2, 0, 0)), ar.AddNoise(0.025 * th.randn(size=(1, 1, 4, 8), device="cuda"))
     )
     bends = [{"layer": 0, "transform": transform}]
 

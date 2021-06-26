@@ -279,7 +279,7 @@ def try_sample_affine_and_pad(img, p, pad_k, G=None):
         pad_x1, pad_x2, pad_y1, pad_y2 = get_padding(torch.inverse(G_try), height, width)
 
         try:
-            img_pad = F.pad(img, (pad_x1 + pad_k, pad_x2 + pad_k, pad_y1 + pad_k, pad_y2 + pad_k), mode="reflect",)
+            img_pad = F.pad(img, (pad_x1 + pad_k, pad_x2 + pad_k, pad_y1 + pad_k, pad_y2 + pad_k), mode="reflect")
 
         except RuntimeError:
             continue

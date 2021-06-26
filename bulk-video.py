@@ -93,6 +93,13 @@ if __name__ == "__main__":
                 5,
             ).cpu()
         )
+        # nois.append(
+        #     get_noise(
+        #         height=2 ** int(scale / 2),
+        #         width=(2 if not scale == 5 and output_size == "1920x1080" else 1) * 2 ** int(scale / 2),
+        #         args=args,
+        #     )
+        # )
 
     del G.mapping, G.z_dim, G.c_dim, G.w_dim, G.img_resolution, G.img_channels, G.num_ws
     render_ddp(

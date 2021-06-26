@@ -101,7 +101,7 @@ def train(latent_dim, num_repeats, learning_rate, lambda_vgg, lambda_mse):
     name = os.path.splitext(os.path.basename(data_path))[0]
     dataset = MultiResolutionDataset(data_path, transform, 256)
     dataloader = data.DataLoader(
-        dataset, batch_size=batch_size, sampler=data.RandomSampler(dataset), num_workers=12, drop_last=True,
+        dataset, batch_size=batch_size, sampler=data.RandomSampler(dataset), num_workers=12, drop_last=True
     )
     loader = sample_data(dataloader)
     sample_imgs = next(loader)[:24]
@@ -132,13 +132,7 @@ def train(latent_dim, num_repeats, learning_rate, lambda_vgg, lambda_mse):
 
         loss = bce + kld + lambda_vgg * vgg_loss + lambda_mse * mse_loss
 
-        loss_dict = {
-            "Total": loss,
-            "BCE": bce,
-            "Kullback Leibler Divergence": kld,
-            "MSE": mse_loss,
-            "VGG": vgg_loss,
-        }
+        loss_dict = {"Total": loss, "BCE": bce, "Kullback Leibler Divergence": kld, "MSE": mse_loss, "VGG": vgg_loss}
 
         vae.zero_grad()
         loss.backward()
@@ -197,7 +191,4 @@ if __name__ == "__main__":
 
     wandb.init(project=f"maua-stylegan")
 
-    train(
-        args.latent_dim, args.num_repeats, args.learning_rate, args.lambda_vgg, args.lambda_mse,
-    )
-
+    train(args.latent_dim, args.num_repeats, args.learning_rate, args.lambda_vgg, args.lambda_mse)

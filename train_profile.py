@@ -562,7 +562,7 @@ if __name__ == "__main__":
             d_reg_ratio = args.d_reg_every / (args.d_reg_every + 1)
 
             g_optim = th.optim.Adam(
-                generator.parameters(), lr=args.lr * g_reg_ratio, betas=(0 ** g_reg_ratio, 0.99 ** g_reg_ratio),
+                generator.parameters(), lr=args.lr * g_reg_ratio, betas=(0 ** g_reg_ratio, 0.99 ** g_reg_ratio)
             )
             d_optim = th.optim.Adam(
                 discriminator.parameters(),

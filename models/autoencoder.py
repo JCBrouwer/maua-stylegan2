@@ -141,9 +141,7 @@ class LogCoshVAE(th.nn.Module):
 
 
 class conv2DBatchNormRelu(th.nn.Module):
-    def __init__(
-        self, in_channels, n_filters, k_size, stride, padding, bias=True, dilation=1, with_bn=True,
-    ):
+    def __init__(self, in_channels, n_filters, k_size, stride, padding, bias=True, dilation=1, with_bn=True):
         super(conv2DBatchNormRelu, self).__init__()
 
         conv_mod = th.nn.Conv2d(
@@ -314,11 +312,7 @@ class SegNet(th.nn.Module):
             if idx < 2:
                 units = [conv_block.conv1.cbr_unit, conv_block.conv2.cbr_unit]
             else:
-                units = [
-                    conv_block.conv1.cbr_unit,
-                    conv_block.conv2.cbr_unit,
-                    conv_block.conv3.cbr_unit,
-                ]
+                units = [conv_block.conv1.cbr_unit, conv_block.conv2.cbr_unit, conv_block.conv3.cbr_unit]
             for _unit in units:
                 for _layer in _unit:
                     if isinstance(_layer, th.nn.Conv2d):

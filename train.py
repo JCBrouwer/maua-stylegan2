@@ -295,7 +295,7 @@ def train(args, loader, generator, discriminator, contrast_learner, g_optim, d_o
                     coverage = fid_dict["Coverage"]
 
                     ppl = validation.ppl(
-                        g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size,
+                        g_ema, args.val_batch_size, args.ppl_n_sample, args.ppl_space, args.ppl_crop, args.latent_size
                     )
 
                     log_dict["Evaluation/FID"] = fid
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     d_reg_ratio = args.d_reg_every / (args.d_reg_every + 1)
 
     g_optim = th.optim.Adam(
-        generator.parameters(), lr=args.lr * g_reg_ratio, betas=(0 ** g_reg_ratio, 0.99 ** g_reg_ratio),
+        generator.parameters(), lr=args.lr * g_reg_ratio, betas=(0 ** g_reg_ratio, 0.99 ** g_reg_ratio)
     )
     d_optim = th.optim.Adam(
         discriminator.parameters(),

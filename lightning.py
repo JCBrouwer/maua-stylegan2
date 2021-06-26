@@ -61,10 +61,10 @@ class StyleGAN2(pl.LightningModule):
         d_reg_ratio = self.d_reg_every / (self.d_reg_every + 1)
 
         g_optim = th.optim.Adam(
-            self.generator.parameters(), lr=self.lr * g_reg_ratio, betas=(0 ** g_reg_ratio, 0.99 ** g_reg_ratio),
+            self.generator.parameters(), lr=self.lr * g_reg_ratio, betas=(0 ** g_reg_ratio, 0.99 ** g_reg_ratio)
         )
         d_optim = th.optim.Adam(
-            self.discriminator.parameters(), lr=self.lr * d_reg_ratio, betas=(0 ** d_reg_ratio, 0.99 ** d_reg_ratio),
+            self.discriminator.parameters(), lr=self.lr * d_reg_ratio, betas=(0 ** d_reg_ratio, 0.99 ** d_reg_ratio)
         )
 
         return [g_optim, g_optim, d_optim, d_optim], []
@@ -73,7 +73,7 @@ class StyleGAN2(pl.LightningModule):
         amp_optimizers = []
         for optimizer in optimizers:
             try:
-                amp_model, amp_optimizer = amp.initialize(model, optimizer, opt_level=amp_level,)
+                amp_model, amp_optimizer = amp.initialize(model, optimizer, opt_level=amp_level)
             except RuntimeError as err:
                 print(err)
                 print("Skipping this optimizer")
@@ -252,7 +252,7 @@ class StyleGAN2(pl.LightningModule):
         gc.collect()
         th.cuda.empty_cache()
         val_fid = validation.fid(
-            self.g_ema.to(batch.device), self.val_batch_size, self.fid_n_sample, self.fid_truncation, self.name,
+            self.g_ema.to(batch.device), self.val_batch_size, self.fid_n_sample, self.fid_truncation, self.name
         )["FID"]
         val_ppl = validation.ppl(
             self.g_ema.to(batch.device),

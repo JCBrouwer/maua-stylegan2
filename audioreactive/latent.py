@@ -104,7 +104,7 @@ def spline_loops(latent_selection, n_frames, n_loops, loop=True):
             tck = interpolate.splrep(np.linspace(0, 1, latent_selection.shape[0]), latent_selection[:, lay, lat])
             base_latents[:, lay, lat] = interpolate.splev(x, tck)
 
-    base_latents = th.cat([th.from_numpy(base_latents)] * int(n_frames / len(base_latents)), axis=0)
+    base_latents = th.cat([th.from_numpy(base_latents).float()] * int(n_frames / len(base_latents)), axis=0)
     if n_frames - len(base_latents) > 0:
         base_latents = th.cat([base_latents, base_latents[0 : n_frames - len(base_latents)]])
     return base_latents[:n_frames]
@@ -149,7 +149,7 @@ def generate_latents(n_latents, ckpt, G_res, noconst=False, latent_dim=512, n_ml
         th.tensor: Set of mapped latents
     """
     generator = Generator(
-        G_res, latent_dim, n_mlp, channel_multiplier=channel_multiplier, constant_input=not noconst, checkpoint=ckpt,
+        G_res, latent_dim, n_mlp, channel_multiplier=channel_multiplier, constant_input=not noconst, checkpoint=ckpt
     ).cuda()
     zs = th.randn((n_latents, latent_dim), device="cuda")
     latent_selection = generator(zs, map_latents=True).cpu()

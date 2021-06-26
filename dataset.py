@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 
 class MultiResolutionDataset(Dataset):
     def __init__(self, path, transform, resolution=256):
-        self.env = lmdb.open(path, max_readers=32, readonly=True, lock=False, readahead=False, meminit=False,)
+        self.env = lmdb.open(path, max_readers=32, readonly=True, lock=False, readahead=False, meminit=False)
 
         if not self.env:
             raise IOError("Cannot open lmdb dataset", path)
